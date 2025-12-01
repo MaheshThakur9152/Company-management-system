@@ -1,0 +1,2793 @@
+{
+  "merged_cells": "A1:E1 A2:E2 A3:E3 A4:E4 A5:E5 A7:E7 A8:E8 A13:G14 A15:A16 A30:C30 A31:C31 A32:C32 A33:C33 A34:C35 A36:C36 A37:C37 A38:C43 B15:B16 C15:C16 C17:C18 D15:D16 D17:D18 D28:F28 D29:F29 D30:F30 D31:F31 D33:F33 D34:F34 D35:F35 D36:F36 D37:F37 D38:G43 E15:E16 F1:G1 F3:G3 F7:G7 F9:G9 F10:G10 F11:G11 F12:G12 F15:F16",
+  "rows": [
+    {
+      "row_num": 1,
+      "cells": [
+        {
+          "col": "A",
+          "value": "AMBE SERVICE FACILITIES PRIVATE LIMITED",
+          "font_name": "Aptos Narrow",
+          "font_size": 18.0,
+          "bold": false,
+          "font_color": "FFFF0000",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 2,
+      "cells": [
+        {
+          "col": "A",
+          "value": "Shop No - 49 A, Ground Floor, Pooja Enclave CHS Ltd, ",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "top"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 3,
+      "cells": [
+        {
+          "col": "A",
+          "value": "Ganesh Nagar, Kandivali (West), Mumbai 400 067.",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "top"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "Invoice No :  ASF/25-26/027",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 4,
+      "cells": [
+        {
+          "col": "A",
+          "value": "Contact No: 022 45066566 / 9619607537",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "Date:  24 November 2025",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 5,
+      "cells": [
+        {
+          "col": "A",
+          "value": "Email : contact@ambeservice.com / Website : ambeservice.com",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 6,
+      "cells": [
+        {
+          "col": "A",
+          "value": "CIN NO. : U80200MH2023PTC412420",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 7,
+      "cells": [
+        {
+          "col": "A",
+          "value": "GSTIN :  27AAZCA5609F1ZA",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "Billing Period :1st to 31st October  2025",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 8,
+      "cells": [
+        {
+          "col": "A",
+          "value": "M/S. AJMERA REALTY & INFRA INDIA LTD",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": true,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 9,
+      "cells": [
+        {
+          "col": "A",
+          "value": "Bhakti Park wadala Mumbai-40037",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": true,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": true,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": true,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": true,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "Work Order No.:  MHTWOS0007425-26",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 10,
+      "cells": [
+        {
+          "col": "A",
+          "value": "Contact No: +91 99875 23683",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "Work Order Date:  17-06-2025",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 11,
+      "cells": [
+        {
+          "col": "A",
+          "value": "Email :  akash@ajmera.com",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "Work Order Period: 01/06/2025-30/11/2025",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 12,
+      "cells": [
+        {
+          "col": "A",
+          "value": "GSTIN : 27AAACS7866F1Z2",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 13,
+      "cells": [
+        {
+          "col": "A",
+          "value": "We thank you very much for valuable interest shown in our organzaion. We would like to submit  our bill for providing our services.",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "top"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 14,
+      "cells": [
+        {
+          "col": "A",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 15,
+      "cells": [
+        {
+          "col": "A",
+          "value": "Sr No",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "top"
+        },
+        {
+          "col": "B",
+          "value": "Description of Services",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "top"
+        },
+        {
+          "col": "C",
+          "value": "HSN Code",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "top"
+        },
+        {
+          "col": "D",
+          "value": "Rate",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "top"
+        },
+        {
+          "col": "E",
+          "value": "Working \nDays",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "top"
+        },
+        {
+          "col": "F",
+          "value": "Persons",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "top"
+        },
+        {
+          "col": "G",
+          "value": "Amount (RS)",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 16,
+      "cells": [
+        {
+          "col": "A",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 8.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 17,
+      "cells": [
+        {
+          "col": "A",
+          "value": "1",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "center"
+        },
+        {
+          "col": "B",
+          "value": "Housekeeping ",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "center"
+        },
+        {
+          "col": "C",
+          "value": "9985",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "right",
+          "v_align": "center"
+        },
+        {
+          "col": "D",
+          "value": "19000",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "center"
+        },
+        {
+          "col": "E",
+          "value": "131",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "top"
+        },
+        {
+          "col": "F",
+          "value": "5",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "=E17*(D17/31)",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 18,
+      "cells": [
+        {
+          "col": "A",
+          "value": "2",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "center"
+        },
+        {
+          "col": "B",
+          "value": "Overtime in hours (Housekeeping)",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "center"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "0",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "=E18*(D17/30/9)",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 19,
+      "cells": [
+        {
+          "col": "A",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 20,
+      "cells": [
+        {
+          "col": "A",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 21,
+      "cells": [
+        {
+          "col": "A",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "center"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "center"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "right",
+          "v_align": "center"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "center"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 22,
+      "cells": [
+        {
+          "col": "A",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "center"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "center"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "right",
+          "v_align": "center"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "center"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 23,
+      "cells": [
+        {
+          "col": "A",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "center"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "center"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "right",
+          "v_align": "center"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "center"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 24,
+      "cells": [
+        {
+          "col": "A",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "center"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "center"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "right",
+          "v_align": "center"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "center"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 25,
+      "cells": [
+        {
+          "col": "A",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "center"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "center"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "right",
+          "v_align": "center"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "center"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 26,
+      "cells": [
+        {
+          "col": "A",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "right",
+          "v_align": "center"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "center"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "right",
+          "v_align": "center"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "center",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 27,
+      "cells": [
+        {
+          "col": "A",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "Sub Total",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "=G16+G17",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 28,
+      "cells": [
+        {
+          "col": "A",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "Management charges @ 7%",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "=G27*7%",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 29,
+      "cells": [
+        {
+          "col": "A",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "Material Charges",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "7000",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 30,
+      "cells": [
+        {
+          "col": "A",
+          "value": "Bank Details",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": true,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "                  ",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 31,
+      "cells": [
+        {
+          "col": "A",
+          "value": "Bank Name :  Axis bank ",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "Total ",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": true,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "=G28+G29+G27",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "right",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 32,
+      "cells": [
+        {
+          "col": "A",
+          "value": "Acc no : 924020001871570",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "Add CGST @ 9%",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": true,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "=G31*9%",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "right",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 33,
+      "cells": [
+        {
+          "col": "A",
+          "value": "IFSC Code: UTIB0001572   Branch: kandivali west,Link Road.",
+          "font_name": "Aptos Narrow",
+          "font_size": 10.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "Add SGST @ 9%",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": true,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "=G31*9%",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "right",
+          "v_align": "None"
+        }
+      ]
+    },
+    {
+      "row_num": 34,
+      "cells": [
+        {
+          "col": "A",
+          "value": "Amount Chargeble in words(INR) : ",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": true,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "B",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "C",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "D",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": true,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "left",
+          "v_align": "None"
+        },
+        {
+          "col": "E",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "F",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        },
+        {
+          "col": "G",
+          "value": "",
+          "font_name": "Aptos Narrow",
+          "font_size": 11.0,
+          "bold": false,
+          "font_color": "Values must be of type <class 'str'>",
+          "fill_color": "00000000",
+          "h_align": "None",
+          "v_align": "None"
+        }
+      ]
+    }
+  ]
+}

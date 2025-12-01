@@ -1,0 +1,514 @@
+﻿================================================================================
+EXACT EXCEL STRUCTURE FOR PDF GENERATION
+================================================================================
+
+MERGED CELLS:
+A1:E1 A2:E2 A3:E3 A4:E4 A5:E5 A7:E7 A8:E8 A13:G14 A15:A16 A30:C30 A31:C31 A32:C32 A33:C33 A34:C35 A36:C36 A37:C37 A38:C43 B15:B16 C15:C16 C17:C18 D15:D16 D17:D18 D28:F28 D29:F29 D30:F30 D31:F31 D33:F33 D34:F34 D35:F35 D36:F36 D37:F37 D38:G43 E15:E16 F1:G1 F3:G3 F7:G7 F9:G9 F10:G10 F11:G11 F12:G12 F15:F16
+
+================================================================================
+ROW-BY-ROW BREAKDOWN
+================================================================================
+
+--- ROW 1 ---
+Height: 24.0
+  A1: AMBE SERVICE FACILITIES PRIVATE LIMITED
+       Font: 18.0pt  RED | Align: left/top [SPANS: A1:E1]
+  F1: (empty)
+       Font: 11.0pt   | Align: left/top [SPANS: F1:G1]
+
+--- ROW 2 ---
+Height: default (15.0)
+  A2: Shop No - 49 A, Ground Floor, Pooja Enclave CHS Ltd, 
+       Font: 11.0pt   | Align: left/top [SPANS: A2:E2]
+  F2: (empty)
+       Font: 11.0pt   | Align: left/top
+  G2: (empty)
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 3 ---
+Height: default (15.0)
+  A3: Ganesh Nagar, Kandivali (West), Mumbai 400 067.
+       Font: 11.0pt   | Align: left/top [SPANS: A3:E3]
+  F3: Invoice No :  ASF/25-26/027
+       Font: 11.0pt   | Align: left/top [SPANS: F3:G3]
+
+--- ROW 4 ---
+Height: default (15.0)
+  A4: Contact No: 022 45066566 / 9619607537
+       Font: 11.0pt   | Align: left/top [SPANS: A4:E4]
+  F4: Date:  24 November 2025
+       Font: 11.0pt   | Align: left/top
+  G4: (empty)
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 5 ---
+Height: default (15.0)
+  A5: Email : contact@ambeservice.com / Website : ambeservice.com
+       Font: 11.0pt   | Align: left/top [SPANS: A5:E5]
+  F5: (empty)
+       Font: 11.0pt   | Align: left/top
+  G5: (empty)
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 6 ---
+Height: default (15.0)
+  A6: CIN NO. : U80200MH2023PTC412420
+       Font: 11.0pt   | Align: left/top
+  B6: (empty)
+       Font: 11.0pt   | Align: left/top
+  C6: (empty)
+       Font: 11.0pt   | Align: left/top
+  D6: (empty)
+       Font: 11.0pt   | Align: left/top
+  E6: (empty)
+       Font: 11.0pt   | Align: left/top
+  F6: (empty)
+       Font: 11.0pt   | Align: left/top
+  G6: (empty)
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 7 ---
+Height: default (15.0)
+  A7: GSTIN :  27AAZCA5609F1ZA
+       Font: 11.0pt   | Align: left/top [SPANS: A7:E7]
+  F7: Billing Period :1st to 31st October  2025
+       Font: 11.0pt   | Align: left/top [SPANS: F7:G7]
+
+--- ROW 8 ---
+Height: default (15.0)
+  A8: M/S. AJMERA REALTY & INFRA INDIA LTD
+       Font: 10.0pt BOLD  | Align: left/top [SPANS: A8:E8]
+  F8: (empty)
+       Font: 10.0pt   | Align: left/top
+  G8: (empty)
+       Font: 10.0pt   | Align: left/top
+
+--- ROW 9 ---
+Height: default (15.0)
+  A9: Bhakti Park wadala Mumbai-40037
+       Font: 11.0pt   | Align: left/top
+  B9: (empty)
+       Font: 11.0pt BOLD  | Align: left/top
+  C9: (empty)
+       Font: 11.0pt BOLD  | Align: left/top
+  D9: (empty)
+       Font: 11.0pt BOLD  | Align: left/top
+  E9: (empty)
+       Font: 11.0pt BOLD  | Align: left/top
+  F9: Work Order No.:  MHTWOS0007425-26
+       Font: 10.0pt   | Align: left/top [SPANS: F9:G9]
+
+--- ROW 10 ---
+Height: default (15.0)
+  A10: Contact No: +91 99875 23683
+       Font: 10.0pt   | Align: left/top
+  B10: (empty)
+       Font: 10.0pt   | Align: left/top
+  C10: (empty)
+       Font: 10.0pt   | Align: left/top
+  D10: (empty)
+       Font: 10.0pt   | Align: left/top
+  E10: (empty)
+       Font: 10.0pt   | Align: left/top
+  F10: Work Order Date:  17-06-2025
+       Font: 11.0pt   | Align: left/top [SPANS: F10:G10]
+
+--- ROW 11 ---
+Height: default (15.0)
+  A11: Email :  akash@ajmera.com
+       Font: 10.0pt   | Align: left/top
+  B11: (empty)
+       Font: 10.0pt   | Align: left/top
+  C11: (empty)
+       Font: 10.0pt   | Align: left/top
+  D11: (empty)
+       Font: 10.0pt   | Align: left/top
+  E11: (empty)
+       Font: 10.0pt   | Align: left/top
+  F11: Work Order Period: 01/06/2025-30/11/2025
+       Font: 11.0pt   | Align: left/top [SPANS: F11:G11]
+
+--- ROW 12 ---
+Height: default (15.0)
+  A12: GSTIN : 27AAACS7866F1Z2
+       Font: 10.0pt   | Align: left/top
+  B12: (empty)
+       Font: 10.0pt   | Align: left/top
+  C12: (empty)
+       Font: 10.0pt   | Align: left/top
+  D12: (empty)
+       Font: 10.0pt   | Align: left/top
+  E12: (empty)
+       Font: 10.0pt   | Align: left/top
+  F12: (empty)
+       Font: 11.0pt   | Align: left/top [SPANS: F12:G12]
+
+--- ROW 13 ---
+Height: 14.45
+  A13: We thank you very much for valuable interest shown in our or
+       Font: 11.0pt   | Align: left/top [SPANS: A13:G14]
+
+--- ROW 14 ---
+Height: default (15.0)
+
+--- ROW 15 ---
+Height: 14.45
+  A15: Sr No
+       Font: 11.0pt   | Align: center/top [SPANS: A15:A16]
+  B15: Description of Services
+       Font: 11.0pt   | Align: center/top [SPANS: B15:B16]
+  C15: HSN Code
+       Font: 11.0pt   | Align: center/top [SPANS: C15:C16]
+  D15: Rate
+       Font: 11.0pt   | Align: center/top [SPANS: D15:D16]
+  E15: Working 
+Days
+       Font: 11.0pt   | Align: center/top [SPANS: E15:E16]
+  F15: Persons
+       Font: 11.0pt   | Align: center/top [SPANS: F15:F16]
+  G15: Amount (RS)
+       Font: 11.0pt   | Align: center/top
+
+--- ROW 16 ---
+Height: default (15.0)
+  G16: (empty)
+       Font: 8.0pt   | Align: left/top
+
+--- ROW 17 ---
+Height: default (15.0)
+  A17: 1
+       Font: 11.0pt   | Align: left/center
+  B17: Housekeeping 
+       Font: 11.0pt   | Align: left/center
+  C17: 9985
+       Font: 11.0pt   | Align: right/center [SPANS: C17:C18]
+  D17: 19000
+       Font: 11.0pt   | Align: center/center [SPANS: D17:D18]
+  E17: 131
+       Font: 11.0pt   | Align: center/top
+  F17: 5
+       Font: 11.0pt   | Align: left/top
+  G17: =E17*(D17/31)
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 18 ---
+Height: default (15.0)
+  A18: 2
+       Font: 11.0pt   | Align: left/center
+  B18: Overtime in hours (Housekeeping)
+       Font: 11.0pt   | Align: left/center
+  E18: (empty)
+       Font: 11.0pt   | Align: center/top
+  F18: (empty)
+       Font: 11.0pt   | Align: left/top
+  G18: =E18*(D17/30/9)
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 19 ---
+Height: default (15.0)
+  A19: (empty)
+       Font: 11.0pt   | Align: left/top
+  B19: (empty)
+       Font: 11.0pt   | Align: left/top
+  C19: (empty)
+       Font: 11.0pt   | Align: left/top
+  D19: (empty)
+       Font: 11.0pt   | Align: left/top
+  E19: (empty)
+       Font: 11.0pt   | Align: left/top
+  F19: (empty)
+       Font: 11.0pt   | Align: left/top
+  G19: (empty)
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 20 ---
+Height: default (15.0)
+  A20: (empty)
+       Font: 11.0pt   | Align: left/top
+  B20: (empty)
+       Font: 11.0pt   | Align: left/top
+  C20: (empty)
+       Font: 11.0pt   | Align: left/top
+  D20: (empty)
+       Font: 11.0pt   | Align: left/top
+  E20: (empty)
+       Font: 11.0pt   | Align: left/top
+  F20: (empty)
+       Font: 11.0pt   | Align: left/top
+  G20: (empty)
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 21 ---
+Height: default (15.0)
+  A21: (empty)
+       Font: 11.0pt   | Align: left/center
+  B21: (empty)
+       Font: 11.0pt   | Align: left/center
+  C21: (empty)
+       Font: 11.0pt   | Align: right/center
+  D21: (empty)
+       Font: 11.0pt   | Align: center/center
+  E21: (empty)
+       Font: 11.0pt   | Align: center/top
+  F21: (empty)
+       Font: 11.0pt   | Align: left/top
+  G21: (empty)
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 22 ---
+Height: default (15.0)
+  A22: (empty)
+       Font: 11.0pt   | Align: left/center
+  B22: (empty)
+       Font: 11.0pt   | Align: left/center
+  C22: (empty)
+       Font: 11.0pt   | Align: right/center
+  D22: (empty)
+       Font: 11.0pt   | Align: center/center
+  E22: (empty)
+       Font: 11.0pt   | Align: center/top
+  F22: (empty)
+       Font: 11.0pt   | Align: left/top
+  G22: (empty)
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 23 ---
+Height: default (15.0)
+  A23: (empty)
+       Font: 11.0pt   | Align: left/center
+  B23: (empty)
+       Font: 11.0pt   | Align: left/center
+  C23: (empty)
+       Font: 11.0pt   | Align: right/center
+  D23: (empty)
+       Font: 11.0pt   | Align: center/center
+  E23: (empty)
+       Font: 11.0pt   | Align: center/top
+  F23: (empty)
+       Font: 11.0pt   | Align: left/top
+  G23: (empty)
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 24 ---
+Height: default (15.0)
+  A24: (empty)
+       Font: 11.0pt   | Align: left/center
+  B24: (empty)
+       Font: 11.0pt   | Align: left/center
+  C24: (empty)
+       Font: 11.0pt   | Align: right/center
+  D24: (empty)
+       Font: 11.0pt   | Align: center/center
+  E24: (empty)
+       Font: 11.0pt   | Align: center/top
+  F24: (empty)
+       Font: 11.0pt   | Align: left/top
+  G24: (empty)
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 25 ---
+Height: default (15.0)
+  A25: (empty)
+       Font: 11.0pt   | Align: left/center
+  B25: (empty)
+       Font: 11.0pt   | Align: left/center
+  C25: (empty)
+       Font: 11.0pt   | Align: right/center
+  D25: (empty)
+       Font: 11.0pt   | Align: center/center
+  E25: (empty)
+       Font: 11.0pt   | Align: center/top
+  F25: (empty)
+       Font: 11.0pt   | Align: left/top
+  G25: (empty)
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 26 ---
+Height: default (15.0)
+  A26: (empty)
+       Font: 11.0pt   | Align: right/center
+  B26: (empty)
+       Font: 11.0pt   | Align: left/center
+  C26: (empty)
+       Font: 11.0pt   | Align: right/center
+  D26: (empty)
+       Font: 11.0pt   | Align: left/top
+  E26: (empty)
+       Font: 11.0pt   | Align: center/top
+  F26: (empty)
+       Font: 11.0pt   | Align: left/top
+  G26: (empty)
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 27 ---
+Height: default (15.0)
+  A27: (empty)
+       Font: 11.0pt   | Align: left/top
+  B27: (empty)
+       Font: 11.0pt   | Align: left/top
+  C27: (empty)
+       Font: 11.0pt   | Align: left/top
+  D27: Sub Total
+       Font: 11.0pt   | Align: left/top
+  E27: (empty)
+       Font: 11.0pt   | Align: left/top
+  F27: (empty)
+       Font: 11.0pt   | Align: left/top
+  G27: =G16+G17
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 28 ---
+Height: default (15.0)
+  A28: (empty)
+       Font: 11.0pt   | Align: left/top
+  B28: (empty)
+       Font: 11.0pt   | Align: left/top
+  C28: (empty)
+       Font: 11.0pt   | Align: left/top
+  D28: Management charges @ 7%
+       Font: 11.0pt   | Align: left/top [SPANS: D28:F28]
+  G28: =G27*7%
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 29 ---
+Height: 15.0
+  A29: (empty)
+       Font: 11.0pt   | Align: left/top
+  B29: (empty)
+       Font: 11.0pt   | Align: left/top
+  C29: (empty)
+       Font: 11.0pt   | Align: left/top
+  D29: Material Charges
+       Font: 11.0pt   | Align: left/top [SPANS: D29:F29]
+  G29: 7000
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 30 ---
+Height: default (15.0)
+  A30: Bank Details
+       Font: 11.0pt BOLD  | Align: left/top [SPANS: A30:C30]
+  D30: (empty)
+       Font: 11.0pt   | Align: left/top [SPANS: D30:F30]
+  G30:                   
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 31 ---
+Height: 14.65
+  A31: Bank Name :  Axis bank 
+       Font: 10.0pt   | Align: left/top [SPANS: A31:C31]
+  D31: Total 
+       Font: 11.0pt BOLD  | Align: left/top [SPANS: D31:F31]
+  G31: =G28+G29+G27
+       Font: 11.0pt   | Align: right/top
+
+--- ROW 32 ---
+Height: default (15.0)
+  A32: Acc no : 924020001871570
+       Font: 10.0pt   | Align: left/top [SPANS: A32:C32]
+  D32: Add CGST @ 9%
+       Font: 11.0pt BOLD  | Align: left/top
+  E32: (empty)
+       Font: 11.0pt   | Align: left/top
+  F32: (empty)
+       Font: 11.0pt   | Align: left/top
+  G32: =G31*9%
+       Font: 11.0pt   | Align: right/top
+
+--- ROW 33 ---
+Height: 14.65
+  A33: IFSC Code: UTIB0001572   Branch: kandivali west,Link Road.
+       Font: 10.0pt   | Align: left/top [SPANS: A33:C33]
+  D33: Add SGST @ 9%
+       Font: 11.0pt BOLD  | Align: left/top [SPANS: D33:F33]
+  G33: =G31*9%
+       Font: 11.0pt   | Align: right/top
+
+--- ROW 34 ---
+Height: default (15.0)
+  A34: Amount Chargeble in words(INR) : 
+       Font: 11.0pt BOLD  | Align: left/top [SPANS: A34:C35]
+  D34: (empty)
+       Font: 11.0pt BOLD  | Align: left/top [SPANS: D34:F34]
+  G34: (empty)
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 35 ---
+Height: default (15.0)
+  D35: Total 
+       Font: 11.0pt BOLD  | Align: left/top [SPANS: D35:F35]
+  G35: =SUM(G31+G32+G33)
+       Font: 11.0pt   | Align: right/top
+
+--- ROW 36 ---
+Height: default (15.0)
+  A36: One Lakh Nine Thousand Six Hundred and 
+       Font: 10.0pt   | Align: left/top [SPANS: A36:C36]
+  D36: Round off (+-)
+       Font: 11.0pt BOLD  | Align: left/top [SPANS: D36:F36]
+  G36: 0.56
+       Font: 11.0pt   | Align: left/top
+
+--- ROW 37 ---
+Height: 15.75
+  A37: Thirty Four Only
+       Font: 10.0pt   | Align: left/top [SPANS: A37:C37]
+  D37: Total Amount 
+       Font: 12.0pt BOLD  | Align: left/top [SPANS: D37:F37]
+  G37: =G35-G36
+       Font: 12.0pt BOLD  | Align: left/top
+
+--- ROW 38 ---
+Height: 15.0
+  A38: Terms & condition : 
+Payment can only be done in cheque/DD, 
+       Font: 11.0pt   | Align: left/top [SPANS: A38:C43]
+  D38: For Ambe Service Facilities Pvt Ltd  
+
+
+
+
+Authorized signato
+       Font: 11.0pt   | Align: right/top [SPANS: D38:G43]
+
+--- ROW 39 ---
+Height: default (15.0)
+
+--- ROW 40 ---
+Height: 14.45
+
+--- ROW 41 ---
+Height: 14.45
+
+--- ROW 42 ---
+Height: 14.45
+
+--- ROW 43 ---
+Height: 14.45
+
+--- ROW 44 ---
+Height: default (15.0)
+  A44: (empty)
+       Font: 11.0pt   | Align: left/top
+  B44: (empty)
+       Font: 11.0pt   | Align: left/top
+  C44: (empty)
+       Font: 11.0pt   | Align: left/top
+  D44: (empty)
+       Font: 11.0pt   | Align: left/top
+  E44: (empty)
+       Font: 11.0pt   | Align: left/top
+  F44: (empty)
+       Font: 11.0pt   | Align: left/top
+  G44: (empty)
+       Font: 11.0pt   | Align: left/top
+
+================================================================================
+COLUMN WIDTHS
+================================================================================
+A: 5.28515625
+B: 27.85546875
+C: 9.5703125
+D: 8.42578125
+E: 9.42578125
+F: 13.5703125
+G: 22.28515625
