@@ -34,6 +34,14 @@ const getXLSX = async () => {
   return (window as any).XLSX;
 };
 
+const PLACEHOLDER_IMAGE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAJ0lEQVR4nO3MMQ0AAAgDMOFf6Bzu6QAJ6aeT5F3b7fF4PB6Px+PxeDweH00D83f1HwAAAABJRU5ErkJggg==';
+
+const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const target = e.target as HTMLImageElement;
+    target.onerror = null;
+    target.src = PLACEHOLDER_IMAGE;
+};
+
 const getExcelJS = async () => {
   return await ensureExcelJSLoaded();
 };
@@ -688,7 +696,7 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
           <div className="flex items-center gap-3">
             <div className="bg-primary p-2 rounded-lg"><LayoutDashboard size={20} /></div>
             <div>
-                <h1 className="font-bold text-lg">Ambe Admin</h1>
+                <h1 className="font-bold text-lg">Ambe Admin (v2.3.1)</h1>
                 {userRole === 'SuperAdmin' && <span className="text-xs text-yellow-400 font-mono">Super Admin</span>}
             </div>
           </div>
@@ -851,7 +859,7 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
                         <div key={emp.id} className={`bg-white p-5 rounded-xl border shadow-sm hover:shadow-md ${emp.status === 'Pending' ? 'border-yellow-400 bg-yellow-50' : (emp.status === 'Deleted' ? 'border-red-400 bg-red-50 opacity-75' : '')}`}>
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-4">
-                                    <img src={emp.photoUrl} className="w-12 h-12 rounded-full object-cover border" />
+                                    <img src={emp.photoUrl} className="w-12 h-12 rounded-full object-cover border" onError={handleImageError} />
                                     <div>
                                         <h3 className="font-bold text-gray-800">{emp.name}</h3>
                                         <div className="text-xs text-gray-500 font-mono">{emp.biometricCode}</div>
@@ -998,7 +1006,7 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
                                                 <div className="flex items-center justify-between gap-3 min-w-[180px]">
                                                     <div className="flex items-center gap-3">
                                                         <div className="relative">
-                                                            <img src={emp.photoUrl} className="w-8 h-8 rounded-full object-cover border border-gray-100 shadow-sm" alt="" />
+                                                            <img src={emp.photoUrl} className="w-8 h-8 rounded-full object-cover border border-gray-100 shadow-sm" alt="" onError={handleImageError} />
                                                             <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${emp.status==='Active'?'bg-green-500':'bg-gray-300'}`}></div>
                                                         </div>
                                                         <div className="text-left">
@@ -1055,19 +1063,14 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
                                                                         src={record.photoUrl} 
                                                                         className="w-8 h-8 rounded object-cover border border-green-500 shadow-sm" 
                                                                         alt="P" 
-                                                                        onError={(e) => { 
-                                                                            const target = e.target as HTMLImageElement;
-                                                                            target.onerror = null;
-                                                                            // Simple gray 32x32 placeholder to avoid external network requests
-                                                                            target.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAJ0lEQVR4nO3MMQ0AAAgDMOFf6Bzu6QAJ6aeT5F3b7fF4PB6Px+PxeDweH00D83f1HwAAAABJRU5ErkJggg=='; 
-                                                                        }}
+                                                                        onError={handleImageError}
                                                                     />
                                                                     <div className="absolute -top-1 -right-1 bg-blue-500 rounded-full p-0.5 border border-white">
                                                                         <Camera size={8} className="text-white" />
                                                                     </div>
                                                                     {/* Hover Preview - Fixed positioning to avoid clipping */}
                                                                     <div className="fixed hidden group-hover:block z-[9999] pointer-events-none" style={{ transform: 'translate(-50%, -110%)' }}>
-                                                                        <img src={record.photoUrl} className="w-48 h-48 rounded-lg shadow-2xl border-4 border-white object-cover bg-gray-800" alt="Preview" />
+                                                                        <img src={record.photoUrl} className="w-48 h-48 rounded-lg shadow-2xl border-4 border-white object-cover bg-gray-800" alt="Preview" onError={handleImageError} />
                                                                     </div>
                                                                 </div>
                                                             ); 
@@ -1195,7 +1198,7 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
                         {selectedAttendance.photoUrl && (
                             <div className="mb-6 flex justify-center flex-col items-center gap-2">
                                 <div className="relative">
-                                    <img src={selectedAttendance.photoUrl} className="w-48 h-48 rounded-lg object-cover border-4 border-white shadow-lg bg-gray-100" alt="Attendance" />
+                                    <img src={selectedAttendance.photoUrl} className="w-48 h-48 rounded-lg object-cover border-4 border-white shadow-lg bg-gray-100" alt="Attendance" onError={handleImageError} />
                                     <div className="absolute -bottom-3 -right-3 bg-green-500 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-sm flex items-center gap-1">
                                         <CheckCircle size={12} /> Verified
                                     </div>
@@ -1229,7 +1232,7 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
                             return (
                                 <div key={record.id} className="bg-gray-50 rounded-lg border p-3 hover:shadow-md transition-shadow">
                                     <div className="aspect-square rounded-lg overflow-hidden mb-3 border bg-white relative group">
-                                        <img src={record.photoUrl} className="w-full h-full object-cover" />
+                                        <img src={record.photoUrl} className="w-full h-full object-cover" onError={handleImageError} />
                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                                         <a href={record.photoUrl} target="_blank" rel="noreferrer" className="absolute bottom-2 right-2 bg-white/90 p-1.5 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white text-blue-600">
                                             <Download size={14} />
