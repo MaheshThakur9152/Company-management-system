@@ -178,7 +178,7 @@ const App: React.FC = () => {
              </button>
           </form>
 
-          <div className="mt-8">
+          {/* <div className="mt-8">
              <div className="text-xs text-center text-gray-400 mb-2">Login Credentials</div>
              <div className="grid grid-cols-2 gap-2 text-[10px] text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100 text-left">
                 <div className="col-span-2 border-b pb-1 mb-1 font-bold text-gray-700">Admins</div>
@@ -206,7 +206,7 @@ const App: React.FC = () => {
                   <span>rounder / rounder123</span>
                 </div>
              </div>
-          </div>
+          </div> */}
         </div>
         
       </div>
