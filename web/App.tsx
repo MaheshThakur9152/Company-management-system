@@ -1054,7 +1054,12 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
                                                                         src={record.photoUrl} 
                                                                         className="w-8 h-8 rounded object-cover border border-green-500 shadow-sm" 
                                                                         alt="P" 
-                                                                        onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/32?text=Err'; }}
+                                                                        onError={(e) => { 
+                                                                            const target = e.target as HTMLImageElement;
+                                                                            target.onerror = null;
+                                                                            // Simple gray 32x32 placeholder to avoid external network requests
+                                                                            target.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAJ0lEQVR4nO3MMQ0AAAgDMOFf6Bzu6QAJ6aeT5F3b7fF4PB6Px+PxeDweH00D83f1HwAAAABJRU5ErkJggg=='; 
+                                                                        }}
                                                                     />
                                                                     <div className="absolute -top-1 -right-1 bg-blue-500 rounded-full p-0.5 border border-white">
                                                                         <Camera size={8} className="text-white" />
