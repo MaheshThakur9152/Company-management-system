@@ -37,7 +37,16 @@ const SalaryRecord = require('../models/SalaryRecord');
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://ambeservice.com', 'https://admin.ambeservice.com'],
+  credentials: true
+}));
+
+// THIS IS WHAT YOU'VE BEEN MISSING
+app.options("*", cors({
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://ambeservice.com', 'https://admin.ambeservice.com'],
+  credentials: true
+}));
 app.use(express.json({ limit: '10mb' })); // Increased limit for base64 images
 
 // Middleware to connect to DB
