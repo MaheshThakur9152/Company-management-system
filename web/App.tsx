@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+// Vercel deployment trigger: Fixed image loading error
 import { 
   FileText, Users, Plus, LogOut, Menu, FileSpreadsheet, 
   Edit2, LayoutDashboard, CheckCircle, XCircle, Trash2, 
