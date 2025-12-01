@@ -42,6 +42,16 @@ const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     target.src = PLACEHOLDER_IMAGE;
 };
 
+const getSafePhotoUrl = (url: string | undefined | null) => {
+    if (!url) return PLACEHOLDER_IMAGE;
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    // If it looks like a base64 string (e.g. starts with /9j/ for JPEG), prepend data URI scheme
+    if (url.length > 100 && !url.includes(' ')) {
+        return `data:image/jpeg;base64,${url}`;
+    }
+    return url;
+};
+
 const getExcelJS = async () => {
   return await ensureExcelJSLoaded();
 };
@@ -859,7 +869,7 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
                         <div key={emp.id} className={`bg-white p-5 rounded-xl border shadow-sm hover:shadow-md ${emp.status === 'Pending' ? 'border-yellow-400 bg-yellow-50' : (emp.status === 'Deleted' ? 'border-red-400 bg-red-50 opacity-75' : '')}`}>
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-4">
-                                    <img src={emp.photoUrl} className="w-12 h-12 rounded-full object-cover border" onError={handleImageError} />
+                                    <img src={getSafePhotoUrl(emp.photoUrl)} className="w-12 h-12 rounded-full object-cover border" onError={handleImageError} />
                                     <div>
                                         <h3 className="font-bold text-gray-800">{emp.name}</h3>
                                         <div className="text-xs text-gray-500 font-mono">{emp.biometricCode}</div>
@@ -1006,7 +1016,7 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
                                                 <div className="flex items-center justify-between gap-3 min-w-[180px]">
                                                     <div className="flex items-center gap-3">
                                                         <div className="relative">
-                                                            <img src={emp.photoUrl} className="w-8 h-8 rounded-full object-cover border border-gray-100 shadow-sm" alt="" onError={handleImageError} />
+                                                            <img src={getSafePhotoUrl(emp.photoUrl)} className="w-8 h-8 rounded-full object-cover border border-gray-100 shadow-sm" alt="" onError={handleImageError} />
                                                             <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${emp.status==='Active'?'bg-green-500':'bg-gray-300'}`}></div>
                                                         </div>
                                                         <div className="text-left">
@@ -1060,7 +1070,7 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
                                                             content = (
                                                                 <div className="flex justify-center items-center group relative w-full h-full">
                                                                     <img 
-                                                                        src={record.photoUrl} 
+                                                                        src={getSafePhotoUrl(record.photoUrl)} 
                                                                         className="w-8 h-8 rounded object-cover border border-green-500 shadow-sm" 
                                                                         alt="P" 
                                                                         onError={handleImageError}
@@ -1070,7 +1080,7 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
                                                                     </div>
                                                                     {/* Hover Preview - Fixed positioning to avoid clipping */}
                                                                     <div className="fixed hidden group-hover:block z-[9999] pointer-events-none" style={{ transform: 'translate(-50%, -110%)' }}>
-                                                                        <img src={record.photoUrl} className="w-48 h-48 rounded-lg shadow-2xl border-4 border-white object-cover bg-gray-800" alt="Preview" onError={handleImageError} />
+                                                                        <img src={getSafePhotoUrl(record.photoUrl)} className="w-48 h-48 rounded-lg shadow-2xl border-4 border-white object-cover bg-gray-800" alt="Preview" onError={handleImageError} />
                                                                     </div>
                                                                 </div>
                                                             ); 
@@ -1198,7 +1208,7 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
                         {selectedAttendance.photoUrl && (
                             <div className="mb-6 flex justify-center flex-col items-center gap-2">
                                 <div className="relative">
-                                    <img src={selectedAttendance.photoUrl} className="w-48 h-48 rounded-lg object-cover border-4 border-white shadow-lg bg-gray-100" alt="Attendance" onError={handleImageError} />
+                                    <img src={getSafePhotoUrl(selectedAttendance.photoUrl)} className="w-48 h-48 rounded-lg object-cover border-4 border-white shadow-lg bg-gray-100" alt="Attendance" onError={handleImageError} />
                                     <div className="absolute -bottom-3 -right-3 bg-green-500 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-sm flex items-center gap-1">
                                         <CheckCircle size={12} /> Verified
                                     </div>
@@ -1232,9 +1242,9 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
                             return (
                                 <div key={record.id} className="bg-gray-50 rounded-lg border p-3 hover:shadow-md transition-shadow">
                                     <div className="aspect-square rounded-lg overflow-hidden mb-3 border bg-white relative group">
-                                        <img src={record.photoUrl} className="w-full h-full object-cover" onError={handleImageError} />
+                                        <img src={getSafePhotoUrl(record.photoUrl)} className="w-full h-full object-cover" onError={handleImageError} />
                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                                        <a href={record.photoUrl} target="_blank" rel="noreferrer" className="absolute bottom-2 right-2 bg-white/90 p-1.5 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white text-blue-600">
+                                        <a href={getSafePhotoUrl(record.photoUrl)} target="_blank" rel="noreferrer" className="absolute bottom-2 right-2 bg-white/90 p-1.5 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white text-blue-600">
                                             <Download size={14} />
                                         </a>
                                     </div>
