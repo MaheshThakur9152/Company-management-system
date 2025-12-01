@@ -47,7 +47,7 @@ export const CHART_DATA = [];
 // --- Simulated Backend Logic using LocalStorage (FALLBACK) ---
 // REPLACED WITH REAL BACKEND API CALLS
 
-const API_URL = 'https://api.ambeservice.com/api'; // Use localhost for Web
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 async function apiCall<T>(endpoint: string, method: string = 'GET', body?: any): Promise<T> {
     try {
@@ -270,6 +270,82 @@ export const updateSalaryRecord = async (record: SalaryRecord): Promise<boolean>
         return true;
     } catch (e) {
         return false;
+    }
+};
+
+// --- USER MANAGEMENT (ADMINS) ---
+export const getUsers = async (): Promise<any[]> => {
+    try {
+        return await apiCall<any[]>('/users');
+    } catch (e) {
+        console.error("Failed to fetch users", e);
+        return [];
+    }
+};
+
+export const addUser = async (user: any): Promise<boolean> => {
+    try {
+        await apiCall('/users', 'POST', user);
+        return true;
+    } catch (e) {
+        console.error("Failed to add user", e);
+        return false;
+    }
+};
+
+export const deleteUser = async (userId: string): Promise<boolean> => {
+    try {
+        await apiCall(`/users/${userId}`, 'DELETE');
+        return true;
+    } catch (e) {
+        console.error("Failed to delete user", e);
+        return false;
+    }
+};
+
+export const updateUser = async (userId: string, userData: any): Promise<any> => {
+    try {
+        return await apiCall(`/users/${userId}`, 'PUT', userData);
+    } catch (e) {
+        console.error("Failed to update user", e);
+        throw e;
+    }
+};
+
+export const revokeUserTrust = async (userId: string): Promise<boolean> => {
+    try {
+        await apiCall('/auth/revoke-trust', 'POST', { userId });
+        return true;
+    } catch (e) {
+        console.error("Failed to revoke trust", e);
+        return false;
+    }
+};
+
+// --- AUTH ---
+export const loginUser = async (email: string, password: string, deviceId?: string): Promise<any> => {
+    try {
+        return await apiCall('/login', 'POST', { email, password, deviceId });
+    } catch (e) {
+        throw e;
+    }
+};
+
+export const sendOtp = async (username: string): Promise<boolean> => {
+    try {
+        await apiCall('/auth/send-otp', 'POST', { username });
+        return true;
+    } catch (e) {
+        console.error("Failed to send OTP", e);
+        return false;
+    }
+};
+
+export const verifyOtp = async (username: string, otp: string, deviceId?: string): Promise<any> => {
+    try {
+        return await apiCall('/auth/verify-otp', 'POST', { username, otp, deviceId });
+    } catch (e) {
+        throw e;
     }
 };
 

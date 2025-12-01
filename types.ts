@@ -1,5 +1,5 @@
 
-export type Role = 'supervisor' | 'admin' | 'boss';
+export type Role = 'admin' | 'superadmin';
 
 export interface User {
   userId: string;
@@ -41,7 +41,8 @@ export interface Employee {
   siteId: string;
   photoUrl: string;
   weeklyOff: string;
-  status: 'Active' | 'Inactive' | 'Pending' | 'Deleted';
+  status: 'Active' | 'Inactive' | 'Stopped' | 'Pending' | 'Deleted';
+  stoppedDate?: string;
   joiningDate: string;
   aadharNumber?: string;
   panNumber?: string;

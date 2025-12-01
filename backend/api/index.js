@@ -3,12 +3,22 @@ const cors = require('cors');
 require('dotenv').config();
 const connectToDatabase = require('../utils/db');
 const cloudinary = require('cloudinary').v2;
+const nodemailer = require('nodemailer');
 
 // Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// OTP Transporter
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER, // Set these in .env
+    pass: process.env.EMAIL_PASS
+  }
 });
 
 // Helper function for Cloudinary upload
@@ -38,13 +48,13 @@ const SalaryRecord = require('../models/SalaryRecord');
 const app = express();
 
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://ambeservice.com', 'https://admin.ambeservice.com'],
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174', 'http://localhost:3000', 'https://ambeservice.com', 'https://admin.ambeservice.com'],
   credentials: true
 }));
 
 // THIS IS WHAT YOU'VE BEEN MISSING
 app.options("*", cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://ambeservice.com', 'https://admin.ambeservice.com'],
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174', 'http://localhost:3000', 'https://ambeservice.com', 'https://admin.ambeservice.com'],
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' })); // Increased limit for base64 images
@@ -270,27 +280,271 @@ app.put('/api/salary-records/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// --- User Management (Admins) ---
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await User.find({ role: 'admin' });
+    res.json(users);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/users', async (req, res) => {
+  try {
+    const userData = req.body;
+    // Ensure role is admin if not specified (or force it)
+    userData.role = 'admin';
+    
+    // Normalize to lowercase
+    if (userData.userId) userData.userId = userData.userId.toLowerCase().trim();
+    if (userData.email) userData.email = userData.email.toLowerCase().trim();
+    
+    // Check if user exists
+    const existing = await User.findOne({ $or: [{ email: userData.email }, { userId: userData.userId }] });
+    if (existing) {
+        return res.status(400).json({ error: "User with this email or ID already exists" });
+    }
+
+    // Handle Photo Upload
+    if (userData.photoUrl && userData.photoUrl.startsWith('data:image')) {
+      const url = await uploadToCloudinary(userData.photoUrl, 'ambe_users', `${userData.userId}_${Date.now()}`);
+      if (url) userData.photoUrl = url;
+    }
+
+    const user = new User(userData);
+    await user.save();
+    res.json(user);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/users/:id', async (req, res) => {
+  try {
+    const user = await User.findOneAndUpdate({ userId: req.params.id }, req.body, { new: true });
+    res.json(user);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    await User.findOneAndDelete({ userId: req.params.id });
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- OTP Auth ---
+const sendOtpEmail = async (user, otp) => {
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        try {
+            // For testing, force email to the specific testing account if it's Nandani or Ambe
+            const targetEmail = (user.userId === 'nandani' || user.userId === 'ambe') 
+                ? (process.env.TEST_EMAIL_RECIPIENT || 'maheshthakurharishankar@gmail.com')
+                : user.email;
+
+            await transporter.sendMail({
+                from: process.env.EMAIL_USER,
+                to: targetEmail, 
+                subject: 'Ambe Service Login OTP',
+                text: `Your OTP is: ${otp}`
+            });
+            console.log(`[OTP] Sent to ${targetEmail}`);
+        } catch (err) {
+            console.error("Failed to send email", err);
+        }
+    }
+};
+
+app.post('/api/auth/send-otp', async (req, res) => {
+    try {
+        const { username } = req.body;
+        const normalizedUser = username ? username.trim() : '';
+        const regex = new RegExp(`^${normalizedUser}$`, 'i');
+
+        // Find User
+        let user = await User.findOne({ $or: [{ userId: { $regex: regex } }, { email: { $regex: regex } }] });
+        
+        if (!user) {
+             // Special case for initial Nandani setup if not exists
+             if (normalizedUser.toLowerCase() === 'nandani') {
+                user = new User({
+                    userId: 'nandani',
+                    name: 'Nandani',
+                    role: 'superadmin',
+                    email: process.env.TEST_EMAIL_RECIPIENT || 'maheshthakurharishankar@gmail.com',
+                    trustedDevices: []
+                });
+             } else {
+                return res.status(400).json({ error: "User not found" });
+             }
+        }
+
+        // Generate OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+        user.otp = otp;
+        user.otpExpires = otpExpires;
+        
+        // Ensure email is set for testing accounts
+        if (user.userId === 'nandani' || user.userId === 'ambe') {
+            user.email = process.env.TEST_EMAIL_RECIPIENT || 'maheshthakurharishankar@gmail.com';
+        }
+        
+        await user.save();
+
+        // Send Email
+        console.log(`[OTP] Generated for ${user.name}: ${otp}`); 
+        await sendOtpEmail(user, otp);
+
+        res.json({ success: true, message: "OTP sent to registered email" });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/auth/verify-otp', async (req, res) => {
+    try {
+        const { username, otp, deviceId } = req.body;
+        const normalizedUser = username ? username.trim() : '';
+        const regex = new RegExp(`^${normalizedUser}$`, 'i');
+
+        const user = await User.findOne({ $or: [{ userId: { $regex: regex } }, { email: { $regex: regex } }] });
+        if (!user) return res.status(400).json({ error: "User not found" });
+
+        if (user.otp !== otp) return res.status(400).json({ error: "Invalid OTP" });
+        if (user.otpExpires < Date.now()) return res.status(400).json({ error: "OTP Expired" });
+
+        // Clear OTP
+        user.otp = null;
+        user.otpExpires = null;
+
+        // Trust Device
+        if (deviceId) {
+            if (!user.trustedDevices) user.trustedDevices = [];
+            if (!user.trustedDevices.includes(deviceId)) {
+                user.trustedDevices.push(deviceId);
+            }
+        }
+
+        await user.save();
+
+        res.json(user);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/auth/revoke-trust', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const user = await User.findOne({ userId });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        user.trustedDevices = [];
+        await user.save();
+        
+        res.json({ success: true, message: "User logged out from all devices (Trust revoked)" });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Login (Mock Auth for now, but checking DB)
 app.post('/api/login', async (req, res) => {
-  let { email, password } = req.body;
+  let { email, password, deviceId } = req.body;
 
-  // Normalize inputs (trim whitespace and lowercase for boss check)
-  const normalizedEmail = email ? email.trim().toLowerCase() : '';
-  const normalizedPassword = password ? password.trim().toLowerCase() : '';
-
-  // Hardcoded Boss Login (Case Insensitive & Whitespace Tolerant)
-  if (normalizedEmail === 'boss' && normalizedPassword === 'boss') {
-    return res.json({ userId: 'boss', name: 'Boss', role: 'boss', email: 'boss' });
-  }
-
-  // In real app, check password hash
-  // For now, we just check if user exists or use hardcoded logic from frontend
-  // But let's try to find user in DB
+  // Normalize inputs
+  const normalizedEmail = email ? email.trim() : '';
+  const regex = new RegExp(`^${normalizedEmail}$`, 'i');
+  
   try {
-    let user = await User.findOne({ email });
+    // Check by email OR userId (username)
+    let user = await User.findOne({ $or: [{ email: { $regex: regex } }, { userId: { $regex: regex } }] });
+    
+    if (user) {
+        // Fix for Nandani if password is missing (Bootstrap fix)
+        if (user.userId === 'nandani' && !user.password) {
+            user.password = password || 'ambe123';
+            await user.save();
+        }
+
+        // Simple password check
+        if (user.password === password) {
+             // Check Trusted Device
+             if (deviceId && user.trustedDevices && user.trustedDevices.includes(deviceId)) {
+                 return res.json(user);
+             } else {
+                 // Device not trusted -> Trigger OTP
+                 // Generate OTP
+                 const otp = Math.floor(100000 + Math.random() * 900000).toString();
+                 const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+                 
+                 user.otp = otp;
+                 user.otpExpires = otpExpires;
+                 
+                 // Ensure email is set for testing accounts
+                 if (user.userId === 'nandani' || user.userId === 'ambe') {
+                    user.email = process.env.TEST_EMAIL_RECIPIENT || 'maheshthakurharishankar@gmail.com';
+                 }
+
+                 await user.save();
+                 
+                 console.log(`[OTP] Login Triggered for ${user.name}: ${otp}`);
+                 await sendOtpEmail(user, otp);
+                 
+                 return res.json({ requireOtp: true, userId: user.userId, message: "New device detected. OTP sent." });
+             }
+        } else {
+             return res.status(401).json({ error: 'Invalid Password' });
+        }
+    }
     
     // Fallback for initial setup if no users in DB
     if (!user) {
+        // Auto-create 'ambe' user if requested
+        if (normalizedEmail.toLowerCase() === 'ambe' && password === 'ambe123') {
+             const newUser = new User({
+                 userId: 'ambe',
+                 name: 'Ambe Admin',
+                 role: 'admin',
+                 email: process.env.TEST_EMAIL_RECIPIENT || 'maheshthakurharishankar@gmail.com', // Default to testing email
+                 password: 'ambe123',
+                 trustedDevices: []
+             });
+             
+             // Trigger OTP for first login
+             const otp = Math.floor(100000 + Math.random() * 900000).toString();
+             newUser.otp = otp;
+             newUser.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+             await newUser.save();
+             
+             console.log(`[OTP] Created Ambe User: ${otp}`);
+             await sendOtpEmail(newUser, otp);
+             
+             return res.json({ requireOtp: true, userId: 'ambe', message: "User created. OTP sent." });
+        }
+
+        // Auto-create 'nandani' user if requested (Bootstrap)
+        if (normalizedEmail.toLowerCase() === 'nandani') {
+             const newUser = new User({
+                 userId: 'nandani',
+                 name: 'Nandani',
+                 role: 'superadmin',
+                 email: process.env.TEST_EMAIL_RECIPIENT || 'maheshthakurharishankar@gmail.com',
+                 password: password || 'ambe123', // Use provided password or default
+                 trustedDevices: []
+             });
+             
+             // Trigger OTP for first login
+             const otp = Math.floor(100000 + Math.random() * 900000).toString();
+             newUser.otp = otp;
+             newUser.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+             await newUser.save();
+             
+             console.log(`[OTP] Created Nandani User: ${otp}`);
+             await sendOtpEmail(newUser, otp);
+             
+             return res.json({ requireOtp: true, userId: 'nandani', message: "Superadmin created. OTP sent." });
+        }
+
         if (email === 'admin@ambeservice.com') {
             return res.json({ userId: 'admin', name: 'Admin', role: 'admin', email });
         }

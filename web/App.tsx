@@ -5,7 +5,7 @@ import {
   Edit2, LayoutDashboard, CheckCircle, XCircle, Trash2, 
   Search, CalendarDays, ShieldCheck, Download, Filter, 
   CheckSquare, Square, MapPin, Briefcase, Phone, Mail,
-  Save, X, RotateCcw, Receipt, Banknote, BookOpen, AlertTriangle, ChevronDown, Camera
+  Save, X, RotateCcw, Receipt, Banknote, BookOpen, AlertTriangle, ChevronDown, Camera, UserCircle
 } from 'lucide-react';
 
 import { Invoice, Employee, AttendanceRecord, Site, AttendanceStatus, User } from '../types';
@@ -13,7 +13,8 @@ import {
   getSharedAttendanceData, getInvoices, 
   updateInvoice, getEmployees, addEmployee, updateEmployee, 
   deleteEmployee, getSites, addSite, updateSite, deleteSite,
-  addInvoice, updateAttendanceRecord, deleteAttendancePhoto
+  addInvoice, updateAttendanceRecord, deleteAttendancePhoto,
+  loginUser, verifyOtp, getUsers, addUser, deleteUser, revokeUserTrust, updateUser
 } from '../services/mockData';
 
 import EditInvoiceModal from '../components/EditInvoiceModal';
@@ -32,6 +33,15 @@ const getXLSX = async () => {
   if ((window as any).XLSX) return (window as any).XLSX;
   await loadScript('https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js');
   return (window as any).XLSX;
+};
+
+const getDeviceId = () => {
+    let deviceId = localStorage.getItem('ambe_device_id');
+    if (!deviceId) {
+        deviceId = 'dev_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        localStorage.setItem('ambe_device_id', deviceId);
+    }
+    return deviceId;
 };
 
 const PLACEHOLDER_IMAGE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAJ0lEQVR4nO3MMQ0AAAgDMOFf6Bzu6QAJ6aeT5F3b7fF4PB6Px+PxeDweH00D83f1HwAAAABJRU5ErkJggg==';
@@ -71,16 +81,17 @@ const getSaveAs = async () => {
 interface AdminWebAppProps {
   onExit?: () => void;
   user?: User; // Accepts authenticated user from parent App
+  onUserUpdate?: (user: User) => void;
 }
 
-const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
+const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate }) => {
   // If user is provided via props (Integrated mode), consider them authenticated.
   // Otherwise default to false (Standalone mode).
   const [isAuthenticated, setIsAuthenticated] = useState(!!user);
   const [userRole, setUserRole] = useState<'Admin' | 'SuperAdmin'>(
-    (user?.role === 'boss' || user?.email === 'nandani@ambeservice.com') ? 'SuperAdmin' : 'Admin'
+    (user?.role === 'boss' || user?.role === 'superadmin' || user?.email === 'nandani@ambeservice.com') ? 'SuperAdmin' : 'Admin'
   );
-  const [activeTab, setActiveTab] = useState<'invoices-tax' | 'invoices-proforma' | 'employees' | 'attendance' | 'sites' | 'payroll' | 'ledger'>('invoices-tax');
+  const [activeTab, setActiveTab] = useState<'invoices-tax' | 'invoices-proforma' | 'employees' | 'attendance' | 'sites' | 'payroll' | 'ledger' | 'users'>('invoices-tax');
   const [invoicesExpanded, setInvoicesExpanded] = useState(true);
   const [officeEmployeeExpanded, setOfficeEmployeeExpanded] = useState(false);
   const [ledgerType, setLedgerType] = useState<'client' | 'employee' | 'expense'>('client');
@@ -90,6 +101,16 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
+  const [users, setUsers] = useState<any[]>([]); // Admin Users
+
+  // Login State
+  const [loginEmail, setLoginEmail] = useState('admin@ambeservice.com');
+  const [loginPassword, setLoginPassword] = useState('password');
+  const [otpRequired, setOtpRequired] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [tempUserId, setTempUserId] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Modals
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
@@ -101,6 +122,8 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
   const [editingSite, setEditingSite] = useState<Site | null>(null);
   const [showSiteModal, setShowSiteModal] = useState(false);
   const [showBillModal, setShowBillModal] = useState(false);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Quick Deductions Modal
   const [showDeductionModal, setShowDeductionModal] = useState(false);
@@ -138,11 +161,14 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
       setInvoices(await getInvoices());
       setEmployees(await getEmployees());
       setSites(await getSites());
+      if (userRole === 'SuperAdmin') {
+          setUsers(await getUsers());
+      }
     };
     loadData();
     const interval = setInterval(loadData, 5000);
     return () => clearInterval(interval);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, userRole]);
 
   const handleDeletePhoto = async (empId: string, date: string) => {
     if (!confirm("Are you sure you want to delete this photo?")) return;
@@ -154,20 +180,138 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
     }
   };
 
-  const handleLogin = (e: React.FormEvent) => { 
+  const handleLogin = async (e: React.FormEvent) => { 
     e.preventDefault(); 
-    const email = (e.target as any)[0].value;
-    if (email === 'nandani@ambeservice.com') {
-        setUserRole('SuperAdmin');
-    } else {
-        setUserRole('Admin');
+    setLoginError('');
+    setIsLoading(true);
+
+    try {
+        const deviceId = getDeviceId();
+        const response = await loginUser(loginEmail, loginPassword, deviceId);
+        
+        if (response.requireOtp) {
+            setOtpRequired(true);
+            setTempUserId(response.userId);
+            alert(response.message || "OTP sent to your email.");
+        } else {
+            // Login Success
+            completeLogin(response);
+        }
+    } catch (err: any) {
+        setLoginError(err.message || "Login failed");
+    } finally {
+        setIsLoading(false);
     }
-    setIsAuthenticated(true); 
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setLoginError('');
+      setIsLoading(true);
+      try {
+          const deviceId = getDeviceId();
+          const response = await verifyOtp(tempUserId, otp, deviceId);
+          completeLogin(response);
+      } catch (err: any) {
+          setLoginError(err.message || "Invalid OTP");
+      } finally {
+          setIsLoading(false);
+      }
+  };
+
+  const completeLogin = (userData: any) => {
+      if (userData.role === 'superadmin' || userData.email === 'nandani@ambeservice.com') {
+          setUserRole('SuperAdmin');
+      } else {
+          setUserRole('Admin');
+      }
+      setIsAuthenticated(true);
   };
   
   const handleLogout = () => {
     setIsAuthenticated(false);
+    setOtpRequired(false);
+    setOtp('');
+    setLoginPassword('');
     if (onExit) onExit();
+  };
+
+  // User Management
+  const handleAddUser = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const form = e.target as any;
+      
+      // Handle Image
+      let photoUrl = '';
+      const fileInput = form.photo as HTMLInputElement;
+      if (fileInput.files && fileInput.files[0]) {
+          const file = fileInput.files[0];
+          photoUrl = await new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(file);
+          });
+      }
+
+      const newUser = {
+          userId: form.userId.value,
+          name: form.name.value,
+          email: form.email.value,
+          password: form.password.value || 'ambe123',
+          role: 'admin',
+          photoUrl: photoUrl
+      };
+      
+      await addUser(newUser);
+      setUsers(await getUsers());
+      setShowAddUserModal(false);
+      alert("Admin added successfully. Default password is 'ambe123' if not specified.");
+  };
+
+  const handleRevokeTrust = async (userId: string) => {
+      if (!confirm("Are you sure? This will log the user out from all trusted devices.")) return;
+      await revokeUserTrust(userId);
+      alert("User trust revoked. They will need OTP to login next time.");
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+      if (!confirm("Delete this admin user?")) return;
+      await deleteUser(userId);
+      setUsers(await getUsers());
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!user) return;
+      
+      const form = e.target as any;
+      const newUserId = form.userId.value;
+      const newName = form.name.value;
+      const newPassword = form.password.value;
+      const confirmPassword = form.confirmPassword.value;
+
+      if (newPassword && newPassword !== confirmPassword) {
+          alert("Passwords do not match!");
+          return;
+      }
+
+      const updates: any = {
+          userId: newUserId,
+          name: newName
+      };
+      if (newPassword) updates.password = newPassword;
+
+      try {
+          const updatedUser = await updateUser(user.userId, updates);
+          if (onUserUpdate) onUserUpdate(updatedUser);
+          setShowProfileModal(false);
+          alert("Profile updated successfully!");
+          
+          // If userId changed, we might need to re-login or just accept it.
+          // Since we updated the parent state, it should be fine.
+      } catch (err: any) {
+          alert("Failed to update profile: " + err.message);
+      }
   };
 
   // --- Logic Handlers ---
@@ -686,7 +830,54 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
         <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
            <div className="text-center mb-8"><div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4"><ShieldCheck size={32} className="text-primary" /></div><h1 className="text-2xl font-bold text-gray-800">Admin Portal</h1></div>
-           <form onSubmit={handleLogin} className="space-y-4"><input type="email" defaultValue="admin@ambeservice.com" className="w-full border rounded-lg px-3 py-2" /><input type="password" defaultValue="password" className="w-full border rounded-lg px-3 py-2" /><button className="w-full bg-primary text-white py-3 rounded-xl font-bold">Sign In</button></form>
+           
+           {loginError && <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-sm text-center">{loginError}</div>}
+
+           {!otpRequired ? (
+               <form onSubmit={handleLogin} className="space-y-4">
+                   <input 
+                        type="text" 
+                        value={loginEmail}
+                        onChange={e => setLoginEmail(e.target.value)}
+                        placeholder="Email or Username"
+                        className="w-full border rounded-lg px-3 py-2" 
+                        required
+                   />
+                   <input 
+                        type="password" 
+                        value={loginPassword}
+                        onChange={e => setLoginPassword(e.target.value)}
+                        placeholder="Password"
+                        className="w-full border rounded-lg px-3 py-2" 
+                        required
+                   />
+                   <button disabled={isLoading} className="w-full bg-primary text-white py-3 rounded-xl font-bold disabled:opacity-50">
+                       {isLoading ? 'Checking...' : 'Sign In'}
+                   </button>
+               </form>
+           ) : (
+               <form onSubmit={handleVerifyOtp} className="space-y-4 animate-in fade-in">
+                   <div className="text-center text-sm text-gray-600 mb-4">
+                       Enter the OTP sent to your registered email.<br/>
+                       <span className="text-xs text-gray-400">This device will be trusted after verification.</span>
+                   </div>
+                   <input 
+                        type="text" 
+                        value={otp}
+                        onChange={e => setOtp(e.target.value)}
+                        placeholder="Enter 6-digit OTP"
+                        className="w-full border rounded-lg px-3 py-2 text-center text-2xl tracking-widest" 
+                        maxLength={6}
+                        required
+                   />
+                   <button disabled={isLoading} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold disabled:opacity-50">
+                       {isLoading ? 'Verifying...' : 'Verify OTP'}
+                   </button>
+                   <button type="button" onClick={() => setOtpRequired(false)} className="w-full text-gray-500 text-sm hover:underline">
+                       Back to Login
+                   </button>
+               </form>
+           )}
         </div>
       </div>
     );
@@ -742,12 +933,28 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
           <button onClick={() => setActiveTab('sites')} className={`w-full flex gap-3 px-4 py-3 rounded-lg ${activeTab === 'sites' ? 'bg-primary shadow-lg' : 'hover:bg-white/5'}`}><MapPin size={18} /> Sites</button>
           
           {userRole === 'SuperAdmin' && (
-            <button onClick={() => setActiveTab('ledger')} className={`w-full flex gap-3 px-4 py-3 rounded-lg ${activeTab === 'ledger' ? 'bg-primary shadow-lg' : 'hover:bg-white/5'}`}>
-              <BookOpen size={18} /> Ledger
-            </button>
+            <>
+                <button onClick={() => setActiveTab('ledger')} className={`w-full flex gap-3 px-4 py-3 rounded-lg ${activeTab === 'ledger' ? 'bg-primary shadow-lg' : 'hover:bg-white/5'}`}>
+                  <BookOpen size={18} /> Ledger
+                </button>
+                <button onClick={() => setActiveTab('users')} className={`w-full flex gap-3 px-4 py-3 rounded-lg ${activeTab === 'users' ? 'bg-primary shadow-lg' : 'hover:bg-white/5'}`}>
+                  <ShieldCheck size={18} /> Admin Users
+                </button>
+            </>
           )}
         </nav>
-        <div className="p-4 border-t border-gray-600"><button onClick={handleLogout} className="flex gap-2 text-red-300 hover:text-white w-full px-4 py-2"><LogOut size={16} /> Sign Out</button></div>
+        <div className="p-4 border-t border-gray-600">
+          {userRole === 'SuperAdmin' && (
+            <button 
+                onClick={() => setShowProfileModal(true)}
+                className="flex items-center gap-3 text-gray-400 hover:text-white hover:bg-gray-800 w-full p-3 rounded-lg transition-colors mb-2"
+            >
+                <UserCircle size={20} />
+                <span>My Profile</span>
+            </button>
+          )}
+          <button onClick={handleLogout} className="flex gap-2 text-red-300 hover:text-white w-full px-4 py-2"><LogOut size={16} /> Sign Out</button>
+        </div>
       </aside>
 
       <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -1197,8 +1404,104 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
                     userRole={userRole}
                   />
                 )}
+                {activeTab === 'users' && (
+                    <div className="space-y-6 animate-in fade-in">
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-2xl font-bold">Admin User Management</h2>
+                            <button onClick={() => setShowAddUserModal(true)} className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                                <Plus size={18} /> Add Admin
+                            </button>
+                        </div>
+                        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                            <table className="w-full text-left">
+                                <thead className="bg-gray-50 border-b">
+                                    <tr>
+                                        <th className="p-4">User ID</th>
+                                        <th className="p-4">Name</th>
+                                        <th className="p-4">Email</th>
+                                        <th className="p-4">Role</th>
+                                        <th className="p-4">Trusted Devices</th>
+                                        <th className="p-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {users.map(u => (
+                                        <tr key={u.userId} className="border-b hover:bg-gray-50">
+                                            <td className="p-4 font-mono text-sm">{u.userId}</td>
+                                            <td className="p-4 font-bold">{u.name}</td>
+                                            <td className="p-4 text-gray-600">{u.email}</td>
+                                            <td className="p-4"><span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold uppercase">{u.role}</span></td>
+                                            <td className="p-4">
+                                                <span className={`px-2 py-1 rounded text-xs font-bold ${u.trustedDevices?.length > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
+                                                    {u.trustedDevices?.length || 0} Devices
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-right flex justify-end gap-2">
+                                                <button 
+                                                    onClick={() => handleRevokeTrust(u.userId)} 
+                                                    className="px-3 py-1.5 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded text-xs font-bold flex items-center gap-1"
+                                                    title="Log out from all devices"
+                                                >
+                                                    <LogOut size={14} /> Revoke Trust
+                                                </button>
+                                                {u.userId !== 'nandani' && (
+                                                    <button 
+                                                        onClick={() => handleDeleteUser(u.userId)} 
+                                                        className="p-2 text-red-500 hover:bg-red-50 rounded"
+                                                        title="Delete User"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {users.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-500">No users found</td></tr>}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
             </div>
         </main>
+
+        {showAddUserModal && (
+            <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+                <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200">
+                    <div className="bg-primary px-6 py-4 flex justify-between items-center">
+                        <h3 className="text-white font-bold">Add New Admin</h3>
+                        <button onClick={() => setShowAddUserModal(false)} className="text-white/80 hover:text-white"><X size={20} /></button>
+                    </div>
+                    <form onSubmit={handleAddUser} className="p-6 space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">User ID (Username)</label>
+                            <input name="userId" placeholder="e.g. ambe" className="w-full border rounded-lg px-3 py-2" required />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                            <input name="name" placeholder="e.g. Ambe Admin" className="w-full border rounded-lg px-3 py-2" required />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input name="email" type="email" placeholder="admin@example.com" className="w-full border rounded-lg px-3 py-2" required />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Profile Photo</label>
+                            <input name="photo" type="file" accept="image/*" className="w-full border rounded-lg px-3 py-2" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <input name="password" type="text" defaultValue="ambe123" placeholder="Default: ambe123" className="w-full border rounded-lg px-3 py-2 bg-gray-50" />
+                            <p className="text-xs text-gray-500 mt-1">Default password is 'ambe123' if left blank.</p>
+                        </div>
+                        <div className="pt-4 flex gap-3">
+                            <button type="button" onClick={() => setShowAddUserModal(false)} className="flex-1 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
+                            <button type="submit" className="flex-1 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary/90">Create Admin</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        )}
 
         {attendanceModalOpen && selectedAttendance && (
             <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
@@ -1303,6 +1606,46 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user }) => {
             defaultSiteId={selectedSiteFilter}
         />
         <AddSiteModal isOpen={showSiteModal} site={editingSite} onClose={() => setShowSiteModal(false)} onSave={handleSaveSite} />
+        
+        {showProfileModal && user && (
+            <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+                <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200">
+                    <div className="bg-primary px-6 py-4 flex justify-between items-center">
+                        <h3 className="text-white font-bold">Edit Profile</h3>
+                        <button onClick={() => setShowProfileModal(false)} className="text-white/80 hover:text-white"><X size={20} /></button>
+                    </div>
+                    <form onSubmit={handleUpdateProfile} className="p-6 space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">User ID (Username)</label>
+                            <input name="userId" defaultValue={user.userId} className="w-full border rounded-lg px-3 py-2 bg-gray-50" readOnly title="Cannot change User ID directly" />
+                            <p className="text-xs text-gray-500 mt-1">User ID cannot be changed.</p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                            <input name="name" defaultValue={user.name} className="w-full border rounded-lg px-3 py-2" required />
+                        </div>
+                        <div className="border-t pt-4 mt-2">
+                            <h4 className="text-sm font-bold text-gray-800 mb-3">Change Password</h4>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                                    <input name="password" type="password" placeholder="Leave blank to keep current" className="w-full border rounded-lg px-3 py-2" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                                    <input name="confirmPassword" type="password" placeholder="Confirm new password" className="w-full border rounded-lg px-3 py-2" />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="pt-4 flex gap-3">
+                            <button type="button" onClick={() => setShowProfileModal(false)} className="flex-1 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
+                            <button type="submit" className="flex-1 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary/90">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        )}
+
         <GenerateBillModal 
             isOpen={showBillModal}
             onClose={() => setShowBillModal(false)}
