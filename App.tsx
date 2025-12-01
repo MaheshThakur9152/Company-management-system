@@ -177,9 +177,14 @@ const App: React.FC = () => {
         </div>
         
       </div>
-      <p className="mt-6 text-center text-xs text-gray-400">
+      <div className="mt-6 text-center">
+        <p className="text-xs text-gray-400">
             v2.4.1 • Multi-Site Management System
-      </p>
+        </p>
+        <p className="text-[10px] text-gray-300 mt-1">
+            API: {import.meta.env.PROD ? 'Production' : 'Local'}
+        </p>
+      </div>
     </div>
   );
 };
