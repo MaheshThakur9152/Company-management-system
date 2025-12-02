@@ -14,14 +14,27 @@ cloudinary.config({
 });
 
 // OTP Transporter
+console.log('Configuring SMTP Transporter...');
+console.log('SMTP Host:', process.env.EMAIL_HOST || 'smtp-relay.brevo.com');
+console.log('SMTP Port:', process.env.EMAIL_PORT || '587');
+console.log('SMTP User:', process.env.EMAIL_USER ? process.env.EMAIL_USER.substring(0, 3) + '***' : 'Not Set');
+
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+  host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
   port: parseInt(process.env.EMAIL_PORT || '587'),
   secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
   auth: {
     user: process.env.EMAIL_USER, // Set these in .env
     pass: process.env.EMAIL_PASS
-  }
+  },
+  // Add these to help with connection issues
+  tls: {
+    ciphers: 'SSLv3',
+    rejectUnauthorized: false
+  },
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 10000,
+  socketTimeout: 10000
 });
 
 // Helper function for Cloudinary upload
