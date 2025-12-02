@@ -60,7 +60,7 @@ const QuickDeductionsModal: React.FC<QuickDeductionsModalProps> = ({ isOpen, emp
         </div>
         
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Advance</label>
               <div className="relative">

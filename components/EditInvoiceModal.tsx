@@ -166,8 +166,8 @@ const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({ isOpen, invoice, on
                     <Plus size={12} /> Add Item
                 </button>
             </div>
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <table className="w-full text-left text-sm">
+            <div className="border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
+                <table className="w-full text-left text-sm min-w-[600px]">
                     <thead className="bg-gray-100 text-gray-600 font-bold">
                         <tr>
                             <th className="p-2 border-r">Description</th>
@@ -242,7 +242,7 @@ const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({ isOpen, invoice, on
           </div>
 
           {/* Calculations Summary */}
-          <div className="flex justify-between gap-8">
+          <div className="flex flex-col md:flex-row justify-between gap-8">
             <div className="flex-1 pt-4">
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Additional Charges</label>
                 <div className="grid grid-cols-2 gap-4">

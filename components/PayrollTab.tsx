@@ -57,9 +57,23 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
 
 
 
-  const filteredEmployees = localEmployees.filter(e => 
-    selectedSiteFilter === 'all' || e.siteId === selectedSiteFilter
-  );
+  const filteredEmployees = localEmployees.filter(e => {
+    const matchesSite = selectedSiteFilter === 'all' || e.siteId === selectedSiteFilter;
+    
+    // Filter out inactive employees who left before the selected month
+    let isVisible = true;
+    if (e.status === 'Inactive' && e.leavingDate) {
+        const leavingDate = new Date(e.leavingDate);
+        const reportMonthStart = new Date(selectedYear, selectedMonth - 1, 1);
+        
+        // If they left before the start of the current report month, hide them
+        if (leavingDate < reportMonthStart) {
+            isVisible = false;
+        }
+    }
+    
+    return matchesSite && isVisible;
+  });
 
   const calculatePayroll = (emp: Employee) => {
     const empRecords = attendanceData.filter(r => {
@@ -350,7 +364,7 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-sm min-w-[1000px]">
             <thead className="bg-gray-50 border-b text-gray-500 font-medium uppercase text-xs">
               <tr>
                 <th className="p-4 w-10">

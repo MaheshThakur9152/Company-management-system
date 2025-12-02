@@ -25,6 +25,18 @@ async function generateAttendanceExcelBrowser(employees, attendanceData, month =
   });
 
   employees.forEach(emp => {
+    // Filter out inactive employees who left before the start of the report month
+    if (emp.status === 'Inactive' && emp.leavingDate) {
+        const leavingDate = new Date(emp.leavingDate);
+        const reportMonthStart = new Date(year, month - 1, 1);
+        leavingDate.setHours(0,0,0,0);
+        reportMonthStart.setHours(0,0,0,0);
+        
+        if (leavingDate < reportMonthStart) {
+            return; 
+        }
+    }
+
     const siteId = emp.siteId || 'unknown';
     if (!employeesBySite[siteId]) {
       employeesBySite[siteId] = {
@@ -82,61 +94,61 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
   const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
   // ============ COLUMN WIDTHS ============
-  worksheet.getColumn(1).width = 5;   // SR
-  worksheet.getColumn(2).width = 12;  // Biometric Code
-  worksheet.getColumn(3).width = 25;  // Employee Name
-  worksheet.getColumn(4).width = 10;  // Weekly Off
+  worksheet.getColumn(1).width = 6;   // SR
+  worksheet.getColumn(2).width = 15;  // Biometric Code
+  worksheet.getColumn(3).width = 30;  // Employee Name
+  worksheet.getColumn(4).width = 12;  // Weekly Off
   
   for (let i = 5; i <= 4 + daysInMonth; i++) {
-    worksheet.getColumn(i).width = 3.5;
+    worksheet.getColumn(i).width = 6;
   }
   
   // Summary columns
-  worksheet.getColumn(4 + daysInMonth + 1).width = 12; // TOTAL PRESENT
-  worksheet.getColumn(4 + daysInMonth + 2).width = 10; // WO
-  worksheet.getColumn(4 + daysInMonth + 3).width = 6;  // HD (Holiday)
-  worksheet.getColumn(4 + daysInMonth + 4).width = 10; // TOTAL
+  worksheet.getColumn(4 + daysInMonth + 1).width = 15; // TOTAL PRESENT
+  worksheet.getColumn(4 + daysInMonth + 2).width = 12; // WO
+  worksheet.getColumn(4 + daysInMonth + 3).width = 8;  // HD (Holiday)
+  worksheet.getColumn(4 + daysInMonth + 4).width = 12; // TOTAL
 
   // ============ HEADER ROWS ============
   let currentRow = 1;
-  worksheet.getRow(currentRow).height = 15;
+  worksheet.getRow(currentRow).height = 20;
   currentRow++;
 
   const companyRow = worksheet.getRow(currentRow);
-  companyRow.height = 20;
+  companyRow.height = 25;
   worksheet.mergeCells(currentRow, 1, currentRow, 4 + daysInMonth + 4);
   const companyCell = worksheet.getCell(currentRow, 1);
   companyCell.value = 'AMBE SERVICE FACILITY PVT. LTD.';
-  companyCell.font = { name: 'Arial', size: 14, bold: true };
+  companyCell.font = { name: 'Arial', size: 16, bold: true };
   companyCell.alignment = { horizontal: 'center', vertical: 'middle' };
   companyCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
   companyCell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
   currentRow++;
 
   const siteRow = worksheet.getRow(currentRow);
-  siteRow.height = 18;
+  siteRow.height = 22;
   worksheet.mergeCells(currentRow, 1, currentRow, 4 + daysInMonth + 4);
   const siteCell = worksheet.getCell(currentRow, 1);
   siteCell.value = `SITE - ${siteDisplayName.toUpperCase()}`;
-  siteCell.font = { name: 'Arial', size: 11, bold: true };
+  siteCell.font = { name: 'Arial', size: 12, bold: true };
   siteCell.alignment = { horizontal: 'center', vertical: 'middle' };
   siteCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
   siteCell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
   currentRow++;
 
   const monthRow = worksheet.getRow(currentRow);
-  monthRow.height = 18;
+  monthRow.height = 22;
   worksheet.mergeCells(currentRow, 1, currentRow, 4 + daysInMonth + 4);
   const monthCell = worksheet.getCell(currentRow, 1);
-  monthCell.value = `KEY MAN - ATTENDANCE FOR THE MONTH OF ${monthName} - ${year}`;
-  monthCell.font = { name: 'Arial', size: 11, bold: true };
+  monthCell.value = `${siteDisplayName.toUpperCase()} - ATTENDANCE FOR THE MONTH OF ${monthName} - ${year}`;
+  monthCell.font = { name: 'Arial', size: 12, bold: true };
   monthCell.alignment = { horizontal: 'center', vertical: 'middle' };
   monthCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
   monthCell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
   currentRow++;
 
   const headerRow = worksheet.getRow(currentRow);
-  headerRow.height = 30;
+  headerRow.height = 40;
   const headers = ['SR', 'Biometric Code', 'Employee Name', 'Weekly Off', ...daysArray, 'TOTAL PRESENT', 'WEEKLY OFF', 'HD', 'TOTAL DAYS'];
   
   headers.forEach((header, index) => {
@@ -152,7 +164,7 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
   currentRow++;
 
   const dayNamesRow = worksheet.getRow(currentRow);
-  dayNamesRow.height = 80; // Taller for vertical text
+  dayNamesRow.height = 90; // Taller for vertical text
   
   for (let i = 1; i <= 4; i++) {
     const cell = dayNamesRow.getCell(i);
@@ -193,7 +205,7 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
   employees.forEach((emp, empIndex) => {
     const empRecords = attendanceData.filter(r => r.employeeId === emp.id);
     const empRow = worksheet.getRow(currentRow);
-    empRow.height = 18;
+    empRow.height = 30;
     
     let rowPresent = 0;
     let rowWO = 0;
@@ -344,8 +356,10 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
   
   // Fill 0s for first 4 cols
   for(let i=1; i<=4; i++) {
-      presentStrengthRow.getCell(i).border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-      if(i===1 || i===2 || i===4) presentStrengthRow.getCell(i).value = 0;
+      const cell = presentStrengthRow.getCell(i);
+      cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      if(i===4) cell.value = 0;
   }
 
   // Formulas for Present Strength per day
@@ -385,11 +399,13 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
   const tsLabelCell = totalStrengthRow.getCell(3);
   tsLabelCell.value = "TOTAL STRENGTH";
   tsLabelCell.font = { bold: true };
-  tsLabelCell.alignment = { horizontal: 'right' };
+  tsLabelCell.alignment = { horizontal: 'right', vertical: 'middle' };
   
   for(let i=1; i<=4; i++) {
-      totalStrengthRow.getCell(i).border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-      if(i===1 || i===2 || i===4) totalStrengthRow.getCell(i).value = 0;
+      const cell = totalStrengthRow.getCell(i);
+      cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      if(i===4) cell.value = 0;
   }
 
   for (let i = 1; i <= daysInMonth; i++) {
@@ -426,7 +442,15 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
   // GOOD DAY cell
   const goodDayCell = totalStrengthRow.getCell(5 + daysInMonth + 1); // WO column
   goodDayCell.value = "GOOD DAY";
-  goodDayCell.alignment = { horizontal: 'center' };
+  goodDayCell.alignment = { horizontal: 'center', vertical: 'middle' };
+  goodDayCell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+
+  // Add borders for HD and TOTAL DAYS columns in Total Strength row
+  const hdStrengthCell = totalStrengthRow.getCell(5 + daysInMonth + 2);
+  hdStrengthCell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+  
+  const totalDaysStrengthCell = totalStrengthRow.getCell(5 + daysInMonth + 3);
+  totalDaysStrengthCell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
   
   currentRow += 2; // Spacer
 
@@ -457,17 +481,23 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
   });
 
   // Stats Box (Right Side)
-  // Position: Aligned with Total Present column roughly
-  const statsStartCol = daysInMonth + 1; // Aligns value with Total Present column
+  // Position: Aligned with Summary columns
+  // We want to cover from (Last Day - 1) to (Total Days)
+  // Columns: (4 + daysInMonth - 1) to (4 + daysInMonth + 4)
+  const statsStartCol = 4 + daysInMonth - 1;
   
   // KEYMAN
   const keymanLabel = worksheet.getCell(legendStartRow, statsStartCol);
   keymanLabel.value = "KEYMAN";
   keymanLabel.font = { bold: true };
   keymanLabel.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-  worksheet.mergeCells(legendStartRow, statsStartCol, legendStartRow, statsStartCol + 3);
+  // Merge from start to (Total Days - 1)
+  // Total columns involved: 6. Indices: 0, 1, 2, 3, 4, 5.
+  // Value is at index 5 (Total Days column).
+  // Label merges 0 to 4.
+  worksheet.mergeCells(legendStartRow, statsStartCol, legendStartRow, statsStartCol + 4);
   
-  const keymanValue = worksheet.getCell(legendStartRow, statsStartCol + 4);
+  const keymanValue = worksheet.getCell(legendStartRow, statsStartCol + 5);
   keymanValue.value = { formula: `SUM(${totalPresentColLetter}6:${totalPresentColLetter}${legendStartRow-4})` }; // Sum of Total Present
   keymanValue.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
   keymanValue.numFmt = '0.00';
@@ -478,17 +508,20 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
   mamLabel.value = "Monthly Approved Manpower";
   mamLabel.font = { bold: true };
   mamLabel.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-  worksheet.mergeCells(legendStartRow + 1, statsStartCol, legendStartRow + 1, statsStartCol + 1);
+  // Merge first 3 columns (Day 29, Day 30, Total Present)
+  worksheet.mergeCells(legendStartRow + 1, statsStartCol, legendStartRow + 1, statsStartCol + 2);
 
-  const mamVal1 = worksheet.getCell(legendStartRow + 1, statsStartCol + 2);
+  const mamVal1 = worksheet.getCell(legendStartRow + 1, statsStartCol + 3); // WO column
   mamVal1.value = employees.length; // Count
   mamVal1.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+  mamVal1.alignment = { horizontal: 'center' };
   
-  const mamVal2 = worksheet.getCell(legendStartRow + 1, statsStartCol + 3);
+  const mamVal2 = worksheet.getCell(legendStartRow + 1, statsStartCol + 4); // HD column
   mamVal2.value = daysInMonth; // Days
   mamVal2.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+  mamVal2.alignment = { horizontal: 'center' };
 
-  const mamTotal = worksheet.getCell(legendStartRow + 1, statsStartCol + 4);
+  const mamTotal = worksheet.getCell(legendStartRow + 1, statsStartCol + 5); // Total Days column
   mamTotal.value = { formula: `${mamVal1.address}*${mamVal2.address}` };
   mamTotal.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
   mamTotal.numFmt = '0.00';
@@ -499,9 +532,9 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
   esLabel.value = "(Excess)/Shortage Manpower";
   esLabel.font = { bold: true, color: { argb: 'FFFF0000' } };
   esLabel.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-  worksheet.mergeCells(legendStartRow + 2, statsStartCol, legendStartRow + 2, statsStartCol + 3);
+  worksheet.mergeCells(legendStartRow + 2, statsStartCol, legendStartRow + 2, statsStartCol + 4);
 
-  const esValue = worksheet.getCell(legendStartRow + 2, statsStartCol + 4);
+  const esValue = worksheet.getCell(legendStartRow + 2, statsStartCol + 5);
   esValue.value = { formula: `${mamTotal.address}-${keymanValue.address}` };
   esValue.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
   esValue.numFmt = '0.00';
@@ -512,9 +545,9 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
   mpLabel.value = "Monthly %";
   mpLabel.font = { bold: true };
   mpLabel.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-  worksheet.mergeCells(legendStartRow + 3, statsStartCol, legendStartRow + 3, statsStartCol + 3);
+  worksheet.mergeCells(legendStartRow + 3, statsStartCol, legendStartRow + 3, statsStartCol + 4);
 
-  const mpValue = worksheet.getCell(legendStartRow + 3, statsStartCol + 4);
+  const mpValue = worksheet.getCell(legendStartRow + 3, statsStartCol + 5);
   mpValue.value = { formula: `(${keymanValue.address}/${mamTotal.address})` };
   mpValue.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
   mpValue.numFmt = '0.00%';
@@ -535,6 +568,18 @@ async function generatePayrollExcel(employees, attendanceData, month, year, site
   });
 
   employees.forEach(emp => {
+    // Filter out inactive employees who left before the start of the report month
+    if (emp.status === 'Inactive' && emp.leavingDate) {
+        const leavingDate = new Date(emp.leavingDate);
+        const reportMonthStart = new Date(year, month - 1, 1);
+        leavingDate.setHours(0,0,0,0);
+        reportMonthStart.setHours(0,0,0,0);
+        
+        if (leavingDate < reportMonthStart) {
+            return; 
+        }
+    }
+
     const siteId = emp.siteId || 'unknown';
     if (!employeesBySite[siteId]) {
       employeesBySite[siteId] = { name: sites.find(s => s.id === siteId)?.name || 'Unknown Site', employees: [] };
@@ -589,7 +634,7 @@ function generatePayrollSheet(workbook, sheetName, siteName, employees, attendan
   // Headers
   const headers = [
     'SR', 'Employee Name', 'Post', 'Salary Base', '/Day', '/Hour', 
-    'PD', 'WO', 'WOE', 'HD', 'HDE', 'CBRE Dedu', 'TOTAL', 
+    'PD', 'WO', 'WOE', 'HD', 'HDE', 'Deduction', 'TOTAL', 
     'OT Hours', 'Total Days Amt', 'Total OT Amt', 'TOTAL GROSS', 
     'Advance', 'Uniform', 'Shoes', 'ID', 'Others', 'Total Deduction', 'TOTAL NET'
   ];

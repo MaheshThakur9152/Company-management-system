@@ -356,7 +356,7 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
                     </div>
 
                     {/* Taxes */}
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-xs font-medium text-gray-500 mb-1">Mgmt Rate (%)</label>
                             <input type="number" value={managementRate} onChange={e => setManagementRate(parseFloat(e.target.value))} className="w-full p-2 border rounded-lg text-sm" />

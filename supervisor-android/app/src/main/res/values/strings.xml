@@ -1,0 +1,38 @@
+<resources>
+    <string name="app_name">Ambe Supervisor</string>
+    <string name="company_name">AMBE</string>
+    <string name="app_subtitle">Supervisor App</string>
+    <string name="login_title">Supervisor Login</string>
+    <string name="label_username">USERNAME</string>
+    <string name="hint_username">Enter username</string>
+    <string name="label_password">PASSWORD</string>
+    <string name="hint_password">Enter password</string>
+    <string name="btn_login">Login</string>
+    
+    <string name="title_attendance">Attendance</string>
+    <string name="text_pending">Pending</string>
+    <string name="text_locating">Locating...</string>
+    <string name="text_workers">Workers</string>
+    <string name="hint_search">Search worker...</string>
+    <string name="btn_all_synced">ALL SYNCED</string>
+    <string name="btn_sync_prefix">SYNC</string>
+    <string name="btn_records">RECORDS</string>
+    <string name="btn_syncing">Syncing...</string>
+    
+    <string name="btn_mark_present">Mark Present</string>
+    <string name="btn_undo">Undo / Absent</string>
+    <string name="text_synced">Synced</string>
+    <string name="text_locked">Attendance Locked</string>
+    
+    <string name="msg_enter_creds">Please enter username and password</string>
+    <string name="msg_error_parsing">Error parsing response</string>
+    <string name="msg_login_failed">Login Failed: </string>
+    
+    <string name="status_in_range">In Range</string>
+    <string name="status_out_of_range">Out of Range</string>
+    <string name="msg_camera_unavailable">Camera not available</string>
+    <string name="msg_cannot_undo">Cannot undo locked record</string>
+    <string name="msg_no_records">No records to sync</string>
+    <string name="msg_sync_success">Sync Successful!</string>
+    <string name="msg_sync_failed">Sync Failed: </string>
+</resources>

@@ -4,6 +4,7 @@ require('dotenv').config();
 const connectToDatabase = require('../utils/db');
 const cloudinary = require('cloudinary').v2;
 const nodemailer = require('nodemailer');
+const jwt = require('jsonwebtoken'); // Import JWT
 
 // Configure Cloudinary
 cloudinary.config({
@@ -50,13 +51,29 @@ const SalaryRecord = require('../models/SalaryRecord');
 const app = express();
 
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174', 'http://localhost:3000', 'https://ambeservice.com', 'https://admin.ambeservice.com'],
+  origin: [
+    'http://localhost:5173', 
+    'http://localhost:5173/', 
+    'http://127.0.0.1:5173', 
+    'http://localhost:3000', 
+    'https://ambeservice.com', 
+    'https://admin.ambeservice.com',
+    'https://admin.ambeservice.com/'
+  ],
   credentials: true
 }));
 
 // THIS IS WHAT YOU'VE BEEN MISSING
 app.options("*", cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174', 'http://localhost:3000', 'https://ambeservice.com', 'https://admin.ambeservice.com'],
+  origin: [
+    'http://localhost:5173', 
+    'http://localhost:5173/', 
+    'http://127.0.0.1:5173', 
+    'http://localhost:3000', 
+    'https://ambeservice.com', 
+    'https://admin.ambeservice.com',
+    'https://admin.ambeservice.com/'
+  ],
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' })); // Increased limit for base64 images
@@ -337,15 +354,50 @@ const sendOtpEmail = async (user, otp) => {
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
         try {
             // For testing, force email to the specific testing account if it's Nandani or Ambe
-            const targetEmail = (user.userId === 'nandani' || user.userId === 'ambe') 
-                ? (process.env.TEST_EMAIL_RECIPIENT || 'maheshthakurharishankar@gmail.com')
-                : user.email;
+            let targetEmail = user.email;
+            if (user.userId === 'nandani') {
+                targetEmail = 'ambeservices.nandani@gmail.com';
+            } else if (user.userId === 'ambe') {
+                targetEmail = process.env.TEST_EMAIL_RECIPIENT || 'maheshthakurharishankar@gmail.com';
+            }
 
             await transporter.sendMail({
-                from: process.env.EMAIL_USER,
+                from: process.env.EMAIL_FROM || 'media@ambeservice.com', // Use verified sender email
                 to: targetEmail, 
                 subject: 'Ambe Service Login OTP',
-                text: `Your OTP is: ${otp}`
+                html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #eeeeee; }
+    .header h1 { color: #333333; margin: 0; }
+    .content { padding: 20px 0; text-align: center; }
+    .otp-code { font-size: 32px; font-weight: bold; color: #007bff; letter-spacing: 5px; margin: 20px 0; }
+    .footer { text-align: center; color: #888888; font-size: 12px; padding-top: 20px; border-top: 1px solid #eeeeee; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Ambe Service</h1>
+    </div>
+    <div class="content">
+      <p>Hello ${user.name || 'User'},</p>
+      <p>You requested a login OTP. Please use the code below to complete your verification:</p>
+      <div class="otp-code">${otp}</div>
+      <p>This code is valid for 10 minutes.</p>
+      <p>If you did not request this, please ignore this email.</p>
+    </div>
+    <div class="footer">
+      <p>&copy; ${new Date().getFullYear()} Ambe Service. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
+                `
             });
             console.log(`[OTP] Sent to ${targetEmail}`);
         } catch (err) {
@@ -370,7 +422,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
                     userId: 'nandani',
                     name: 'Nandani',
                     role: 'superadmin',
-                    email: process.env.TEST_EMAIL_RECIPIENT || 'maheshthakurharishankar@gmail.com',
+                    email: 'ambeservices.nandani@gmail.com',
                     trustedDevices: []
                 });
              } else {
@@ -386,8 +438,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
         user.otpExpires = otpExpires;
         
         // Ensure email is set for testing accounts
-        if (user.userId === 'nandani' || user.userId === 'ambe') {
-            user.email = process.env.TEST_EMAIL_RECIPIENT || 'maheshthakurharishankar@gmail.com';
+                 if (user.userId === 'nandani' || user.userId === 'ambe' || user.userId === 'admin') {
         }
         
         await user.save();
@@ -404,15 +455,28 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
 app.post('/api/auth/verify-otp', async (req, res) => {
     try {
+        console.log('Verify OTP Request:', req.body); // Log request
         const { username, otp, deviceId } = req.body;
         const normalizedUser = username ? username.trim() : '';
         const regex = new RegExp(`^${normalizedUser}$`, 'i');
 
         const user = await User.findOne({ $or: [{ userId: { $regex: regex } }, { email: { $regex: regex } }] });
-        if (!user) return res.status(400).json({ error: "User not found" });
+        if (!user) {
+            console.log('Verify OTP: User not found for', username);
+            return res.status(400).json({ error: "User not found" });
+        }
 
-        if (user.otp !== otp) return res.status(400).json({ error: "Invalid OTP" });
-        if (user.otpExpires < Date.now()) return res.status(400).json({ error: "OTP Expired" });
+        console.log(`Verify OTP: Checking for ${user.userId}. Expected: ${user.otp}, Received: ${otp}`);
+
+        // Ensure string comparison
+        if (String(user.otp).trim() !== String(otp).trim()) {
+             console.log('Verify OTP: Invalid OTP');
+             return res.status(400).json({ error: "Invalid OTP" });
+        }
+        if (user.otpExpires < Date.now()) {
+             console.log('Verify OTP: Expired');
+             return res.status(400).json({ error: "OTP Expired" });
+        }
 
         // Clear OTP
         user.otp = null;
@@ -428,7 +492,14 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 
         await user.save();
 
-        res.json(user);
+        // Generate JWT
+        const token = jwt.sign(
+            { userId: user.userId, role: user.role, email: user.email },
+            process.env.JWT_SECRET || 'default_secret',
+            { expiresIn: '24h' }
+        );
+
+        res.json({ ...user.toObject(), token });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
@@ -451,6 +522,7 @@ app.post('/api/auth/revoke-trust', async (req, res) => {
 
 // Login (Mock Auth for now, but checking DB)
 app.post('/api/login', async (req, res) => {
+  console.log('Login Request Body:', req.body); // Added logging
   let { email, password, deviceId } = req.body;
 
   // Normalize inputs
@@ -470,30 +542,27 @@ app.post('/api/login', async (req, res) => {
 
         // Simple password check
         if (user.password === password) {
-             // Check Trusted Device
-             if (deviceId && user.trustedDevices && user.trustedDevices.includes(deviceId)) {
-                 return res.json(user);
-             } else {
-                 // Device not trusted -> Trigger OTP
-                 // Generate OTP
-                 const otp = Math.floor(100000 + Math.random() * 900000).toString();
-                 const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
-                 
-                 user.otp = otp;
-                 user.otpExpires = otpExpires;
-                 
-                 // Ensure email is set for testing accounts
-                 if (user.userId === 'nandani' || user.userId === 'ambe') {
-                    user.email = process.env.TEST_EMAIL_RECIPIENT || 'maheshthakurharishankar@gmail.com';
-                 }
-
-                 await user.save();
-                 
-                 console.log(`[OTP] Login Triggered for ${user.name}: ${otp}`);
-                 await sendOtpEmail(user, otp);
-                 
-                 return res.json({ requireOtp: true, userId: user.userId, message: "New device detected. OTP sent." });
+             // ALWAYS Trigger OTP (Trusted Device check bypassed)
+             // Generate OTP
+             const otp = Math.floor(100000 + Math.random() * 900000).toString();
+             const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+             
+             user.otp = otp;
+             user.otpExpires = otpExpires;
+             
+             // Ensure email is set for testing accounts
+             if (user.userId === 'nandani') {
+                user.email = 'ambeservices.nandani@gmail.com';
+             } else if (user.userId === 'ambe' || user.userId === 'admin') {
+                user.email = process.env.TEST_EMAIL_RECIPIENT || 'maheshthakurharishankar@gmail.com';
              }
+
+             await user.save();
+             
+             console.log(`[OTP] Login Triggered for ${user.name}: ${otp}`);
+             await sendOtpEmail(user, otp);
+             
+             return res.json({ requireOtp: true, userId: user.userId, message: "OTP sent to registered email." });
         } else {
              return res.status(401).json({ error: 'Invalid Password' });
         }
@@ -530,7 +599,7 @@ app.post('/api/login', async (req, res) => {
                  userId: 'nandani',
                  name: 'Nandani',
                  role: 'superadmin',
-                 email: process.env.TEST_EMAIL_RECIPIENT || 'maheshthakurharishankar@gmail.com',
+                 email: 'ambeservices.nandani@gmail.com',
                  password: password || 'ambe123', // Use provided password or default
                  trustedDevices: []
              });

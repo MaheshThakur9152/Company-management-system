@@ -124,7 +124,7 @@ const EditPayrollModal: React.FC<EditPayrollModalProps> = ({ isOpen, employee, o
           <div className="bg-red-50 p-4 rounded-lg border border-red-100 space-y-3">
             <h4 className="font-bold text-red-700 text-sm uppercase">Deductions</h4>
             
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Advance</label>
                 <input 

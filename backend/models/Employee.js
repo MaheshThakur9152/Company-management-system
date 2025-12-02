@@ -10,6 +10,7 @@ const EmployeeSchema = new mongoose.Schema({
   weeklyOff: { type: String, default: 'Sunday' },
   status: { type: String, enum: ['Active', 'Inactive', 'Pending', 'Deleted'], default: 'Active' },
   joiningDate: String,
+  leavingDate: String,
   aadharNumber: String,
   panNumber: String,
   bankDetails: {

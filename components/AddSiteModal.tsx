@@ -72,7 +72,7 @@ const AddSiteModal: React.FC<AddSiteModalProps> = ({ isOpen, site, onClose, onSa
              <h3 className="text-xs font-bold text-purple-800 uppercase tracking-wider mb-2 flex items-center gap-1">
                 <Lock size={14} /> Supervisor Credentials
              </h3>
-             <div className="grid grid-cols-2 gap-3">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                  <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1">Username</label>
                     <div className="relative">
@@ -133,7 +133,7 @@ const AddSiteModal: React.FC<AddSiteModalProps> = ({ isOpen, site, onClose, onSa
                     placeholder="Bhakti Park wadala Mumbai-40037"
                 />
              </div>
-             <div className="grid grid-cols-2 gap-3">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                  <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1">Contact No</label>
                     <input 
@@ -182,7 +182,7 @@ const AddSiteModal: React.FC<AddSiteModalProps> = ({ isOpen, site, onClose, onSa
                 </select>
              </div>
 
-             <div className="grid grid-cols-2 gap-3">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                  <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1">Work Order No</label>
                     <input 
@@ -204,7 +204,7 @@ const AddSiteModal: React.FC<AddSiteModalProps> = ({ isOpen, site, onClose, onSa
                  </div>
              </div>
 
-             <div className="grid grid-cols-2 gap-3">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                  <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1">WO Start Date</label>
                     <input 
@@ -231,7 +231,7 @@ const AddSiteModal: React.FC<AddSiteModalProps> = ({ isOpen, site, onClose, onSa
              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
                 <MapPin size={14} /> Geofencing & Coordinates
              </h3>
-             <div className="grid grid-cols-2 gap-4">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1">Latitude</label>
                     <input 

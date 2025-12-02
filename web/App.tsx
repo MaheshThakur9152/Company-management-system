@@ -89,7 +89,7 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
   // Otherwise default to false (Standalone mode).
   const [isAuthenticated, setIsAuthenticated] = useState(!!user);
   const [userRole, setUserRole] = useState<'Admin' | 'SuperAdmin'>(
-    (user?.role === 'boss' || user?.role === 'superadmin' || user?.email === 'nandani@ambeservice.com') ? 'SuperAdmin' : 'Admin'
+    (user?.role === 'boss' || user?.role === 'superadmin' || user?.email === 'nandani@ambeservice.com' || user?.email === 'ambeservices.nandani@gmail.com') ? 'SuperAdmin' : 'Admin'
   );
   const [activeTab, setActiveTab] = useState<'invoices-tax' | 'invoices-proforma' | 'employees' | 'attendance' | 'sites' | 'payroll' | 'ledger' | 'users'>('invoices-tax');
   const [invoicesExpanded, setInvoicesExpanded] = useState(true);
@@ -141,6 +141,7 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
   
   const [showAutoInvoiceDropdown, setShowAutoInvoiceDropdown] = useState(false);
   const [showPhotoGallery, setShowPhotoGallery] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Filter & Search
   const [searchTerm, setSearchTerm] = useState('');
@@ -220,7 +221,7 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
   };
 
   const completeLogin = (userData: any) => {
-      if (userData.role === 'superadmin' || userData.email === 'nandani@ambeservice.com') {
+      if (userData.role === 'superadmin' || userData.email === 'nandani@ambeservice.com' || userData.email === 'ambeservices.nandani@gmail.com') {
           setUserRole('SuperAdmin');
       } else {
           setUserRole('Admin');
@@ -539,7 +540,19 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
           continue; 
       }
 
-      const siteEmployees = employees.filter(e => e.siteId === site.id);
+      const siteEmployees = employees.filter(e => {
+          if (e.siteId !== site.id) return false;
+          
+          // Filter out inactive employees who left before the selected month
+          if (e.status === 'Inactive' && e.leavingDate) {
+              const leavingDate = new Date(e.leavingDate);
+              const reportMonthStart = new Date(selectedYear, selectedMonth - 1, 1);
+              if (leavingDate < reportMonthStart) {
+                  return false;
+              }
+          }
+          return true;
+      });
       if (siteEmployees.length === 0) {
           noAttendanceSites.push(site.name);
           continue;
@@ -887,13 +900,38 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
   const filteredEmployees = employees.filter(e => {
       const matchesSearch = e.name.toLowerCase().includes(searchTerm.toLowerCase()) || e.biometricCode.includes(searchTerm);
       const matchesSite = selectedSiteFilter === 'all' || e.siteId === selectedSiteFilter;
-      return matchesSearch && matchesSite;
+      
+      // Filter out inactive employees who left before the selected month
+      let isVisible = true;
+      if (e.status === 'Inactive' && e.leavingDate) {
+          const leavingDate = new Date(e.leavingDate);
+          const reportMonthStart = new Date(selectedYear, selectedMonth - 1, 1);
+          
+          // If they left before the start of the current report month, hide them
+          if (leavingDate < reportMonthStart) {
+              isVisible = false;
+          }
+      }
+
+      return matchesSearch && matchesSite && isVisible;
   });
 
   return (
-    <div className="flex h-screen bg-gray-50 font-sans text-gray-900">
-      <aside className="w-64 bg-secondary text-white flex-col hidden md:flex shadow-2xl z-20">
-        <div className="p-6 border-b border-gray-600 bg-secondary/50">
+    <div className="flex h-screen bg-gray-50 font-sans text-gray-900 relative">
+      {/* Mobile Overlay */}
+      {mobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      <aside className={`
+        fixed inset-y-0 left-0 z-40 w-64 bg-secondary text-white flex flex-col shadow-2xl transition-transform duration-300 ease-in-out
+        md:relative md:translate-x-0
+        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <div className="p-6 border-b border-gray-600 bg-secondary/50 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="bg-primary p-2 rounded-lg"><LayoutDashboard size={20} /></div>
             <div>
@@ -901,6 +939,9 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
                 {userRole === 'SuperAdmin' && <span className="text-xs text-yellow-400 font-mono">Super Admin</span>}
             </div>
           </div>
+          <button onClick={() => setMobileMenuOpen(false)} className="md:hidden text-gray-400 hover:text-white">
+            <X size={24} />
+          </button>
         </div>
         <nav className="flex-1 p-4 space-y-2">
           <div className="space-y-1">
@@ -957,8 +998,19 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+      <div className="flex-1 flex flex-col h-full overflow-hidden w-full">
+        {/* Mobile Header */}
+        <div className="md:hidden bg-secondary text-white p-4 flex justify-between items-center shadow-md z-20 shrink-0">
+            <div className="flex items-center gap-2">
+                <div className="bg-primary p-1.5 rounded-lg"><LayoutDashboard size={18} /></div>
+                <h1 className="font-bold text-lg">Ambe Admin</h1>
+            </div>
+            <button onClick={() => setMobileMenuOpen(true)} className="p-1 hover:bg-white/10 rounded">
+                <Menu size={24} />
+            </button>
+        </div>
+
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
             <div className="max-w-7xl mx-auto">
                 {(activeTab === 'invoices-tax' || activeTab === 'invoices-proforma') && (
                     <div className="space-y-6">
@@ -993,8 +1045,8 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
                                 <button onClick={handleCreateInvoice} className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm hover:bg-primary/90 transition-colors"><Plus size={18} /> New Invoice</button>
                             </div>
                         </div>
-                        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                            <table className="w-full text-left">
+                        <div className="bg-white rounded-xl shadow-sm border overflow-hidden overflow-x-auto">
+                            <table className="w-full text-left min-w-[800px]">
                                 <thead className="bg-gray-50 border-b"><tr><th className="p-4">Details</th><th className="p-4">Amount</th><th className="p-4">Status</th><th className="p-4 text-right">Actions</th></tr></thead>
                                 <tbody>
                                     {invoices.filter(inv => {
@@ -1412,8 +1464,8 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
                                 <Plus size={18} /> Add Admin
                             </button>
                         </div>
-                        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                            <table className="w-full text-left">
+                        <div className="bg-white rounded-xl shadow-sm border overflow-hidden overflow-x-auto">
+                            <table className="w-full text-left min-w-[800px]">
                                 <thead className="bg-gray-50 border-b">
                                     <tr>
                                         <th className="p-4">User ID</th>

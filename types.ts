@@ -43,6 +43,7 @@ export interface Employee {
   weeklyOff: string;
   status: 'Active' | 'Inactive' | 'Stopped' | 'Pending' | 'Deleted';
   stoppedDate?: string;
+  leavingDate?: string;
   joiningDate: string;
   aadharNumber?: string;
   panNumber?: string;

@@ -145,7 +145,7 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
              </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
              <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
                     <Briefcase size={12} /> Role
@@ -176,7 +176,7 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
              </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
              <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Weekly Off</label>
                 <select 
@@ -206,7 +206,7 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
           <div className="space-y-3 pt-2 border-t border-gray-100">
              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Identity & Banking</h3>
              
-             <div className="grid grid-cols-2 gap-4">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Aadhar Number</label>
                     <input 
@@ -230,7 +230,7 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
              </div>
 
              <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Bank Name</label>
                         <input 
@@ -256,7 +256,7 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
                         />
                     </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Account Number</label>
                         <input 
@@ -313,6 +313,20 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
                     <span className={`text-sm font-medium ${formData.status === 'Inactive' ? 'text-gray-800' : 'text-gray-600'}`}>Inactive</span>
                 </label>
             </div>
+            
+            {formData.status === 'Inactive' && (
+                <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
+                        <Calendar size={12} /> Leaving Date
+                    </label>
+                    <input 
+                        type="date"
+                        value={formData.leavingDate || new Date().toISOString().split('T')[0]}
+                        onChange={(e) => handleChange('leavingDate', e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
+                    />
+                </div>
+            )}
           </div>
 
         </div>

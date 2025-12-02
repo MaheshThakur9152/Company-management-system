@@ -573,7 +573,7 @@ const LedgerTab: React.FC<LedgerTabProps> = ({
             </div>
         </div>
         <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-sm min-w-[1000px]">
             <thead className="bg-gray-50 border-b text-gray-500 font-medium uppercase text-xs">
               <tr>
                 <th className="p-4 w-32">Date</th>
