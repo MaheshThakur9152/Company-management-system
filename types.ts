@@ -1,5 +1,5 @@
 
-export type Role = 'admin' | 'superadmin';
+export type Role = 'admin' | 'superadmin' | 'boss' | 'supervisor';
 
 export interface User {
   userId: string;
@@ -85,15 +85,22 @@ export type AttendanceStatus = 'P' | 'A' | 'W/O' | 'HD' | 'Leave' | 'WOE' | 'HDE
 export interface AttendanceRecord {
   id: string;
   employeeId: string;
+  employeeName?: string;
   date: string;
   status: AttendanceStatus;
   checkInTime?: string;
+  checkOutTime?: string;
   photoUrl?: string; // Base64 string
-  location?: { lat: number; lng: number };
+  location?: { lat: number; lng: number; address?: string };
+  siteId?: string;
+  siteName?: string;
+  deviceId?: string;
+  type?: 'IN' | 'OUT';
   isSynced: boolean;
   isLocked: boolean; // Prevents editing after sync
   remarks?: string;
   overtimeHours?: number;
+  supervisorName?: string;
 }
 
 export interface InvoiceItem {
@@ -163,4 +170,17 @@ export interface SalaryRecord {
   paymentDate?: string;
   complianceStatus: 'Compliant' | 'Non-Compliant' | 'Pending';
   complianceRemarks?: string;
+}
+
+export interface LocationLog {
+  _id: string;
+  supervisorName: string;
+  status: 'In Range' | 'Out of Range';
+  siteName: string;
+  timestamp: string;
+  location: {
+    latitude: number;
+    longitude: number;
+  };
+  deviceId: string;
 }

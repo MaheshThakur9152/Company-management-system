@@ -22,7 +22,12 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.maheshus42.supervisor"
+      "package": "com.maheshus42.supervisor",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyD72J2BF3vQOAzxB7k610zhLUI18kDj-AE"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"

@@ -1,9 +1,7 @@
 package com.ambe.supervisor.api;
 
-import android.os.AsyncTask;
-import android.util.Log;
-
 import org.json.JSONObject;
+import com.ambe.supervisor.utils.AppConfig;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -12,19 +10,20 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class ApiService {
-    private static final String API_URL = "https://api.ambeservice.com/api";
 
     public interface ApiCallback {
         void onSuccess(String response);
         void onError(String error);
     }
 
-    public static void login(String username, String password, ApiCallback callback) {
+    public static void login(String username, String password, String deviceId, ApiCallback callback) {
         new Thread(() -> {
             try {
                 JSONObject jsonBody = new JSONObject();
                 jsonBody.put("username", username);
                 jsonBody.put("password", password);
+                jsonBody.put("deviceId", deviceId);
+                jsonBody.put("deviceName", android.os.Build.MANUFACTURER + " " + android.os.Build.MODEL);
 
                 String response = executeRequest("/supervisor/login", "POST", jsonBody.toString());
                 if (response != null) {
@@ -74,8 +73,53 @@ public class ApiService {
         }).start();
     }
 
+    public static String syncAttendanceBlocking(String jsonBody) throws Exception {
+        return executeRequest("/attendance/sync", "POST", jsonBody);
+    }
+
+    public static String logLocationBlocking(String jsonBody) throws Exception {
+        return executeRequest("/supervisor/location", "POST", jsonBody);
+    }
+
+    public static void logLocation(String jsonBody, ApiCallback callback) {
+        new Thread(() -> {
+            try {
+                String response = executeRequest("/supervisor/location", "POST", jsonBody);
+                if (response != null) callback.onSuccess(response);
+                else callback.onError("Log failed");
+            } catch (Exception e) {
+                callback.onError(e.getMessage());
+            }
+        }).start();
+    }
+
+    public static void getAttendance(String siteId, String date, ApiCallback callback) {
+        getAttendanceSince(siteId, date, null, callback);
+    }
+
+    public static void getAttendanceSince(String siteId, String date, String updatedAfter, ApiCallback callback) {
+        new Thread(() -> {
+            try {
+                // Assuming date is YYYY-MM-DD
+                String[] parts = date.split("-");
+                String month = parts[1];
+                String year = parts[0];
+                String endpoint = "/attendance?site=" + siteId + "&month=" + month + "&year=" + year;
+                if (updatedAfter != null) {
+                    endpoint += "&updatedAfter=" + updatedAfter;
+                }
+                
+                String response = executeRequest(endpoint, "GET", null);
+                if (response != null) callback.onSuccess(response);
+                else callback.onError("Failed to fetch attendance");
+            } catch (Exception e) {
+                callback.onError(e.getMessage());
+            }
+        }).start();
+    }
+
     private static String executeRequest(String endpoint, String method, String jsonBody) throws Exception {
-        URL url = new URL(API_URL + endpoint);
+        URL url = new URL(AppConfig.getBaseUrl() + "/api" + endpoint);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod(method);
         conn.setRequestProperty("Content-Type", "application/json");

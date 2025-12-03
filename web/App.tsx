@@ -8,13 +8,13 @@ import {
   Save, X, RotateCcw, Receipt, Banknote, BookOpen, AlertTriangle, ChevronDown, Camera, UserCircle
 } from 'lucide-react';
 
-import { Invoice, Employee, AttendanceRecord, Site, AttendanceStatus, User } from '../types';
+import { Invoice, Employee, AttendanceRecord, Site, AttendanceStatus, User, LocationLog } from '../types';
 import { 
   getSharedAttendanceData, getInvoices, 
   updateInvoice, getEmployees, addEmployee, updateEmployee, 
   deleteEmployee, getSites, addSite, updateSite, deleteSite,
   addInvoice, updateAttendanceRecord, deleteAttendancePhoto,
-  loginUser, verifyOtp, getUsers, addUser, deleteUser, revokeUserTrust, updateUser
+  loginUser, verifyOtp, getUsers, addUser, deleteUser, revokeUserTrust, updateUser, getLocationLogs, revokeSupervisorDevice
 } from '../services/mockData';
 
 import EditInvoiceModal from '../components/EditInvoiceModal';
@@ -24,6 +24,7 @@ import GenerateBillModal from '../components/GenerateBillModal';
 import PayrollTab from '../components/PayrollTab';
 import LedgerTab from '../components/LedgerTab';
 import QuickDeductionsModal from '../components/QuickDeductionsModal';
+import AttendanceLogs from '../components/AttendanceLogs';
 import { generateBillExcel, ensureExcelJSLoaded } from '../utils/excelGenerator';
 import '../utils/excelExportBrowser.js'; // Import for side effects (window.generateAttendanceExcelBrowser)
 import { loadScript } from '../utils/scriptLoader';
@@ -54,12 +55,33 @@ const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
 
 const getSafePhotoUrl = (url: string | undefined | null) => {
     if (!url) return PLACEHOLDER_IMAGE;
-    if (url.startsWith('http') || url.startsWith('data:')) return url;
-    // If it looks like a base64 string (e.g. starts with /9j/ for JPEG), prepend data URI scheme
-    if (url.length > 100 && !url.includes(' ')) {
-        return `data:image/jpeg;base64,${url}`;
+    const trimmedUrl = url.trim();
+    if (trimmedUrl.startsWith('http') || trimmedUrl.startsWith('data:')) return trimmedUrl;
+    // If it looks like a base64 string (long and no spaces after trim), prepend data URI scheme
+    // Also handle potential newlines in base64
+    const cleanBase64 = trimmedUrl.replace(/\s/g, '');
+    if (cleanBase64.length > 100) {
+        return `data:image/jpeg;base64,${cleanBase64}`;
     }
-    return url;
+    return trimmedUrl;
+};
+
+const extractCloudinaryPublicId = (url: string | undefined | null) => {
+    if (!url || !url.includes('cloudinary.com')) return '';
+    try {
+        // Cloudinary URL format: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{public_id}.{format}
+        const parts = url.split('/');
+        const uploadIndex = parts.indexOf('upload');
+        if (uploadIndex !== -1 && uploadIndex + 2 < parts.length) {
+            // Get everything after 'upload/v{version}/'
+            const publicIdWithExt = parts.slice(uploadIndex + 2).join('/');
+            // Remove file extension
+            return publicIdWithExt.replace(/\.[^/.]+$/, '');
+        }
+    } catch (error) {
+        console.error('Error extracting public ID:', error);
+    }
+    return '';
 };
 
 const getExcelJS = async () => {
@@ -84,14 +106,14 @@ interface AdminWebAppProps {
   onUserUpdate?: (user: User) => void;
 }
 
-const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate }) => {
+const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
   // If user is provided via props (Integrated mode), consider them authenticated.
   // Otherwise default to false (Standalone mode).
   const [isAuthenticated, setIsAuthenticated] = useState(!!user);
   const [userRole, setUserRole] = useState<'Admin' | 'SuperAdmin'>(
     (user?.role === 'boss' || user?.role === 'superadmin' || user?.email === 'nandani@ambeservice.com' || user?.email === 'ambeservices.nandani@gmail.com') ? 'SuperAdmin' : 'Admin'
   );
-  const [activeTab, setActiveTab] = useState<'invoices-tax' | 'invoices-proforma' | 'employees' | 'attendance' | 'sites' | 'payroll' | 'ledger' | 'users'>('invoices-tax');
+  const [activeTab, setActiveTab] = useState<'invoices-tax' | 'invoices-proforma' | 'employees' | 'attendance' | 'logs' | 'sites' | 'payroll' | 'ledger' | 'users' | 'photos' | 'supervisor-logs'>('invoices-tax');
   const [invoicesExpanded, setInvoicesExpanded] = useState(true);
   const [officeEmployeeExpanded, setOfficeEmployeeExpanded] = useState(false);
   const [ledgerType, setLedgerType] = useState<'client' | 'employee' | 'expense'>('client');
@@ -102,6 +124,7 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
   const [sites, setSites] = useState<Site[]>([]);
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
   const [users, setUsers] = useState<any[]>([]); // Admin Users
+  const [locationLogs, setLocationLogs] = useState<LocationLog[]>([]);
 
   // Login State
   const [loginEmail, setLoginEmail] = useState('admin@ambeservice.com');
@@ -148,12 +171,27 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
   const [selectedSiteFilter, setSelectedSiteFilter] = useState<string>('all');
   const [selectedMonth, setSelectedMonth] = useState<number>(11); // Default Nov
   const [selectedYear, setSelectedYear] = useState<number>(2025); // Default 2025
+  const [selectedDay, setSelectedDay] = useState<number | 'all'>('all');
   
   // Invoice Filters
   const [invFilterMonth, setInvFilterMonth] = useState<string>('all');
   const [invFilterYear, setInvFilterYear] = useState<number>(2025);
   const [invFilterSite, setInvFilterSite] = useState<string>('all');
   const [invFilterStatus, setInvFilterStatus] = useState<string>('all');
+
+  // Supervisor Logs Summary State
+  const [selectedSupervisorLog, setSelectedSupervisorLog] = useState<{
+    date: string;
+    supervisorName: string;
+    logs: LocationLog[];
+  } | null>(null);
+
+  // Socket.IO Support
+  const getSocket = async () => {
+      if ((window as any).io) return (window as any).io;
+      await loadScript('https://cdn.socket.io/4.7.2/socket.io.min.js');
+      return (window as any).io;
+  };
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -165,10 +203,35 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
       if (userRole === 'SuperAdmin') {
           setUsers(await getUsers());
       }
+      setLocationLogs(await getLocationLogs());
     };
     loadData();
     const interval = setInterval(loadData, 5000);
-    return () => clearInterval(interval);
+
+    // Initialize Socket
+    let socket: any = null;
+    const initSocket = async () => {
+        try {
+            const io = await getSocket();
+            const backendUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                ? 'http://localhost:3002' 
+                : window.location.origin; // Assume same origin for prod or adjust if needed
+            
+            socket = io(backendUrl);
+            socket.on('data_update', (data: { type: string }) => {
+                if (data.type === 'employees') getEmployees().then(setEmployees);
+                if (data.type === 'sites') getSites().then(setSites);
+            });
+        } catch (e) {
+            console.error("Socket connection failed", e);
+        }
+    };
+    initSocket();
+
+    return () => {
+        clearInterval(interval);
+        if (socket) socket.disconnect();
+    };
   }, [isAuthenticated, userRole]);
 
   const handleDeletePhoto = async (empId: string, date: string) => {
@@ -313,6 +376,61 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
       } catch (err: any) {
           alert("Failed to update profile: " + err.message);
       }
+  };
+
+  const processLocationLogs = (logs: LocationLog[]) => {
+    const groups: Record<string, {
+        id: string;
+        date: string;
+        supervisorName: string;
+        siteName: string;
+        firstInTs: number;
+        firstInLocation?: { latitude: number; longitude: number };
+        lastOutTs: number;
+        lastOutLocation?: { latitude: number; longitude: number };
+        allLogs: LocationLog[];
+    }> = {};
+
+    logs.forEach(log => {
+        const d = new Date(log.timestamp);
+        const dateKey = d.toLocaleDateString();
+        const key = `${log.supervisorName}-${dateKey}`;
+        
+        // Resolve Site Name from ID if available
+        const site = sites.find(s => s.id === log.siteId);
+        const siteName = site ? site.name : (log.siteName || 'Unknown Site');
+
+        if (!groups[key]) {
+            groups[key] = {
+                id: key,
+                date: dateKey,
+                supervisorName: log.supervisorName || 'Unknown Supervisor',
+                siteName: siteName,
+                firstInTs: 0,
+                lastOutTs: 0,
+                allLogs: []
+            };
+        }
+
+        groups[key].allLogs.push(log);
+        const ts = d.getTime();
+
+        const status = (log.status || '').trim();
+
+        if (status === 'In Range' || status === 'In-Range') {
+            if (groups[key].firstInTs === 0 || ts < groups[key].firstInTs) {
+                groups[key].firstInTs = ts;
+                groups[key].firstInLocation = log.location;
+            }
+        } else if (status === 'Out of Range' || status === 'Out-Of-Range') {
+            if (ts > groups[key].lastOutTs) {
+                groups[key].lastOutTs = ts;
+                groups[key].lastOutLocation = log.location;
+            }
+        }
+    });
+    
+    return Object.values(groups).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
   // --- Logic Handlers ---
@@ -838,6 +956,26 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
     }
   };
 
+  // Filter Employees based on site selection
+  const filteredEmployees = employees.filter(e => {
+      const matchesSearch = e.name.toLowerCase().includes(searchTerm.toLowerCase()) || e.biometricCode.includes(searchTerm);
+      const matchesSite = selectedSiteFilter === 'all' || e.siteId === selectedSiteFilter;
+      
+      // Filter out inactive employees who left before the selected month
+      let isVisible = true;
+      if (e.status === 'Inactive' && e.leavingDate) {
+          const leavingDate = new Date(e.leavingDate);
+          const reportMonthStart = new Date(selectedYear, selectedMonth - 1, 1);
+          
+          // If they left before the start of the current report month, hide them
+          if (leavingDate < reportMonthStart) {
+              isVisible = false;
+          }
+      }
+
+      return matchesSearch && matchesSite && isVisible;
+  });
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
@@ -896,26 +1034,6 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
     );
   }
 
-  // Filter Employees based on site selection
-  const filteredEmployees = employees.filter(e => {
-      const matchesSearch = e.name.toLowerCase().includes(searchTerm.toLowerCase()) || e.biometricCode.includes(searchTerm);
-      const matchesSite = selectedSiteFilter === 'all' || e.siteId === selectedSiteFilter;
-      
-      // Filter out inactive employees who left before the selected month
-      let isVisible = true;
-      if (e.status === 'Inactive' && e.leavingDate) {
-          const leavingDate = new Date(e.leavingDate);
-          const reportMonthStart = new Date(selectedYear, selectedMonth - 1, 1);
-          
-          // If they left before the start of the current report month, hide them
-          if (leavingDate < reportMonthStart) {
-              isVisible = false;
-          }
-      }
-
-      return matchesSearch && matchesSite && isVisible;
-  });
-
   return (
     <div className="flex h-screen bg-gray-50 font-sans text-gray-900 relative">
       {/* Mobile Overlay */}
@@ -926,11 +1044,10 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
         />
       )}
 
-      <aside className={`
-        fixed inset-y-0 left-0 z-40 w-64 bg-secondary text-white flex flex-col shadow-2xl transition-transform duration-300 ease-in-out
-        md:relative md:translate-x-0
-        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-      `}>
+      <aside className={
+        'fixed inset-y-0 left-0 z-40 w-64 bg-secondary text-white flex flex-col shadow-2xl transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ' +
+        (mobileMenuOpen ? 'translate-x-0' : '-translate-x-full')
+      }>
         <div className="p-6 border-b border-gray-600 bg-secondary/50 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="bg-primary p-2 rounded-lg"><LayoutDashboard size={20} /></div>
@@ -966,6 +1083,7 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
               <div className="pl-4 space-y-1 bg-black/10 py-2 rounded-lg">
                 <button onClick={() => setActiveTab('employees')} className={`w-full flex gap-3 px-4 py-2 rounded-lg text-sm ${activeTab === 'employees' ? 'bg-primary shadow-lg' : 'hover:bg-white/5 text-gray-300'}`}>Staff</button>
                 <button onClick={() => setActiveTab('attendance')} className={`w-full flex gap-3 px-4 py-2 rounded-lg text-sm ${activeTab === 'attendance' ? 'bg-primary shadow-lg' : 'hover:bg-white/5 text-gray-300'}`}>Attendance</button>
+                <button onClick={() => setActiveTab('logs')} className={`w-full flex gap-3 px-4 py-2 rounded-lg text-sm ${activeTab === 'logs' ? 'bg-primary shadow-lg' : 'hover:bg-white/5 text-gray-300'}`}>Logs</button>
                 <button onClick={() => setActiveTab('payroll')} className={`w-full flex gap-3 px-4 py-2 rounded-lg text-sm ${activeTab === 'payroll' ? 'bg-primary shadow-lg' : 'hover:bg-white/5 text-gray-300'}`}>Payroll</button>
               </div>
             )}
@@ -973,15 +1091,23 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
 
           <button onClick={() => setActiveTab('sites')} className={`w-full flex gap-3 px-4 py-3 rounded-lg ${activeTab === 'sites' ? 'bg-primary shadow-lg' : 'hover:bg-white/5'}`}><MapPin size={18} /> Sites</button>
           
+          <button onClick={() => setActiveTab('photos')} className={`w-full flex gap-3 px-4 py-3 rounded-lg ${activeTab === 'photos' ? 'bg-primary shadow-lg' : 'hover:bg-white/5'}`}>
+            <Camera size={18} /> Photos
+          </button>
           {userRole === 'SuperAdmin' && (
-            <>
-                <button onClick={() => setActiveTab('ledger')} className={`w-full flex gap-3 px-4 py-3 rounded-lg ${activeTab === 'ledger' ? 'bg-primary shadow-lg' : 'hover:bg-white/5'}`}>
-                  <BookOpen size={18} /> Ledger
-                </button>
-                <button onClick={() => setActiveTab('users')} className={`w-full flex gap-3 px-4 py-3 rounded-lg ${activeTab === 'users' ? 'bg-primary shadow-lg' : 'hover:bg-white/5'}`}>
-                  <ShieldCheck size={18} /> Admin Users
-                </button>
-            </>
+            <button onClick={() => setActiveTab('ledger')} className={`w-full flex gap-3 px-4 py-3 rounded-lg ${activeTab === 'ledger' ? 'bg-primary shadow-lg' : 'hover:bg-white/5'}`}>
+              <BookOpen size={18} /> Ledger
+            </button>
+          )}
+          {userRole === 'SuperAdmin' && (
+            <button onClick={() => setActiveTab('users')} className={`w-full flex gap-3 px-4 py-3 rounded-lg ${activeTab === 'users' ? 'bg-primary shadow-lg' : 'hover:bg-white/5'}`}>
+              <ShieldCheck size={18} /> Admin Users
+            </button>
+          )}
+          {(userRole === 'Admin' || userRole === 'SuperAdmin') && (
+            <button onClick={() => setActiveTab('device-history')} className={`w-full flex gap-3 px-4 py-3 rounded-lg ${activeTab === 'device-history' ? 'bg-primary shadow-lg' : 'hover:bg-white/5'}`}>
+              <Phone size={18} /> Device History
+            </button>
           )}
         </nav>
         <div className="p-4 border-t border-gray-600">
@@ -1363,6 +1489,12 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
                       </div>
                   </div>
                 )}
+                {activeTab === 'logs' && (
+                  <AttendanceLogs 
+                    locationLogs={locationLogs}
+                    sites={sites}
+                  />
+                )}
                 {activeTab === 'sites' && (
                     <div className="space-y-6 animate-in fade-in">
                         <div className="flex justify-between items-center"><h2 className="text-2xl font-bold">Site Management</h2><button onClick={() => { setEditingSite(null); setShowSiteModal(true); }} className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2"><Plus size={18} /> Add Site</button></div>
@@ -1408,6 +1540,20 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
                                                 {site.status === 'Pending' && userRole === 'SuperAdmin' && (
                                                     <button onClick={() => handleApproveSite(site)} className="p-1.5 text-green-600 hover:bg-green-100 rounded" title="Approve Site"><CheckCircle size={16} /></button>
                                                 )}
+                                                {(userRole === 'SuperAdmin' || userRole === 'Admin') && (
+                                                    <button 
+                                                        onClick={async () => {
+                                                            if (confirm(`Revoke device access for ${site.name} supervisor? They will need to login again on a new device.`)) {
+                                                                await revokeSupervisorDevice(site.id);
+                                                                alert("Device revoked successfully.");
+                                                            }
+                                                        }} 
+                                                        className="p-1.5 text-orange-500 hover:bg-orange-50 rounded" 
+                                                        title="Revoke Device Access"
+                                                    >
+                                                        <LogOut size={16} />
+                                                    </button>
+                                                )}
                                                 <button onClick={() => { setEditingSite(site); setShowSiteModal(true); }} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><Edit2 size={16} /></button>
                                                 <button onClick={() => handleDeleteSite(site.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded"><Trash2 size={16} /></button>
                                             </>
@@ -1433,6 +1579,219 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
                             </div>
                         )})}</div>
                     </div>
+                )}
+                {activeTab === 'photos' && (
+                  <div className="space-y-6 animate-in fade-in">
+                      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <h2 className="text-2xl font-bold flex items-center gap-2">
+                            <Camera size={24} /> Photo Gallery
+                        </h2>
+                        <div className="flex gap-3 items-center">
+                            {/* DAY FILTER */}
+                            <div className="flex items-center bg-white border rounded-lg px-3 py-2 shadow-sm">
+                                <CalendarDays size={16} className="text-gray-400 mr-2" />
+                                <select 
+                                    value={selectedDay}
+                                    onChange={(e) => setSelectedDay(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+                                    className="bg-transparent text-sm outline-none font-medium text-gray-700 cursor-pointer"
+                                >
+                                    <option value="all">Daily</option>
+                                    {Array.from({length: new Date(selectedYear, selectedMonth, 0).getDate()}, (_, i) => i + 1).map(d => (
+                                        <option key={d} value={d}>{d}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* SITE FILTER */}
+                            <div className="flex items-center bg-white border rounded-lg px-3 py-2 shadow-sm">
+                                <Filter size={16} className="text-gray-400 mr-2" />
+                                <select 
+                                    value={selectedSiteFilter}
+                                    onChange={(e) => setSelectedSiteFilter(e.target.value)}
+                                    className="bg-transparent text-sm outline-none font-medium text-gray-700 cursor-pointer"
+                                >
+                                    <option value="all">All Sites</option>
+                                    {sites.map(site => (
+                                        <option key={site.id} value={site.id}>{site.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* MONTH FILTER */}
+                            <div className="flex items-center bg-white border rounded-lg px-3 py-2 shadow-sm">
+                                <CalendarDays size={16} className="text-gray-400 mr-2" />
+                                <select 
+                                    value={selectedMonth}
+                                    onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                                    className="bg-transparent text-sm outline-none font-medium text-gray-700 cursor-pointer mr-2"
+                                >
+                                    {Array.from({length: 12}, (_, i) => i + 1).map(m => (
+                                        <option key={m} value={m}>{new Date(2000, m-1, 1).toLocaleString('default', { month: 'short' })}</option>
+                                    ))}
+                                </select>
+                                <select 
+                                    value={selectedYear}
+                                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                                    className="bg-transparent text-sm outline-none font-medium text-gray-700 cursor-pointer border-l pl-2"
+                                >
+                                    <option value="2024">2024</option>
+                                    <option value="2025">2025</option>
+                                    <option value="2026">2026</option>
+                                </select>
+                            </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {/* Employee Photos */}
+                        {employees.filter(emp => {
+                            const matchesSite = selectedSiteFilter === 'all' || emp.siteId === selectedSiteFilter;
+                            return emp.photoUrl && matchesSite && selectedDay === 'all';
+                        }).map(emp => {
+                            const site = sites.find(s => s.id === emp.siteId);
+                            return (
+                                <div key={`emp-${emp.id}`} className="bg-white rounded-xl border shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                                    <div className="aspect-square relative group">
+                                        <img 
+                                            src={getSafePhotoUrl(emp.photoUrl)} 
+                                            className="w-full h-full object-cover" 
+                                            alt={emp.name}
+                                            onError={handleImageError}
+                                        />
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                                        <div className="absolute top-3 left-3 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                            Employee
+                                        </div>
+                                        <a 
+                                            href={emp.photoUrl?.includes('cloudinary.com') ? `/api/download/image/${extractCloudinaryPublicId(emp.photoUrl)}` : getSafePhotoUrl(emp.photoUrl)}
+                                            target="_blank" 
+                                            rel="noreferrer"
+                                            download={!emp.photoUrl?.includes('cloudinary.com') ? `${emp.name.replace(/\s+/g, '_')}.png` : undefined}
+                                            className="absolute bottom-3 right-3 bg-white/90 p-2 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white text-blue-600"
+                                            title="Download PNG"
+                                        >
+                                            <Download size={16} />
+                                        </a>
+                                    </div>
+                                    <div className="p-4">
+                                        <div className="font-bold text-gray-800 truncate" title={emp.name}>{emp.name}</div>
+                                        <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                                            <MapPin size={12} /> {site?.name || 'Unknown Site'}
+                                        </div>
+                                        <div className="text-xs text-gray-400 mt-1">{emp.role}</div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                        {/* Attendance Photos */}
+                        {attendanceData.filter(record => {
+                            if (!record.photoUrl) return false;
+                            const emp = employees.find(e => e.id === record.employeeId);
+                            if (!emp) return false;
+                            
+                            const matchesSite = selectedSiteFilter === 'all' || emp.siteId === selectedSiteFilter;
+                            const recordDate = new Date(record.date);
+                            const matchesMonth = recordDate.getMonth() + 1 === selectedMonth;
+                            const matchesYear = recordDate.getFullYear() === selectedYear;
+                            const matchesDay = selectedDay === 'all' || recordDate.getDate() === selectedDay;
+                            
+                            return matchesSite && matchesMonth && matchesYear && matchesDay;
+                        }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(record => {
+                            const emp = employees.find(e => e.id === record.employeeId);
+                            const site = sites.find(s => s.id === emp?.siteId);
+                            return (
+                                <div key={`att-${record.id}`} className="bg-white rounded-xl border shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                                    <div className="aspect-square relative group">
+                                        <img 
+                                            src={getSafePhotoUrl(record.photoUrl)} 
+                                            className="w-full h-full object-cover" 
+                                            alt={`${emp?.name} - ${record.date}`}
+                                            onError={handleImageError}
+                                        />
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                                        <div className="absolute top-3 left-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                            Attendance
+                                        </div>
+                                        <div className="absolute top-3 right-3 bg-white/90 text-gray-800 text-xs px-2 py-1 rounded-full font-bold">
+                                            {record.status}
+                                        </div>
+                                        <a 
+                                            href={record.photoUrl?.includes('cloudinary.com') ? `/api/download/image/${extractCloudinaryPublicId(record.photoUrl)}` : getSafePhotoUrl(record.photoUrl)}
+                                            target="_blank" 
+                                            rel="noreferrer"
+                                            download={!record.photoUrl?.includes('cloudinary.com') ? `${emp?.name?.replace(/\s+/g, '_') || 'attendance'}_${record.date}.png` : undefined}
+                                            className="absolute bottom-3 right-3 bg-white/90 p-2 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white text-blue-600"
+                                            title="Download PNG"
+                                        >
+                                            <Download size={16} />
+                                        </a>
+                                    </div>
+                                    <div className="p-4">
+                                        <div className="font-bold text-gray-800 truncate" title={emp?.name}>{emp?.name || 'Unknown'}</div>
+                                        <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                                            <CalendarDays size={12} /> {record.date}
+                                        </div>
+                                        <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                                            <MapPin size={12} /> {site?.name || 'Unknown Site'}
+                                        </div>
+                                        <div className="flex justify-between items-center mt-2">
+                                            <span className={`text-xs px-2 py-1 rounded font-bold ${
+                                                record.status === 'P' ? 'bg-green-100 text-green-700' :
+                                                record.status === 'A' ? 'bg-red-100 text-red-700' :
+                                                record.status === 'HD' ? 'bg-orange-100 text-orange-700' :
+                                                'bg-gray-100 text-gray-700'
+                                            }`}>
+                                                {record.status}
+                                            </span>
+                                            {userRole === 'SuperAdmin' && (
+                                                <button 
+                                                    onClick={() => handleDeletePhoto(record.employeeId, record.date)}
+                                                    className="text-xs text-red-600 hover:underline"
+                                                    title="Delete Photo"
+                                                >
+                                                    Delete
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                      </div>
+
+                      {/* No Photos Message */}
+                      {(() => {
+                        const hasEmployeePhotos = employees.some(emp => {
+                            const matchesSite = selectedSiteFilter === 'all' || emp.siteId === selectedSiteFilter;
+                            return emp.photoUrl && matchesSite;
+                        });
+                        
+                        const hasAttendancePhotos = attendanceData.some(record => {
+                            if (!record.photoUrl) return false;
+                            const emp = employees.find(e => e.id === record.employeeId);
+                            if (!emp) return false;
+                            
+                            const matchesSite = selectedSiteFilter === 'all' || emp.siteId === selectedSiteFilter;
+                            const recordDate = new Date(record.date);
+                            const matchesMonth = recordDate.getMonth() + 1 === selectedMonth;
+                            const matchesYear = recordDate.getFullYear() === selectedYear;
+                            
+                            return matchesSite && matchesMonth && matchesYear;
+                        });
+
+                        if (!hasEmployeePhotos && !hasAttendancePhotos) {
+                            return (
+                                <div className="text-center py-12 text-gray-400">
+                                    <Camera size={48} className="mx-auto mb-4 opacity-20" />
+                                    <p className="text-lg font-medium">No photos found</p>
+                                    <p className="text-sm">Try adjusting your filters or check back later</p>
+                                </div>
+                            );
+                        }
+                        return null;
+                      })()}
+                  </div>
                 )}
                 {activeTab === 'payroll' && (
                   <PayrollTab 
@@ -1460,9 +1819,11 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
                     <div className="space-y-6 animate-in fade-in">
                         <div className="flex justify-between items-center">
                             <h2 className="text-2xl font-bold">Admin User Management</h2>
-                            <button onClick={() => setShowAddUserModal(true)} className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2">
-                                <Plus size={18} /> Add Admin
-                            </button>
+                            {userRole === 'SuperAdmin' && (
+                                <button onClick={() => setShowAddUserModal(true)} className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                                    <Plus size={18} /> Add Admin
+                                </button>
+                            )}
                         </div>
                         <div className="bg-white rounded-xl shadow-sm border overflow-hidden overflow-x-auto">
                             <table className="w-full text-left min-w-[800px]">
@@ -1514,8 +1875,207 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
                         </div>
                     </div>
                 )}
+                {activeTab === 'supervisor-logs' && (
+                    <div className="space-y-6 animate-in fade-in">
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-2xl font-bold">Supervisor Location Logs</h2>
+                            <button onClick={async () => setLocationLogs(await getLocationLogs())} className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                                <RotateCcw size={18} /> Refresh
+                            </button>
+                        </div>
+                        <div className="bg-white rounded-xl shadow-sm border overflow-hidden overflow-x-auto">
+                            <table className="w-full text-left min-w-[800px]">
+                                <thead className="bg-gray-50 border-b">
+                                    <tr>
+                                        <th className="p-4">Date</th>
+                                        <th className="p-4">Supervisor</th>
+                                        <th className="p-4">Site</th>
+                                        <th className="p-4">First In</th>
+                                        <th className="p-4">Last Out</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {processLocationLogs(locationLogs).map(group => (
+                                        <tr key={group.id} className="border-b hover:bg-gray-50">
+                                            <td className="p-4 text-sm text-gray-600">{group.date}</td>
+                                            <td className="p-4 font-bold">{group.supervisorName}</td>
+                                            <td className="p-4">{group.siteName}</td>
+                                            <td className="p-4">
+                                                {group.firstInTs > 0 ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="px-2 py-1 rounded text-xs font-bold bg-green-100 text-green-800">
+                                                            {new Date(group.firstInTs).toLocaleTimeString()}
+                                                        </span>
+                                                        {group.firstInLocation && (
+                                                            <a 
+                                                                href={`https://www.google.com/maps/search/?api=1&query=${group.firstInLocation.latitude},${group.firstInLocation.longitude}`}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="text-blue-600 hover:text-blue-800"
+                                                                title="View on Google Maps"
+                                                            >
+                                                                <MapPin size={16} />
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                ) : <span className="text-gray-400">-</span>}
+                                            </td>
+                                            <td className="p-4">
+                                                {group.lastOutTs > 0 ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <button 
+                                                            onClick={() => setSelectedSupervisorLog({
+                                                                date: group.date,
+                                                                supervisorName: group.supervisorName,
+                                                                logs: group.allLogs
+                                                            })}
+                                                            className="px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-800 hover:bg-red-200 underline"
+                                                        >
+                                                            {new Date(group.lastOutTs).toLocaleTimeString()}
+                                                        </button>
+                                                        {group.lastOutLocation && (
+                                                            <a 
+                                                                href={`https://www.google.com/maps/search/?api=1&query=${group.lastOutLocation.latitude},${group.lastOutLocation.longitude}`}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="text-blue-600 hover:text-blue-800"
+                                                                title="View on Google Maps"
+                                                            >
+                                                                <MapPin size={16} />
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                ) : <span className="text-gray-400">-</span>}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {locationLogs.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-gray-500">No logs found</td></tr>}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+                {activeTab === 'device-history' && (userRole === 'Admin' || userRole === 'SuperAdmin') && (
+                    <div className="space-y-6 animate-in fade-in">
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-2xl font-bold">Device History</h2>
+                            <button onClick={async () => setSites(await getSites())} className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                                <RotateCcw size={18} /> Refresh
+                            </button>
+                        </div>
+                        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                            <table className="w-full text-left">
+                                <thead className="bg-gray-50 border-b">
+                                    <tr>
+                                        <th className="p-4">Site / Supervisor</th>
+                                        <th className="p-4">Username</th>
+                                        <th className="p-4">Bound Device</th>
+                                        <th className="p-4">Device Model</th>
+                                        <th className="p-4">Status</th>
+                                        <th className="p-4">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {sites.filter(s => s.username).map(site => (
+                                        <tr key={site.id} className="border-b hover:bg-gray-50">
+                                            <td className="p-4 font-bold">{site.name}</td>
+                                            <td className="p-4 font-mono text-sm text-gray-600">{site.username}</td>
+                                            <td className="p-4 font-mono text-xs text-gray-500">{site.deviceId || '-'}</td>
+                                            <td className="p-4 text-sm">{site.deviceName || '-'}</td>
+                                            <td className="p-4">
+                                                {site.deviceId ? (
+                                                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 flex items-center gap-1 w-fit">
+                                                        <CheckCircle size={12} /> Active
+                                                    </span>
+                                                ) : (
+                                                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600">
+                                                        Unbound
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="p-4">
+                                                {site.deviceId && (userRole === 'SuperAdmin' || userRole === 'Admin') && (
+                                                    <button 
+                                                        onClick={async () => {
+                                                            if(confirm(`Revoke device access for ${site.name}? They will need to login again.`)) {
+                                                                await revokeSupervisorDevice(site.id);
+                                                                setSites(await getSites());
+                                                            }
+                                                        }}
+                                                        className="text-red-600 hover:text-red-800 text-sm font-bold hover:underline"
+                                                    >
+                                                        Revoke Access
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {sites.filter(s => s.username).length === 0 && (
+                                        <tr><td colSpan={6} className="p-8 text-center text-gray-500">No supervisor accounts found</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
             </div>
         </main>
+
+        {selectedSupervisorLog && (
+            <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+                <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in duration-200 max-h-[80vh] flex flex-col">
+                    <div className="bg-primary px-6 py-4 flex justify-between items-center shrink-0">
+                        <div>
+                            <h3 className="text-white font-bold">Supervisor Location History</h3>
+                            <p className="text-white/80 text-xs">{selectedSupervisorLog.supervisorName} • {selectedSupervisorLog.date}</p>
+                        </div>
+                        <button onClick={() => setSelectedSupervisorLog(null)} className="text-white/80 hover:text-white"><X size={20} /></button>
+                    </div>
+                    <div className="p-0 overflow-y-auto flex-1">
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50 border-b sticky top-0">
+                                <tr>
+                                    <th className="p-4">Time</th>
+                                    <th className="p-4">Status</th>
+                                    <th className="p-4">Location</th>
+                                    <th className="p-4">Map</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {selectedSupervisorLog.logs.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map(log => (
+                                    <tr key={log._id} className="border-b hover:bg-gray-50">
+                                        <td className="p-4 font-mono text-sm">{new Date(log.timestamp).toLocaleTimeString()}</td>
+                                        <td className="p-4">
+                                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                                log.status === 'In Range' || log.status === 'In-Range' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                            }`}>
+                                                {log.status}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-xs text-gray-600">
+                                            {(log.latitude || log.location?.latitude || 0).toFixed(6)}, {(log.longitude || log.location?.longitude || 0).toFixed(6)}
+                                        </td>
+                                        <td className="p-4">
+                                            <a 
+                                                href={`https://www.google.com/maps/search/?api=1&query=${log.latitude || log.location?.latitude || 0},${log.longitude || log.location?.longitude || 0}`} 
+                                                target="_blank" 
+                                                rel="noreferrer"
+                                                className="text-blue-600 hover:underline text-sm flex items-center gap-1"
+                                            >
+                                                <MapPin size={14} /> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="p-4 border-t bg-gray-50 text-right">
+                        <button onClick={() => setSelectedSupervisorLog(null)} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm font-bold text-gray-700">Close</button>
+                    </div>
+                </div>
+            </div>
+        )}
 
         {showAddUserModal && (
             <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
@@ -1599,7 +2159,13 @@ const AdminWebApp: React.FC<AdminWebAppProps> = ({ onExit, user, onUserUpdate })
                                     <div className="aspect-square rounded-lg overflow-hidden mb-3 border bg-white relative group">
                                         <img src={getSafePhotoUrl(record.photoUrl)} className="w-full h-full object-cover" onError={handleImageError} />
                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                                        <a href={getSafePhotoUrl(record.photoUrl)} target="_blank" rel="noreferrer" className="absolute bottom-2 right-2 bg-white/90 p-1.5 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white text-blue-600">
+                                        <a 
+                                            href={record.photoUrl?.includes('cloudinary.com') ? `/api/download/image/${extractCloudinaryPublicId(record.photoUrl)}` : getSafePhotoUrl(record.photoUrl)}
+                                            download={!record.photoUrl?.includes('cloudinary.com') ? `${emp?.name?.replace(/\s+/g, '_') || 'attendance'}_${record.date}.png` : undefined}
+                                            target="_blank" 
+                                            rel="noreferrer" 
+                                            className="absolute bottom-2 right-2 bg-white/90 p-1.5 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white text-blue-600"
+                                        >
                                             <Download size={14} />
                                         </a>
                                     </div>

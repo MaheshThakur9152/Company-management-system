@@ -18,6 +18,7 @@ const connectToDatabase = async () => {
     
     mongoose.connection.on('connected', () => {
         console.log('MongoDB connected successfully');
+        console.log('Database Name:', process.env.MONGODB_URI.split('/').pop());
     });
 
     mongoose.connection.on('error', (err) => {
@@ -30,7 +31,7 @@ const connectToDatabase = async () => {
 
   } catch (error) {
     console.error('Error connecting to database:', error);
-    process.exit(1); // Exit process with failure
+    // process.exit(1); // Comment out to allow server to start even if DB fails
   }
 };
 

@@ -1,13 +1,25 @@
 package com.ambe.supervisor.activities;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.BroadcastReceiver;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.text.Editable;
+import android.text.InputType;
 import android.text.TextWatcher;
 import android.util.Base64;
 import android.view.View;
@@ -17,12 +29,14 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 
 import com.ambe.supervisor.R;
 import com.ambe.supervisor.adapters.EmployeeAdapter;
@@ -30,24 +44,56 @@ import com.ambe.supervisor.api.ApiService;
 import com.ambe.supervisor.models.AttendanceRecord;
 import com.ambe.supervisor.models.Employee;
 import com.ambe.supervisor.models.Site;
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
+import com.ambe.supervisor.database.AppDatabase;
+import com.ambe.supervisor.database.AttendanceEntity;
+import com.ambe.supervisor.database.LocationLogEntity;
+import com.ambe.supervisor.services.LocationService;
+import com.ambe.supervisor.utils.GeofenceHelper;
+import com.ambe.supervisor.utils.NetworkUtils;
+import com.ambe.supervisor.workers.SyncWorker;
+
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
+import androidx.work.WorkInfo;
+
+import android.provider.Settings;
+import android.os.Environment;
+import androidx.core.content.FileProvider;
+import java.io.File;
+import java.io.IOException;
+import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Date;
+import java.util.Locale;
+import java.text.SimpleDateFormat;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.ByteArrayOutputStream;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationResult;
+
+import io.socket.client.IO;
+import io.socket.client.Socket;
+import io.socket.emitter.Emitter;
+import java.net.URISyntaxException;
+
+import com.ambe.supervisor.services.LocationService;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.IntentFilter;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import com.ambe.supervisor.utils.SocketManager;
 
 public class SupervisorActivity extends AppCompatActivity implements EmployeeAdapter.OnAttendanceActionListener {
 
-    private static final int REQUEST_IMAGE_CAPTURE = 1;
     private static final int PERMISSION_REQUEST_CODE = 100;
 
     private TextView tvSiteName, tvGeoStatus, tvDate, tvWorkerCount, tvSyncStatus;
@@ -62,23 +108,215 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
     private Map<String, AttendanceRecord> attendanceMap = new HashMap<>();
     
     private String assignedSiteId;
+    private String userId;
+    private String supervisorName;
     private Site currentSite;
     private Employee activeEmployee;
-    private FusedLocationProviderClient fusedLocationClient;
+    // private FusedLocationProviderClient fusedLocationClient; // Moved to Service
     private Location currentLocation;
+    private Handler handler = new Handler(Looper.getMainLooper());
+    private Runnable refreshRunnable;
+    private boolean lastInRange = false;
+    private boolean isFirstCheck = true;
+    private AppDatabase db; // Replaced DatabaseHelper
+    // private LocationCallback locationCallback; // Moved to Service
+    private String currentPhotoPath;
+    private String lastSyncTime = null; // For efficient polling
+
+    private SharedPreferences prefs;
+    private Socket mSocket;
+
+    private final BroadcastReceiver locationReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (LocationService.ACTION_LOCATION_UPDATE.equals(intent.getAction())) {
+                boolean inRange = intent.getBooleanExtra(LocationService.EXTRA_IN_RANGE, false);
+                double lat = intent.getDoubleExtra(LocationService.EXTRA_LAT, 0);
+                double lng = intent.getDoubleExtra(LocationService.EXTRA_LNG, 0);
+                
+                currentLocation = new Location("service");
+                currentLocation.setLatitude(lat);
+                currentLocation.setLongitude(lng);
+                
+                lastInRange = inRange;
+                updateGeoStatus(inRange);
+            }
+        }
+    };
+
+    private final ActivityResultLauncher<Intent> cameraLauncher = registerForActivityResult(
+        new ActivityResultContracts.StartActivityForResult(),
+        result -> {
+            if (result.getResultCode() == RESULT_OK) {
+                try {
+                    // 1. Calculate optimal inSampleSize to prevent OOM
+                    // Target: Max 1024px dimension (Stable for all devices)
+                    android.graphics.BitmapFactory.Options options = new android.graphics.BitmapFactory.Options();
+                    options.inJustDecodeBounds = true;
+                    android.graphics.BitmapFactory.decodeFile(currentPhotoPath, options);
+                    
+                    int photoW = options.outWidth;
+                    int photoH = options.outHeight;
+                    int scaleFactor = 1;
+                    
+                    // Aggressive Downscaling: Target ~1024px
+                    while (photoW / 2 >= 1024 || photoH / 2 >= 1024) {
+                        photoW /= 2;
+                        photoH /= 2;
+                        scaleFactor *= 2;
+                    }
+
+                    // 2. Decode with inSampleSize and Mutable
+                    options.inJustDecodeBounds = false;
+                    options.inSampleSize = scaleFactor;
+                    options.inMutable = true; 
+                    options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+
+                    Bitmap imageBitmap = null;
+                    try {
+                        imageBitmap = android.graphics.BitmapFactory.decodeFile(currentPhotoPath, options);
+                    } catch (OutOfMemoryError e) {
+                        // Emergency Fallback: Try 2x smaller
+                        options.inSampleSize = scaleFactor * 2;
+                        imageBitmap = android.graphics.BitmapFactory.decodeFile(currentPhotoPath, options);
+                    }
+
+                    if (activeEmployee != null && imageBitmap != null) {
+                        // 3. Watermark directly
+                        String locText = "Loc: " + (currentLocation != null ? 
+                            String.format(Locale.US, "%.5f, %.5f", currentLocation.getLatitude(), currentLocation.getLongitude()) : "Unknown");
+                        String dateTimeText = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+                        
+                        watermarkImageInPlace(imageBitmap, locText, dateTimeText);
+
+                        // 4. Save BACK to file (Overwrite with smaller, watermarked version)
+                        // This prevents OOM and DB bloat
+                        try (java.io.FileOutputStream out = new java.io.FileOutputStream(currentPhotoPath)) {
+                            imageBitmap.compress(Bitmap.CompressFormat.JPEG, 70, out); // Quality 70 is sufficient
+                        }
+                        
+                        // Recycle immediately
+                        imageBitmap.recycle();
+
+                        String time = new SimpleDateFormat("hh:mm a", Locale.getDefault()).format(new Date());
+                        String date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+                        
+                        // Determine IN/OUT based on Geofence
+                        String type = "IN";
+                        if (currentSite != null && currentLocation != null) {
+                            if (!GeofenceHelper.isWithinRange(currentLocation.getLatitude(), currentLocation.getLongitude(), 
+                                    currentSite.getLatitude(), currentSite.getLongitude(), currentSite.getGeofenceRadius())) {
+                                type = "OUT";
+                            }
+                        }
+    
+                        String deviceId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
+    
+                        // 5. Save PATH to DB (Not Base64)
+                        final String finalType = type;
+                        final String finalPhotoPath = currentPhotoPath; // Store Path
+                        
+                        new Thread(() -> {
+                            AttendanceEntity entity = new AttendanceEntity(
+                                activeEmployee.getId(),
+                                assignedSiteId,
+                                date,
+                                time,
+                                "P",
+                                finalType,
+                                currentLocation != null ? currentLocation.getLatitude() : 0,
+                                currentLocation != null ? currentLocation.getLongitude() : 0,
+                                finalPhotoPath, // Path
+                                deviceId
+                            );
+                            // Add Supervisor Name
+                            entity.supervisorName = supervisorName;
+                            
+                            db.attendanceDao().insert(entity);
+                            
+                            runOnUiThread(() -> {
+                                AttendanceRecord record = new AttendanceRecord(
+                                    String.valueOf(System.currentTimeMillis()),
+                                    activeEmployee.getId(),
+                                    date,
+                                    "P",
+                                    time,
+                                    finalPhotoPath, // Path
+                                    false,
+                                    false
+                                );
+                                attendanceMap.put(activeEmployee.getId(), record);
+                                adapter.notifyDataSetChanged();
+                                updateCounts();
+                                activeEmployee = null;
+                                
+                                // Trigger Sync
+                                syncData();
+                            });
+                        }).start();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Toast.makeText(this, "Error processing image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+    );
+
+    // Replaces scaleBitmapDown
+    private void watermarkImageInPlace(Bitmap src, String loc, String date) {
+        Canvas canvas = new Canvas(src);
+        // No need to drawBitmap, we are drawing ON the bitmap
+        
+        int w = src.getWidth();
+        int h = src.getHeight();
+        
+        Paint paint = new Paint();
+        paint.setColor(Color.WHITE);
+        paint.setTextSize(w * 0.04f); // 4% of width
+        paint.setAntiAlias(true);
+        paint.setShadowLayer(5.0f, 2.0f, 2.0f, Color.BLACK);
+        
+        // Draw Location
+        float x = 20;
+        float y = h - (w * 0.12f);
+        canvas.drawText(loc, x, y, paint);
+        
+        // Draw Date
+        y += (w * 0.05f);
+        canvas.drawText(date, x, y, paint);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_supervisor);
 
+        prefs = getSharedPreferences("AmbeSupervisorPrefs", MODE_PRIVATE);
+
+        db = AppDatabase.getDatabase(this);
+
         assignedSiteId = getIntent().getStringExtra("ASSIGNED_SITE_ID");
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        userId = getIntent().getStringExtra("USER_ID");
+        supervisorName = getIntent().getStringExtra("USER_NAME");
+
+        // Save siteId to prefs for LocationService
+        prefs.edit().putString("siteId", assignedSiteId).apply();
+
+        if (assignedSiteId == null || assignedSiteId.isEmpty()) {
+            Toast.makeText(this, "Warning: No Site Assigned to this Supervisor!", Toast.LENGTH_LONG).show();
+        }
+        
+        // Register Receiver
+        LocalBroadcastManager.getInstance(this).registerReceiver(locationReceiver, 
+            new IntentFilter(LocationService.ACTION_LOCATION_UPDATE));
 
         initViews();
         setupRecyclerView();
-        checkPermissions();
+        checkPermissions(); // This will start service if permissions granted
         loadData();
+        checkName();
+        startAutoRefresh();
         
         tvDate.setText(new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date()));
 
@@ -96,8 +334,194 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
         btnSync.setOnClickListener(v -> syncData());
         btnFooterSync.setOnClickListener(v -> syncData());
         findViewById(R.id.btnLogout).setOnClickListener(v -> {
+            prefs.edit().clear().apply();
             startActivity(new Intent(this, LoginActivity.class));
             finish();
+        });
+
+        // Initialize Socket.IO using Singleton
+        new Thread(() -> {
+            try {
+                SocketManager.getInstance().connect();
+                mSocket = SocketManager.getInstance().getSocket();
+                
+                if (mSocket != null) {
+                    mSocket.on(Socket.EVENT_CONNECT, args -> {
+                        runOnUiThread(() -> {
+                            if (assignedSiteId != null) {
+                                mSocket.emit("join_site", assignedSiteId);
+                            }
+                        });
+                    });
+                    
+                    mSocket.on("attendance_update", onAttendanceUpdate);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(locationReceiver);
+        if (mSocket != null) {
+            mSocket.off("attendance_update", onAttendanceUpdate);
+            // Do NOT disconnect here to keep connection alive across rotations
+            // SocketManager.getInstance().disconnect(); 
+        }
+    }
+
+    private void checkName() {
+        if (supervisorName == null || supervisorName.isEmpty() || supervisorName.contains("Supervisor")) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            android.view.View view = getLayoutInflater().inflate(R.layout.dialog_enter_name, null);
+            builder.setView(view);
+            AlertDialog dialog = builder.create();
+            dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+            dialog.setCancelable(false);
+
+            EditText etName = view.findViewById(R.id.etSupervisorName);
+            Button btnStart = view.findViewById(R.id.btnStartShift);
+
+            btnStart.setOnClickListener(v -> {
+                String name = etName.getText().toString().trim();
+                if (!name.isEmpty()) {
+                    supervisorName = name;
+                    prefs.edit().putString("name", supervisorName).apply();
+                    
+                    dialog.dismiss();
+                    
+                    // Toast removed as per request
+                } else {
+                    Toast.makeText(this, "Name is required!", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+            dialog.show();
+        }
+    }
+
+    private void startAutoRefresh() {
+        refreshRunnable = new Runnable() {
+            @Override
+            public void run() {
+                refreshAttendance();
+                // Auto-sync if online
+                if (NetworkUtils.isNetworkAvailable(SupervisorActivity.this)) {
+                    new Thread(() -> {
+                        if (!db.attendanceDao().getUnsyncedAttendance().isEmpty()) {
+                            runOnUiThread(() -> syncData());
+                        }
+                    }).start();
+                }
+                handler.postDelayed(this, 5000); // Refresh every 5 seconds (Short Polling)
+            }
+        };
+        handler.postDelayed(refreshRunnable, 5000);
+    }
+
+    private void refreshAttendance() {
+        if (assignedSiteId == null) return;
+        String date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        
+        // 1. Load from API (Efficient Polling)
+        ApiService.getAttendanceSince(assignedSiteId, date, lastSyncTime, new ApiService.ApiCallback() {
+            @Override
+            public void onSuccess(String response) {
+                try {
+                    // Update lastSyncTime to now (ISO format)
+                    lastSyncTime = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(new Date());
+
+                    JSONArray records = new JSONArray(response);
+                    if (records.length() > 0) {
+                        for (int i = 0; i < records.length(); i++) {
+                            JSONObject r = records.getJSONObject(i);
+                            
+                            // FILTER: Only show attendance for TODAY
+                            String recordDate = r.getString("date");
+                            if (!recordDate.equals(date)) {
+                                continue;
+                            }
+
+                            String empId = r.getString("employeeId");
+                            AttendanceRecord record = new AttendanceRecord(
+                                r.optString("id", ""),
+                                empId,
+                                r.getString("date"),
+                                r.getString("status"),
+                                r.optString("checkInTime", ""),
+                                r.optString("photoUrl", null),
+                                true, // isSynced
+                                true  // isLocked
+                            );
+                            attendanceMap.put(empId, record);
+                        }
+                    }
+                    
+                    // 2. Overlay Local Data (ALL records for date, to ensure synced ones persist offline)
+                    new Thread(() -> {
+                        List<AttendanceEntity> localRecords = db.attendanceDao().getAttendanceByDate(date);
+                        boolean changed = false;
+                        for (AttendanceEntity r : localRecords) {
+                            // If we already have a locked record from API, don't overwrite with local unless necessary
+                            // But actually, local might be the source of truth if API failed previously but sync worker succeeded?
+                            // If local isSynced=true, we treat it as locked.
+                            
+                            // If map already has it (from API), and it's locked, we keep API version (it might have URL instead of path)
+                            if (attendanceMap.containsKey(r.employeeId) && attendanceMap.get(r.employeeId).isLocked()) {
+                                continue;
+                            }
+
+                            AttendanceRecord record = new AttendanceRecord(
+                                String.valueOf(r.id),
+                                r.employeeId,
+                                r.date,
+                                r.status,
+                                r.timestamp,
+                                r.photoPath,
+                                r.isSynced, // isSynced
+                                r.isSynced  // isLocked (If synced, it is locked)
+                            );
+                            attendanceMap.put(r.employeeId, record);
+                            changed = true;
+                        }
+
+                        runOnUiThread(() -> {
+                            adapter.notifyDataSetChanged();
+                            updateCounts();
+                        });
+                    }).start();
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            @Override
+            public void onError(String error) {
+                // If API fails (Offline), load ALL local data for today
+                new Thread(() -> {
+                    List<AttendanceEntity> localRecords = db.attendanceDao().getAttendanceByDate(date);
+                    for (AttendanceEntity r : localRecords) {
+                        AttendanceRecord record = new AttendanceRecord(
+                            String.valueOf(r.id),
+                            r.employeeId,
+                            r.date,
+                            r.status,
+                            r.timestamp,
+                            r.photoPath,
+                            r.isSynced, // isSynced
+                            r.isSynced  // isLocked
+                        );
+                        attendanceMap.put(r.employeeId, record);
+                    }
+                    runOnUiThread(() -> {
+                        adapter.notifyDataSetChanged();
+                        updateCounts();
+                    });
+                }).start();
+            }
         });
     }
 
@@ -124,20 +548,59 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
             ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{
                 Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.CAMERA
             }, PERMISSION_REQUEST_CODE);
         } else {
-            getCurrentLocation();
+            startLocationService();
         }
     }
 
-    private void getCurrentLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
-                if (location != null) {
-                    currentLocation = location;
-                    checkGeofence();
-                }
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @androidx.annotation.NonNull String[] permissions, @androidx.annotation.NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startLocationService();
+            } else {
+                Toast.makeText(this, "Permissions Denied. App cannot function properly.", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private void startLocationService() {
+        Intent serviceIntent = new Intent(this, LocationService.class);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent);
+        } else {
+            startService(serviceIntent);
+        }
+    }
+
+    // private void getCurrentLocation() { ... } // Removed, handled by Service
+
+    private void startLocationUpdates() {
+        // Handled by LocationService
+    }
+
+    private void updateGeoStatus(boolean inRange) {
+        if (currentSite == null) return;
+        
+        String statusText = inRange ? "IN RANGE (View Map)" : "OUT OF RANGE (View Map)";
+        tvGeoStatus.setText(statusText);
+        
+        if (inRange) {
+            tvGeoStatus.setTextColor(ContextCompat.getColor(this, R.color.green));
+        } else {
+            tvGeoStatus.setTextColor(ContextCompat.getColor(this, R.color.red));
+        }
+        
+        // Update Google Maps Link
+        if (currentLocation != null) {
+            String googleMapsLink = "https://www.google.com/maps?q=" + currentLocation.getLatitude() + "," + currentLocation.getLongitude();
+            tvGeoStatus.setOnClickListener(v -> {
+                Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(googleMapsLink));
+                startActivity(intent);
             });
         }
     }
@@ -148,25 +611,69 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
             Location.distanceBetween(currentLocation.getLatitude(), currentLocation.getLongitude(),
                     currentSite.getLatitude(), currentSite.getLongitude(), results);
             float distanceInMeters = results[0];
-
-            if (distanceInMeters <= currentSite.getGeofenceRadius()) {
-                tvGeoStatus.setText("In Range");
-                tvGeoStatus.setTextColor(getResources().getColor(R.color.green));
-            } else {
-                tvGeoStatus.setText("Out of Range");
-                tvGeoStatus.setTextColor(getResources().getColor(R.color.red));
-            }
+            boolean inRange = distanceInMeters <= currentSite.getGeofenceRadius();
+            updateGeoStatus(inRange);
         }
     }
 
     private void loadData() {
+        // 1. Load Local Data First (Fast)
+        new Thread(() -> {
+            // Load Site
+            if (assignedSiteId != null) {
+                com.ambe.supervisor.database.SiteEntity localSite = db.siteDao().getSiteById(assignedSiteId);
+                if (localSite != null) {
+                    currentSite = new Site(localSite.id, localSite.name, localSite.location, localSite.latitude, localSite.longitude, localSite.geofenceRadius);
+                    runOnUiThread(() -> {
+                        if (tvSiteName != null) {
+                            tvSiteName.setText(currentSite.getName());
+                            checkGeofence();
+                        }
+                    });
+                }
+            }
+
+            // Load Employees
+            if (assignedSiteId != null) {
+                List<com.ambe.supervisor.database.EmployeeEntity> localEmps = db.employeeDao().getEmployeesBySite(assignedSiteId);
+                if (!localEmps.isEmpty()) {
+                    allEmployees.clear();
+                    for (com.ambe.supervisor.database.EmployeeEntity e : localEmps) {
+                        allEmployees.add(new Employee(e.id, e.biometricCode, e.name, e.role, e.siteId, e.photoUrl, e.status));
+                    }
+                    runOnUiThread(() -> {
+                        filterEmployees("");
+                        updateCounts();
+                    });
+                }
+            }
+        }).start();
+
+        // 2. Fetch from API (Background)
+        if (NetworkUtils.isNetworkAvailable(this)) {
+            fetchSitesFromApi();
+            fetchEmployeesFromApi();
+        }
+    }
+
+    private void fetchSitesFromApi() {
         ApiService.getSites(new ApiService.ApiCallback() {
             @Override
             public void onSuccess(String response) {
                 try {
                     JSONArray sites = new JSONArray(response);
+                    List<com.ambe.supervisor.database.SiteEntity> entities = new ArrayList<>();
                     for (int i = 0; i < sites.length(); i++) {
                         JSONObject s = sites.getJSONObject(i);
+                        entities.add(new com.ambe.supervisor.database.SiteEntity(
+                            s.getString("id"),
+                            s.getString("name"),
+                            s.getString("location"),
+                            s.getDouble("latitude"),
+                            s.getDouble("longitude"),
+                            s.getInt("geofenceRadius")
+                        ));
+                        
                         if (s.getString("id").equals(assignedSiteId)) {
                             currentSite = new Site(
                                 s.getString("id"),
@@ -180,26 +687,38 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
                                 tvSiteName.setText(currentSite.getName());
                                 checkGeofence();
                             });
-                            break;
                         }
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                    // Save to DB
+                    new Thread(() -> db.siteDao().insertAll(entities)).start();
+                } catch (Exception e) { e.printStackTrace(); }
             }
-
             @Override
             public void onError(String error) {}
         });
+    }
 
+    private void fetchEmployeesFromApi() {
         ApiService.getEmployees(new ApiService.ApiCallback() {
             @Override
             public void onSuccess(String response) {
                 try {
                     JSONArray emps = new JSONArray(response);
+                    List<com.ambe.supervisor.database.EmployeeEntity> entities = new ArrayList<>();
                     allEmployees.clear();
+                    
                     for (int i = 0; i < emps.length(); i++) {
                         JSONObject e = emps.getJSONObject(i);
+                        entities.add(new com.ambe.supervisor.database.EmployeeEntity(
+                            e.getString("id"),
+                            e.getString("biometricCode"),
+                            e.getString("name"),
+                            e.getString("role"),
+                            e.getString("siteId"),
+                            e.optString("photoUrl"),
+                            e.getString("status")
+                        ));
+
                         if (e.getString("siteId").equals(assignedSiteId)) {
                             allEmployees.add(new Employee(
                                 e.getString("id"),
@@ -212,15 +731,16 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
                             ));
                         }
                     }
+                    
                     runOnUiThread(() -> {
                         filterEmployees("");
                         updateCounts();
                     });
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
 
+                    // Save to DB
+                    new Thread(() -> db.employeeDao().insertAll(entities)).start();
+                } catch (Exception e) { e.printStackTrace(); }
+            }
             @Override
             public void onError(String error) {}
         });
@@ -243,16 +763,22 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
 
     private void updateCounts() {
         tvWorkerCount.setText(allEmployees.size() + " Workers");
-        long pendingCount = attendanceMap.values().stream().filter(r -> !r.isSynced()).count();
-        tvSyncStatus.setText(pendingCount + " Pending");
         
-        if (pendingCount > 0) {
-            btnFooterSync.setText("SYNC " + pendingCount + " RECORDS");
-            btnFooterSync.setBackgroundColor(getResources().getColor(R.color.colorAccent));
-        } else {
-            btnFooterSync.setText("ALL SYNCED");
-            btnFooterSync.setBackgroundColor(0xFF333333);
-        }
+        // Count unsynced from Room
+        new Thread(() -> {
+            long pendingCount = db.attendanceDao().getUnsyncedAttendance().size();
+            runOnUiThread(() -> {
+                tvSyncStatus.setText(pendingCount + " Pending");
+                
+                if (pendingCount > 0) {
+                    btnFooterSync.setText("SYNC " + pendingCount + " RECORDS");
+                    btnFooterSync.setBackgroundColor(ContextCompat.getColor(SupervisorActivity.this, R.color.colorAccent));
+                } else {
+                    btnFooterSync.setText("ALL SYNCED");
+                    btnFooterSync.setBackgroundColor(0xFF333333);
+                }
+            });
+        }).start();
     }
 
     @Override
@@ -260,112 +786,106 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
         activeEmployee = employee;
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-            startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+            File photoFile = null;
+            try {
+                photoFile = createImageFile();
+            } catch (IOException ex) {
+                Toast.makeText(this, "Error creating image file", Toast.LENGTH_SHORT).show();
+            }
+            
+            if (photoFile != null) {
+                Uri photoURI = FileProvider.getUriForFile(this,
+                        "com.ambe.supervisor.fileprovider",
+                        photoFile);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                cameraLauncher.launch(takePictureIntent);
+            }
         } else {
             Toast.makeText(this, "Camera not available", Toast.LENGTH_SHORT).show();
         }
     }
 
-    @Override
-    public void onUndo(Employee employee) {
-        AttendanceRecord record = attendanceMap.get(employee.getId());
-        if (record != null && !record.isLocked()) {
-            attendanceMap.remove(employee.getId());
-            adapter.notifyDataSetChanged();
-            updateCounts();
-        } else {
-            Toast.makeText(this, "Cannot undo locked record", Toast.LENGTH_SHORT).show();
+    private File createImageFile() throws IOException {
+        // Create an image file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        if (storageDir == null) {
+            storageDir = getFilesDir(); // Fallback to internal storage
         }
+        File image = File.createTempFile(
+            imageFileName,  /* prefix */
+            ".jpg",         /* suffix */
+            storageDir      /* directory */
+        );
+    
+        // Save a file: path for use with ACTION_VIEW intents
+        currentPhotoPath = image.getAbsolutePath();
+        return image;
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK && data != null) {
-            Bundle extras = data.getExtras();
-            Bitmap imageBitmap = (Bitmap) extras.get("data");
-            
-            if (activeEmployee != null && imageBitmap != null) {
-                String photoBase64 = encodeImage(imageBitmap);
-                String time = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date());
-                String date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-                
-                AttendanceRecord record = new AttendanceRecord(
-                    String.valueOf(System.currentTimeMillis()),
-                    activeEmployee.getId(),
-                    date,
-                    "P",
-                    time,
-                    photoBase64,
-                    false,
-                    false
-                );
-                
-                attendanceMap.put(activeEmployee.getId(), record);
-                adapter.notifyDataSetChanged();
-                updateCounts();
-                activeEmployee = null;
-            }
+    public void onUndo(Employee employee) {
+        AttendanceRecord record = attendanceMap.get(employee.getId());
+        if (record != null) {
+            attendanceMap.remove(employee.getId());
+            adapter.notifyDataSetChanged();
+            updateCounts();
         }
     }
 
     private String encodeImage(Bitmap bm) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        bm.compress(Bitmap.CompressFormat.JPEG, 70, baos);
+        // Use 100% quality for original image
+        bm.compress(Bitmap.CompressFormat.JPEG, 100, baos);
         byte[] b = baos.toByteArray();
         return Base64.encodeToString(b, Base64.DEFAULT);
     }
 
     private void syncData() {
-        List<AttendanceRecord> unsynced = new ArrayList<>();
-        for (AttendanceRecord r : attendanceMap.values()) {
-            if (!r.isSynced()) unsynced.add(r);
-        }
-
-        if (unsynced.isEmpty()) {
-            Toast.makeText(this, "No records to sync", Toast.LENGTH_SHORT).show();
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            Toast.makeText(this, "No Internet Connection. Data saved locally.", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        try {
-            JSONArray jsonArray = new JSONArray();
-            for (AttendanceRecord r : unsynced) {
-                JSONObject obj = new JSONObject();
-                obj.put("employeeId", r.getEmployeeId());
-                obj.put("date", r.getDate());
-                obj.put("status", r.getStatus());
-                obj.put("checkInTime", r.getCheckInTime());
-                obj.put("photoUrl", r.getPhotoUrl());
-                jsonArray.put(obj);
-            }
+        btnFooterSync.setText("Syncing...");
 
-            btnFooterSync.setText("Syncing...");
-            
-            ApiService.syncAttendance(jsonArray.toString(), new ApiService.ApiCallback() {
-                @Override
-                public void onSuccess(String response) {
-                    runOnUiThread(() -> {
-                        for (AttendanceRecord r : unsynced) {
-                            r.setSynced(true);
-                            r.setLocked(true);
-                        }
-                        adapter.notifyDataSetChanged();
-                        updateCounts();
-                        Toast.makeText(SupervisorActivity.this, "Sync Successful!", Toast.LENGTH_SHORT).show();
-                    });
-                }
+        // Trigger WorkManager
+        OneTimeWorkRequest syncRequest = new OneTimeWorkRequest.Builder(SyncWorker.class).build();
+        WorkManager.getInstance(this).enqueue(syncRequest);
 
-                @Override
-                public void onError(String error) {
-                    runOnUiThread(() -> {
-                        updateCounts();
-                        Toast.makeText(SupervisorActivity.this, "Sync Failed: " + error, Toast.LENGTH_SHORT).show();
-                    });
+        WorkManager.getInstance(this).getWorkInfoByIdLiveData(syncRequest.getId())
+            .observe(this, workInfo -> {
+                if (workInfo != null && workInfo.getState() == WorkInfo.State.SUCCEEDED) {
+                    refreshAttendance();
+                    Toast.makeText(SupervisorActivity.this, "Sync Successful!", Toast.LENGTH_SHORT).show();
+                } else if (workInfo != null && workInfo.getState() == WorkInfo.State.FAILED) {
+                    updateCounts();
+                    Toast.makeText(SupervisorActivity.this, "Sync Failed", Toast.LENGTH_SHORT).show();
                 }
             });
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
+
+    @SuppressWarnings("deprecation")
+    private Bitmap getBitmapFromIntent(Intent data) {
+        Bundle extras = data.getExtras();
+        if (extras != null) {
+            return (Bitmap) extras.get("data");
+        }
+        return null;
+    }
+
+    private Emitter.Listener onAttendanceUpdate = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    // Refresh data when update received
+                    refreshAttendance();
+                    Toast.makeText(SupervisorActivity.this, "New attendance data received", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    };
 }

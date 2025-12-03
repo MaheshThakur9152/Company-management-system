@@ -27,7 +27,12 @@
         "android.permission.CAMERA",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
-      ]
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyD72J2BF3vQOAzxB7k610zhLUI18kDj-AE"
+        }
+      }
     },
     "plugins": [
       [

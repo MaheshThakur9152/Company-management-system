@@ -1,6 +1,7 @@
 package com.ambe.supervisor.activities;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -8,6 +9,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
+import android.provider.Settings;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -28,6 +30,23 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Check for persistent login
+        SharedPreferences prefs = getSharedPreferences("AmbeSupervisorPrefs", MODE_PRIVATE);
+        if (prefs.getBoolean("isLoggedIn", false)) {
+            String userId = prefs.getString("userId", "");
+            String assignedSiteId = prefs.getString("assignedSiteId", "");
+            String name = prefs.getString("name", "");
+            
+            Intent intent = new Intent(LoginActivity.this, SupervisorActivity.class);
+            intent.putExtra("USER_ID", userId);
+            intent.putExtra("ASSIGNED_SITE_ID", assignedSiteId);
+            intent.putExtra("USER_NAME", name);
+            startActivity(intent);
+            finish();
+            return;
+        }
+
         setContentView(R.layout.activity_login);
 
         etUsername = findViewById(R.id.etUsername);
@@ -60,7 +79,9 @@ public class LoginActivity extends AppCompatActivity {
 
         setLoading(true);
 
-        ApiService.login(username, password, new ApiService.ApiCallback() {
+        String deviceId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
+
+        ApiService.login(username, password, deviceId, new ApiService.ApiCallback() {
             @Override
             public void onSuccess(String response) {
                 runOnUiThread(() -> {
@@ -82,10 +103,20 @@ public class LoginActivity extends AppCompatActivity {
 
                         User user = new User(userId, name, role, assignedSites, email);
                         
+                        // Save to Prefs
+                        SharedPreferences prefs = getSharedPreferences("AmbeSupervisorPrefs", MODE_PRIVATE);
+                        SharedPreferences.Editor editor = prefs.edit();
+                        editor.putBoolean("isLoggedIn", true);
+                        editor.putString("userId", user.getUserId());
+                        editor.putString("assignedSiteId", assignedSites.length > 0 ? assignedSites[0] : "");
+                        editor.putString("name", user.getName());
+                        editor.apply();
+
                         // Navigate to Supervisor Screen
                         Intent intent = new Intent(LoginActivity.this, SupervisorActivity.class);
                         intent.putExtra("USER_ID", user.getUserId());
                         intent.putExtra("ASSIGNED_SITE_ID", assignedSites.length > 0 ? assignedSites[0] : "");
+                        intent.putExtra("USER_NAME", user.getName());
                         startActivity(intent);
                         finish();
 
@@ -97,6 +128,7 @@ public class LoginActivity extends AppCompatActivity {
 
             @Override
             public void onError(String error) {
+                android.util.Log.e("LoginActivity", "Login Error: " + error);
                 runOnUiThread(() -> {
                     setLoading(false);
                     Toast.makeText(LoginActivity.this, "Login Failed: " + error, Toast.LENGTH_SHORT).show();

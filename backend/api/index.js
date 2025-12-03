@@ -1,10 +1,26 @@
 const express = require('express');
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 const cors = require('cors');
+const mongoose = require('mongoose'); // Added mongoose
 require('dotenv').config();
 const connectToDatabase = require('../utils/db');
 const cloudinary = require('cloudinary').v2;
 const nodemailer = require('nodemailer');
 const jwt = require('jsonwebtoken'); // Import JWT
+const cookieParser = require('cookie-parser');
+
+
+// Connect to Database
+(async () => {
+  await connectToDatabase(); // Uncommented to allow DB connection
 
 // Configure Cloudinary
 cloudinary.config({
@@ -43,7 +59,9 @@ const uploadToCloudinary = async (base64String, folder, publicId) => {
     const uploadResponse = await cloudinary.uploader.upload(base64String, {
       folder: folder,
       public_id: publicId,
-      resource_type: 'image'
+      resource_type: 'image',
+      quality: 100, // No compression
+      format: 'png' // Convert to PNG
     });
     return uploadResponse.secure_url;
   } catch (error) {
@@ -60,8 +78,51 @@ const Invoice = require('../models/Invoice');
 const User = require('../models/User');
 const LedgerEntry = require('../models/LedgerEntry');
 const SalaryRecord = require('../models/SalaryRecord');
+const LocationLog = require('../models/LocationLog');
+
+const http = require('http');
+const { Server } = require('socket.io');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Allow all origins for now (App + Web)
+    methods: ["GET", "POST"]
+  },
+  allowEIO3: true // Allow older clients (Android socket.io-client 2.x uses EIO3 sometimes)
+});
+
+// Socket.IO Connection
+io.on('connection', (socket) => {
+  console.log('A user connected:', socket.id);
+
+  socket.on('join_site', (siteId) => {
+    socket.join(siteId);
+    console.log(`User ${socket.id} joined site: ${siteId}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
+
+// Middleware to authenticate JWT from cookie or header
+const authenticateToken = (req, res, next) => {
+  const token = req.cookies.authToken || req.headers.authorization?.replace('Bearer ', '');
+  if (!token) {
+    return res.status(401).json({ error: 'Access denied' });
+  }
+  try {
+    const verified = jwt.verify(token, process.env.JWT_SECRET || 'default_secret');
+    req.user = verified;
+    next();
+  } catch (err) {
+    res.status(400).json({ error: 'Invalid token' });
+  }
+};
+
+app.use(cookieParser());
 
 app.use(cors({
   origin: [
@@ -91,22 +152,29 @@ app.options("*", cors({
 }));
 app.use(express.json({ limit: '10mb' })); // Increased limit for base64 images
 
-// Middleware to connect to DB
-app.use(async (req, res, next) => {
-  try {
-    await connectToDatabase();
-    next();
-  } catch (error) {
-    console.error('Database connection error:', error);
-    res.status(500).json({ error: 'Database connection failed' });
-  }
-});
 
 // --- Routes ---
 
 // Health Check
 app.get('/', (req, res) => {
   res.send('Ambe Backend is running!');
+});
+
+// Download Image
+app.get('/api/download/image/:publicId', (req, res) => {
+  try {
+    const { publicId } = req.params;
+    // Generate Cloudinary URL with download attachment and PNG format
+    const downloadUrl = cloudinary.url(publicId, {
+      resource_type: 'image',
+      format: 'png',
+      quality: 100,
+      flags: 'attachment'
+    });
+    res.redirect(downloadUrl);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to generate download URL' });
+  }
 });
 
 // Sites
@@ -132,6 +200,7 @@ app.post('/api/sites', async (req, res) => {
 
     const site = new Site(siteData);
     await site.save();
+    io.emit('data_update', { type: 'sites' });
     res.json(site);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -139,6 +208,7 @@ app.post('/api/sites', async (req, res) => {
 app.put('/api/sites/:id', async (req, res) => {
   try {
     const site = await Site.findOneAndUpdate({ id: req.params.id }, req.body, { new: true });
+    io.emit('data_update', { type: 'sites' });
     res.json(site);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -146,7 +216,21 @@ app.put('/api/sites/:id', async (req, res) => {
 // Employees
 app.get('/api/employees', async (req, res) => {
   try {
-    const employees = await Employee.find({ status: { $ne: 'Deleted' } });
+    const { sort, order, site } = req.query;
+    let query = { status: { $ne: 'Deleted' } };
+    let sortOptions = {};
+
+    // Filter by site
+    if (site) query.siteId = site;
+
+    // Sort options
+    if (sort) {
+      sortOptions[sort] = order === 'desc' ? -1 : 1;
+    } else {
+      sortOptions.name = 1; // Default sort by name asc
+    }
+
+    const employees = await Employee.find(query).sort(sortOptions);
     res.json(employees);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -163,6 +247,7 @@ app.post('/api/employees', async (req, res) => {
 
     const employee = new Employee(employeeData);
     await employee.save();
+    io.emit('data_update', { type: 'employees' }); // Notify clients
     res.json(employee);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -178,6 +263,7 @@ app.put('/api/employees/:id', async (req, res) => {
     }
 
     const employee = await Employee.findOneAndUpdate({ id: req.params.id }, employeeData, { new: true });
+    io.emit('data_update', { type: 'employees' }); // Notify clients
     res.json(employee);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -185,7 +271,36 @@ app.put('/api/employees/:id', async (req, res) => {
 // Attendance
 app.get('/api/attendance', async (req, res) => {
   try {
-    const attendance = await Attendance.find({});
+    const { sort, order, site, employee, month, year, updatedAfter } = req.query;
+    let query = {};
+    let sortOptions = {};
+
+    // Filter by site
+    if (site) query.siteId = site;
+
+    // Filter by employee
+    if (employee) query.employeeId = employee;
+
+    // Filter by month/year
+    if (month && year) {
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 1);
+      query.date = { $gte: startDate, $lt: endDate };
+    }
+
+    // Efficient Polling: Get only records updated after a certain time
+    if (updatedAfter) {
+        query.updatedAt = { $gt: new Date(updatedAfter) };
+    }
+
+    // Sort options
+    if (sort) {
+      sortOptions[sort] = order === 'desc' ? -1 : 1;
+    } else {
+      sortOptions.date = -1; // Default sort by date desc
+    }
+
+    const attendance = await Attendance.find(query).sort(sortOptions);
     res.json(attendance);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -194,8 +309,25 @@ app.post('/api/attendance/sync', async (req, res) => {
   try {
     const records = req.body; // Array of records
     const bulkOps = [];
+    const errors = [];
     
     for (const record of records) {
+      // 1. Prevent Multiple Attendance Check
+      const existingRecord = await Attendance.findOne({ 
+          employeeId: record.employeeId, 
+          date: record.date 
+      });
+
+      if (existingRecord) {
+          // STRICT LOCK: If ANY record exists for this employee on this date, REJECT IT.
+          // This prevents multiple devices from logging the same attendance.
+          errors.push({
+              employeeId: record.employeeId,
+              error: "Attendance already marked for this date. Updates are locked."
+          });
+          continue; 
+      }
+
       // Handle Photo Upload to Cloudinary if it's a base64 string
       if (record.photoUrl && record.photoUrl.startsWith('data:image')) {
         const url = await uploadToCloudinary(record.photoUrl, 'ambe_attendance', `${record.employeeId}_${record.date}_${Date.now()}`);
@@ -215,9 +347,28 @@ app.post('/api/attendance/sync', async (req, res) => {
     let result = { matchedCount: 0, modifiedCount: 0, upsertedCount: 0 };
     if (bulkOps.length > 0) {
         result = await Attendance.bulkWrite(bulkOps);
+        
+        // Emit Socket Event to all clients in the same site (if siteId is available in records)
+        // Assuming all records in a sync batch belong to the same site (usually true for a supervisor)
+        if (records.length > 0) {
+             // We need to fetch siteId for at least one employee to know which room to emit to
+             // Or pass siteId in the sync body. For now, let's fetch it.
+             const emp = await Employee.findOne({ id: records[0].employeeId });
+             if (emp && emp.siteId) {
+                 io.to(emp.siteId).emit('attendance_update', { 
+                     message: 'New attendance synced', 
+                     count: result.upsertedCount + result.modifiedCount 
+                 });
+             }
+        }
     }
 
-    res.json({ success: true, syncedCount: records.length, details: result });
+    res.json({ 
+        success: true, 
+        syncedCount: result.upsertedCount + result.modifiedCount, 
+        errors: errors,
+        details: result 
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -419,11 +570,17 @@ const sendOtpEmail = async (user, otp) => {
     }
 };
 
+// Helper to escape regex characters
+function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 app.post('/api/auth/send-otp', async (req, res) => {
     try {
         const { username } = req.body;
-        const normalizedUser = username ? username.trim() : '';
-        const regex = new RegExp(`^${normalizedUser}$`, 'i');
+        const normalizedUser = (username && typeof username === 'string') ? username.trim() : '';
+        const escapedUser = escapeRegex(normalizedUser);
+        const regex = new RegExp(`^${escapedUser}$`, 'i');
 
         // Find User
         let user = await User.findOne({ $or: [{ userId: { $regex: regex } }, { email: { $regex: regex } }] });
@@ -441,6 +598,11 @@ app.post('/api/auth/send-otp', async (req, res) => {
              } else {
                 return res.status(400).json({ error: "User not found" });
              }
+        }
+
+        // Check if OTP already exists and is valid
+        if (user.otp && user.otpExpires > Date.now()) {
+            return res.json({ success: true, message: "OTP already sent to registered email" });
         }
 
         // Generate OTP
@@ -470,8 +632,9 @@ app.post('/api/auth/verify-otp', async (req, res) => {
     try {
         console.log('Verify OTP Request:', req.body); // Log request
         const { username, otp, deviceId } = req.body;
-        const normalizedUser = username ? username.trim() : '';
-        const regex = new RegExp(`^${normalizedUser}$`, 'i');
+        const normalizedUser = (username && typeof username === 'string') ? username.trim() : '';
+        const escapedUser = escapeRegex(normalizedUser);
+        const regex = new RegExp(`^${escapedUser}$`, 'i');
 
         const user = await User.findOne({ $or: [{ userId: { $regex: regex } }, { email: { $regex: regex } }] });
         if (!user) {
@@ -512,7 +675,27 @@ app.post('/api/auth/verify-otp', async (req, res) => {
             { expiresIn: '24h' }
         );
 
+        // Set HTTP-only cookie
+        res.cookie('authToken', token, {
+            httpOnly: true,
+            secure: false, // Set to true in production with HTTPS
+            sameSite: 'lax',
+            maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        });
+
         res.json({ ...user.toObject(), token });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/auth/me', authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findOne({ userId: req.user.userId });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        res.json(user);
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
@@ -533,16 +716,37 @@ app.post('/api/auth/revoke-trust', async (req, res) => {
     }
 });
 
+app.post('/api/auth/logout', (req, res) => {
+    res.clearCookie('authToken');
+    res.json({ success: true, message: 'Logged out successfully' });
+});
+
 // Login (Mock Auth for now, but checking DB)
 app.post('/api/login', async (req, res) => {
   console.log('Login Request Body:', req.body); // Added logging
   let { email, password, deviceId } = req.body;
 
-  // Normalize inputs
-  const normalizedEmail = email ? email.trim() : '';
-  const regex = new RegExp(`^${normalizedEmail}$`, 'i');
-  
+  // DB Connection Check - Prevent Timeout if DB is down
+  if (mongoose.connection.readyState !== 1) {
+      console.log('⚠️ DB Not Connected. Using Mock Login for connectivity test.');
+      if (email === 'admin@ambeservice.com' || email === 'ambe') {
+          return res.json({ 
+              userId: 'ambe', 
+              name: 'Ambe Admin (Offline Mode)', 
+              role: 'admin', 
+              email: email,
+              token: 'mock-offline-token'
+          });
+      }
+      return res.status(503).json({ error: 'Database not connected. Please check server logs.' });
+  }
+
   try {
+    // Normalize inputs
+    const normalizedEmail = (email && typeof email === 'string') ? email.trim() : '';
+    const escapedEmail = escapeRegex(normalizedEmail);
+    const regex = new RegExp(`^${escapedEmail}$`, 'i');
+
     // Check by email OR userId (username)
     let user = await User.findOne({ $or: [{ email: { $regex: regex } }, { userId: { $regex: regex } }] });
     
@@ -555,6 +759,11 @@ app.post('/api/login', async (req, res) => {
 
         // Simple password check
         if (user.password === password) {
+             // Check if OTP already exists and is valid
+             if (user.otp && user.otpExpires > Date.now()) {
+                 return res.json({ requireOtp: true, userId: user.userId, message: "OTP already sent to registered email." });
+             }
+
              // ALWAYS Trigger OTP (Trusted Device check bypassed)
              // Generate OTP
              const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -639,10 +848,45 @@ app.post('/api/login', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Supervisor Location Log
+app.post('/api/supervisor/location', async (req, res) => {
+    try {
+        const log = new LocationLog(req.body);
+        await log.save();
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Get Location Logs (for Admin and Supervisor)
+app.get('/api/supervisor/location', authenticateToken, async (req, res) => {
+    try {
+        const { date } = req.query;
+        let query = {};
+        
+        // If supervisor, only show their own logs
+        if (req.user.role === 'supervisor') {
+            query.supervisorId = req.user.userId;
+        }
+
+        if (date) {
+            const start = new Date(date);
+            const end = new Date(date);
+            end.setDate(end.getDate() + 1);
+            query.timestamp = { $gte: start, $lt: end };
+        }
+        const logs = await LocationLog.find(query).sort({ timestamp: -1 });
+        res.json(logs);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Supervisor Login
 app.post('/api/supervisor/login', async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { username, password, deviceId, deviceName } = req.body;
         if (!username || !password) return res.status(400).json({ error: "Username and password required" });
 
         const cleanUser = username.trim().toLowerCase();
@@ -659,16 +903,71 @@ app.post('/api/supervisor/login', async (req, res) => {
         const dbPass = (site.password || 'ambe123').toLowerCase().replace(/\s/g, '');
         
         if (cleanPass === dbPass) {
-            return res.json({
+            // Device Binding Check
+            if (deviceId) {
+                // STRICT BINDING: Only allow login if deviceId matches or if no device is bound yet
+                if (site.deviceId && site.deviceId !== deviceId) {
+                     console.log(`[Login Failed] Device Mismatch for ${cleanUser}. DB: ${site.deviceId}, Req: ${deviceId}`);
+                     return res.status(403).json({ error: "This account is bound to another device. Contact Admin to reset." });
+                }
+                
+                // Bind if not bound
+                if (!site.deviceId) {
+                    site.deviceId = deviceId;
+                    site.deviceName = deviceName || 'Unknown Android Device';
+                    await site.save();
+                }
+            }
+
+            const userData = {
                 userId: `sup-${site.id}`,
                 name: `${site.name} Supervisor`,
                 email: `${cleanUser}@ambeservice.com`,
                 role: 'supervisor',
                 assignedSites: [site.id]
+            };
+
+            // Generate JWT for supervisor
+            const token = jwt.sign(
+                { userId: userData.userId, role: userData.role, email: userData.email },
+                process.env.JWT_SECRET || 'default_secret',
+                { expiresIn: '24h' }
+            );
+
+            // Set HTTP-only cookie
+            res.cookie('authToken', token, {
+                httpOnly: true,
+                secure: false, // Set to true in production
+                sameSite: 'lax',
+                maxAge: 24 * 60 * 60 * 1000 // 24 hours
             });
+
+            return res.json({ ...userData, token });
         } else {
             return res.status(401).json({ error: "Invalid Password" });
         }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Revoke Supervisor Device (Admin Only)
+app.post('/api/supervisor/revoke-device', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+            return res.status(403).json({ error: "Unauthorized" });
+        }
+
+        const { siteId } = req.body;
+        const site = await Site.findOne({ id: siteId });
+        
+        if (!site) return res.status(404).json({ error: "Site not found" });
+
+        site.deviceId = null;
+        site.deviceName = null;
+        await site.save();
+
+        res.json({ success: true, message: "Device binding revoked successfully" });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
@@ -706,8 +1005,8 @@ app.post('/api/seed', async (req, res) => {
 
 // Local Development
 if (require.main === module) {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, '0.0.0.0', () => {
+  const PORT = process.env.PORT || 3002; // Changed to 3002 to avoid conflicts
+  server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Accessible at http://localhost:${PORT}`);
     console.log(`Accessible at http://127.0.0.1:${PORT}`);
@@ -716,3 +1015,4 @@ if (require.main === module) {
 }
 
 module.exports = app;
+})();

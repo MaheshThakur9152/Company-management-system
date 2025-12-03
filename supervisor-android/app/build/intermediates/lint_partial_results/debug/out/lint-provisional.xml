@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<incidents format="6" by="lint 8.2.0" type="conditional_incidents">
+
+    <incident
+        id="QueryPermissionsNeeded"
+        severity="warning"
+        message="Consider adding a `&lt;queries>` declaration to your manifest when calling this \&#xA;method; see https://g.co/dev/packagevisibility for details">
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/ambe/supervisor/activities/SupervisorActivity.java"
+            line="683"
+            column="31"
+            startOffset="29576"
+            endLine="683"
+            endColumn="46"
+            endOffset="29591"/>
+        <map>
+            <entry
+                name="queryAll"
+                boolean="false"/>
+        </map>
+    </incident>
+
+    <incident
+        id="MissingPermission"
+        severity="error"
+        message="">
+        <fix-data missing="android.permission.ACCESS_NETWORK_STATE" message="Missing permissions required by ConnectivityManager.getActiveNetwork: %1$s" lastApi="2147483647"/>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/ambe/supervisor/utils/NetworkUtils.java"
+            line="12"
+            column="31"
+            startOffset="470"
+            endLine="12"
+            endColumn="69"
+            endOffset="508"/>
+        <map>
+            <entry
+                name="requirement"
+                string="android.permission.ACCESS_NETWORK_STATE"/>
+            <entry
+                name="message"
+                string="Missing permissions required by ConnectivityManager.getActiveNetwork: %1$s"/>
+        </map>
+    </incident>
+
+    <incident
+        id="MissingPermission"
+        severity="error"
+        message="">
+        <fix-data missing="android.permission.ACCESS_NETWORK_STATE" message="Missing permissions required by ConnectivityManager.getNetworkCapabilities: %1$s" lastApi="2147483647"/>
+        <location
+            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/ambe/supervisor/utils/NetworkUtils.java"
+            line="14"
+            column="41"
+            startOffset="597"
+            endLine="14"
+            endColumn="92"
+            endOffset="648"/>
+        <map>
+            <entry
+                name="requirement"
+                string="android.permission.ACCESS_NETWORK_STATE"/>
+            <entry
+                name="message"
+                string="Missing permissions required by ConnectivityManager.getNetworkCapabilities: %1$s"/>
+        </map>
+    </incident>
+
+</incidents>

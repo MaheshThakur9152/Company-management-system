@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { User, Role } from './types';
 import AdminWebApp from './web/App';
 import { ShieldCheck, UserCircle, Key, Lock, LogIn, Mail } from 'lucide-react';
-import { MOCK_SITES, getSites, loginUser, sendOtp, verifyOtp } from './services/mockData';
+import { MOCK_SITES, getSites, loginUser, sendOtp, verifyOtp, checkAuth, logoutUser } from './services/mockData';
 import { Site } from './types';
 
 const getDeviceId = () => {
@@ -17,6 +17,7 @@ const getDeviceId = () => {
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [sites, setSites] = useState<Site[]>(MOCK_SITES);
+  const [isLoading, setIsLoading] = useState(true);
 
   React.useEffect(() => {
     const loadSites = async () => {
@@ -30,13 +31,27 @@ const App: React.FC = () => {
     loadSites();
   }, []);
 
+  React.useEffect(() => {
+    const checkUserAuth = async () => {
+      try {
+        const userData = await checkAuth();
+        setUser(userData);
+      } catch (e) {
+        // Not authenticated, stay on login screen
+        console.log("User not authenticated");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkUserAuth();
+  }, []);
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [tempUserId, setTempUserId] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +68,9 @@ const App: React.FC = () => {
             const apiUser = await verifyOtp(tempUserId, otp, deviceId);
             if (apiUser) {
                 setUser(apiUser);
+                if (apiUser.token) {
+                    localStorage.setItem('authToken', apiUser.token);
+                }
             }
         } else {
             // Initial Login
@@ -65,6 +83,9 @@ const App: React.FC = () => {
             } else if (response.userId) {
                 // Login Success
                 setUser(response);
+                if (response.token) {
+                    localStorage.setItem('authToken', response.token);
+                }
             } else {
                 setError("Invalid credentials");
             }
@@ -77,8 +98,14 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (e) {
+      console.error("Logout failed", e);
+    }
     setUser(null);
+    localStorage.removeItem('authToken');
     setUsername('');
     setPassword('');
     setOtp('');
@@ -91,10 +118,24 @@ const App: React.FC = () => {
     switch (user.role) {
       case 'admin':
       case 'superadmin':
+      case 'boss':
+      case 'supervisor':
         return <AdminWebApp onExit={handleLogout} user={user} onUserUpdate={setUser} />;
       default:
-        return <div>Unknown Role</div>;
+        return <div>Unknown Role: {user.role}</div>;
     }
+  }
+
+  // Show loading while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
+        <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl overflow-hidden p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
   }
 
   // Login Screen

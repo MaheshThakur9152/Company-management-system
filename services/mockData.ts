@@ -47,12 +47,19 @@ export const CHART_DATA = [];
 // --- Simulated Backend Logic using LocalStorage (FALLBACK) ---
 // REPLACED WITH REAL BACKEND API CALLS
 
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api.ambeservice.com/api' : 'http://localhost:3000/api');
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api.ambeservice.com/api' : '/api');
 
 async function apiCall<T>(endpoint: string, method: string = 'GET', body?: any): Promise<T> {
     try {
         const headers: any = { 'Content-Type': 'application/json' };
-        const config: any = { method, headers };
+        const config: any = { method, headers, credentials: 'include' };
+        
+        // Add Authorization header if token exists
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
+        
         if (body) config.body = JSON.stringify(body);
         
         const response = await fetch(`${API_URL}${endpoint}`, config);
@@ -356,6 +363,44 @@ export const verifyOtp = async (username: string, otp: string, deviceId?: string
         return await apiCall('/auth/verify-otp', 'POST', { username, otp, deviceId });
     } catch (e) {
         throw e;
+    }
+};
+
+export const checkAuth = async (): Promise<any> => {
+    try {
+        return await apiCall('/auth/me', 'GET');
+    } catch (e) {
+        throw e;
+    }
+};
+
+export const logoutUser = async (): Promise<boolean> => {
+    try {
+        await apiCall('/auth/logout', 'POST');
+        return true;
+    } catch (e) {
+        console.error("Failed to logout", e);
+        return false;
+    }
+};
+
+export const revokeSupervisorDevice = async (siteId: string): Promise<boolean> => {
+    try {
+        await apiCall('/supervisor/revoke-device', 'POST', { siteId });
+        return true;
+    } catch (e) {
+        console.error("Failed to revoke supervisor device", e);
+        return false;
+    }
+};
+
+// --- LOCATION LOGS ---
+export const getLocationLogs = async (): Promise<any[]> => {
+    try {
+        return await apiCall<any[]>('/supervisor/location');
+    } catch (e) {
+        console.error("Failed to fetch location logs", e);
+        return [];
     }
 };
 

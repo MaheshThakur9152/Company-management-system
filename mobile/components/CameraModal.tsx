@@ -65,15 +65,15 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture, l
     const takePicture = async () => {
         if (cameraRef.current) {
             try {
-                // 1. Take picture (skip base64 here to save memory)
-                const photo = await cameraRef.current.takePictureAsync({ quality: 0.5, skipProcessing: true });
+                // 1. Take picture (high quality)
+                const photo = await cameraRef.current.takePictureAsync({ quality: 1.0, skipProcessing: true });
                 
                 if (photo?.uri) {
-                    // 2. Resize and Compress aggressively
+                    // 2. Convert to base64 without resizing or compression
                     const manipulated = await ImageManipulator.manipulateAsync(
                         photo.uri,
-                        [{ resize: { width: 400 } }], // Resize to 400px width (very small)
-                        { compress: 0.3, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+                        [], // No resize
+                        { compress: 1.0, format: ImageManipulator.SaveFormat.JPEG, base64: true }
                     );
 
                     if (manipulated.base64) {
