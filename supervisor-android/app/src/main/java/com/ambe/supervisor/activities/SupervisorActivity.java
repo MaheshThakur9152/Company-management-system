@@ -55,6 +55,8 @@ import com.ambe.supervisor.workers.SyncWorker;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 import androidx.work.WorkInfo;
+import androidx.work.PeriodicWorkRequest;
+import java.util.concurrent.TimeUnit;
 
 import android.provider.Settings;
 import android.os.Environment;
@@ -401,6 +403,9 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
                 e.printStackTrace();
             }
         }).start();
+
+        // Schedule periodic sync every 2 minutes
+        schedulePeriodicSync();
     }
 
     @Override
@@ -977,6 +982,13 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
         bm.compress(Bitmap.CompressFormat.JPEG, 100, baos);
         byte[] b = baos.toByteArray();
         return Base64.encodeToString(b, Base64.DEFAULT);
+    }
+
+    private void schedulePeriodicSync() {
+        // Schedule sync every 2 minutes if there are unsynced records
+        PeriodicWorkRequest periodicSyncRequest = new PeriodicWorkRequest.Builder(SyncWorker.class, 2, TimeUnit.MINUTES)
+            .build();
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork("PeriodicSync", androidx.work.ExistingPeriodicWorkPolicy.KEEP, periodicSyncRequest);
     }
 
     private void syncData() {
