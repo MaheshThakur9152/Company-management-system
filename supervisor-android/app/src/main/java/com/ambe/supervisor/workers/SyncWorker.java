@@ -25,12 +25,12 @@ import android.util.Base64;
 
 public class SyncWorker extends Worker {
 
-    private final AppDatabase db;
+    private AppDatabase db;
     private String lastError = "";
 
     public SyncWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
-        db = AppDatabase.getDatabase(context);
+        // Initialize DB lazily in doWork to prevent constructor failures
     }
 
     private String getBase64FromPath(String path) {
@@ -39,16 +39,13 @@ public class SyncWorker extends Worker {
             File file = new File(path);
             if (!file.exists()) return null;
             
-            FileInputStream fis = new FileInputStream(file);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            byte[] buffer = new byte[8192];
-            int len;
-            while ((len = fis.read(buffer)) != -1) {
-                baos.write(buffer, 0, len);
+            // Use try-with-resources to close stream
+            try (FileInputStream fis = new FileInputStream(file)) {
+                byte[] fileBytes = new byte[(int) file.length()];
+                fis.read(fileBytes);
+                String base64 = Base64.encodeToString(fileBytes, Base64.NO_WRAP);
+                return "data:image/jpeg;base64," + base64;
             }
-            byte[] fileBytes = baos.toByteArray();
-            String base64 = Base64.encodeToString(fileBytes, Base64.NO_WRAP);
-            return "data:image/jpeg;base64," + base64;
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -58,7 +55,13 @@ public class SyncWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
+        Data.Builder outputBuilder = new Data.Builder();
         try {
+            if (db == null) {
+                db = AppDatabase.getDatabase(getApplicationContext());
+            }
+
+            lastError = "Starting Sync..."; // Initialize
             boolean attendanceSynced = syncAttendance();
             // We don't care if location logs fail, attendance is priority
             syncLocationLogs(); 
@@ -67,17 +70,19 @@ public class SyncWorker extends Worker {
                 return Result.success();
             } else {
                 // Return failure with error message so user can see it
-                Data output = new Data.Builder()
-                    .putString("error", lastError != null ? lastError : "Unknown Error")
-                    .build();
-                return Result.failure(output);
+                String finalError = (lastError != null && !lastError.isEmpty()) ? lastError : "Unknown Sync Error (Null lastError)";
+                if (finalError.length() > 500) finalError = finalError.substring(0, 500); // Truncate
+                
+                outputBuilder.putString("error", finalError);
+                return Result.failure(outputBuilder.build());
             }
-        } catch (Exception e) {
+        } catch (Throwable e) { // Catch Throwable to catch Errors too
             e.printStackTrace();
-            Data output = new Data.Builder()
-                .putString("error", e.getMessage())
-                .build();
-            return Result.failure(output);
+            String msg = e.getMessage();
+            if (msg == null) msg = e.getClass().getSimpleName();
+            
+            outputBuilder.putString("error", "Crash: " + msg);
+            return Result.failure(outputBuilder.build());
         }
     }
 
@@ -132,6 +137,7 @@ public class SyncWorker extends Worker {
                 } catch (Exception e) {
                     e.printStackTrace();
                     String msg = e.getMessage();
+                    if (msg == null) msg = e.getClass().getSimpleName();
                     lastError = msg;
                     
                     // Handle "Already Marked" or "Duplicate" as SUCCESS
@@ -147,7 +153,9 @@ public class SyncWorker extends Worker {
             return allSuccess;
         } catch (Exception e) {
             e.printStackTrace();
-            lastError = e.getMessage();
+            String msg = e.getMessage();
+            if (msg == null) msg = e.getClass().getSimpleName();
+            lastError = "Outer Sync Error: " + msg;
         }
         return false;
     }

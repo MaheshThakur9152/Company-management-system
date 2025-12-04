@@ -5,7 +5,8 @@ import android.os.Build;
 public class AppConfig {
     // Emulator (AVD) uses 10.0.2.2 to access host localhost
     private static final String EMULATOR_HOST = "http://10.0.2.2:3002";
-    // Physical Device uses LAN IP
+    // Physical Device uses Production URL
+    // CHANGED: Pointing to local server for testing fixes (Change back to https://api.ambeservice.com for prod)
     private static final String DEVICE_HOST = "http://192.168.1.96:3002";
 
     public static String getBaseUrl() {

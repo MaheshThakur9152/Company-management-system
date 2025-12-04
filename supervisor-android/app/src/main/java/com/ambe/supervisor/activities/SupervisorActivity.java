@@ -66,6 +66,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Date;
 import java.util.Locale;
 import java.text.SimpleDateFormat;
@@ -117,7 +118,7 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
     private EmployeeAdapter adapter;
     private List<Employee> allEmployees = new ArrayList<>();
     private List<Employee> filteredEmployees = new ArrayList<>();
-    private Map<String, AttendanceRecord> attendanceMap = new HashMap<>();
+    private Map<String, AttendanceRecord> attendanceMap = new ConcurrentHashMap<>();
     
     private String assignedSiteId;
     private String userId;
@@ -383,19 +384,30 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
         // Initialize Socket.IO using Singleton
         new Thread(() -> {
             try {
-                SocketManager.getInstance().connect();
                 mSocket = SocketManager.getInstance().getSocket();
                 
                 if (mSocket != null) {
+                    // Remove previous listeners to avoid duplicates if any
+                    mSocket.off(Socket.EVENT_CONNECT);
+                    mSocket.off("attendance_update");
+
+                    // Listen for connection to join room (handles reconnections)
                     mSocket.on(Socket.EVENT_CONNECT, args -> {
-                        runOnUiThread(() -> {
-                            if (assignedSiteId != null) {
-                                mSocket.emit("join_site", assignedSiteId);
-                            }
-                        });
+                        if (assignedSiteId != null) {
+                            mSocket.emit("join_site", assignedSiteId);
+                        }
                     });
                     
                     mSocket.on("attendance_update", onAttendanceUpdate);
+                    
+                    if (!mSocket.connected()) {
+                        mSocket.connect();
+                    } else {
+                        // If already connected, join immediately
+                        if (assignedSiteId != null) {
+                            mSocket.emit("join_site", assignedSiteId);
+                        }
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -482,6 +494,7 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
         unregisterReceiver(gpsReceiver);
         if (mSocket != null) {
             mSocket.off("attendance_update", onAttendanceUpdate);
+            mSocket.off(Socket.EVENT_CONNECT);
             // Do NOT disconnect here to keep connection alive across rotations
             // SocketManager.getInstance().disconnect(); 
         }
@@ -560,6 +573,8 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
                             }
 
                             String empId = r.getString("employeeId");
+                            boolean isLocked = r.optBoolean("isLocked", true); // Default to true for synced records
+
                             AttendanceRecord record = new AttendanceRecord(
                                 r.optString("id", ""),
                                 empId,
@@ -568,7 +583,7 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
                                 r.optString("checkInTime", ""),
                                 r.optString("photoUrl", null),
                                 true, // isSynced
-                                true  // isLocked
+                                isLocked  // isLocked
                             );
                             attendanceMap.put(empId, record);
                         }
@@ -897,29 +912,7 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
         }).start();
     }
 
-    @Override
-    public void onMarkPresent(Employee employee) {
-        // STRICT GEOFENCE CHECK
-        if (currentSite != null && currentLocation != null) {
-             if (!GeofenceHelper.isWithinRange(currentLocation.getLatitude(), currentLocation.getLongitude(), 
-                    currentSite.getLatitude(), currentSite.getLongitude(), currentSite.getGeofenceRadius())) {
-                 
-                 new AlertDialog.Builder(this)
-                    .setTitle("Out of Range")
-                    .setMessage("You cannot mark attendance while out of the site location.")
-                    .setPositiveButton("OK", null)
-                    .show();
-                 return;
-             }
-        } else if (currentLocation == null) {
-             Toast.makeText(this, "Waiting for GPS location...", Toast.LENGTH_SHORT).show();
-             return;
-        }
-
-        if (!initialSyncDone && NetworkUtils.isNetworkAvailable(this)) {
-            Toast.makeText(this, "Please wait, checking attendance status...", Toast.LENGTH_SHORT).show();
-            return;
-        }
+    private void proceedToCamera(Employee employee) {
         activeEmployee = employee;
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
@@ -939,6 +932,78 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
             }
         } else {
             Toast.makeText(this, "Camera not available", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onMarkPresent(Employee employee) {
+        // STRICT GEOFENCE CHECK
+        if (currentSite != null && currentLocation != null) {
+             if (!GeofenceHelper.isWithinRange(currentLocation.getLatitude(), currentLocation.getLongitude(), 
+                    currentSite.getLatitude(), currentSite.getLongitude(), currentSite.getGeofenceRadius())) {
+                 
+                 new AlertDialog.Builder(this)
+                    .setTitle("Out of Range")
+                    .setMessage("You cannot mark attendance while out of the site location.")
+                    .setPositiveButton("OK", null)
+                    .show();
+                 return;
+             }
+        } else if (currentLocation == null) {
+             Toast.makeText(this, "Waiting for GPS location...", Toast.LENGTH_SHORT).show();
+             return;
+        }
+
+        if (NetworkUtils.isNetworkAvailable(this)) {
+            // Live Check for Duplicate Attendance
+            android.app.ProgressDialog progress = new android.app.ProgressDialog(this);
+            progress.setMessage("Verifying status...");
+            progress.setCancelable(false);
+            progress.show();
+
+            String[] dateParts = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date()).split("-");
+            String year = dateParts[0];
+            String month = dateParts[1];
+            String today = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+
+            ApiService.checkEmployeeAttendance(employee.getId(), month, year, new ApiService.ApiCallback() {
+                @Override
+                public void onSuccess(String response) {
+                    progress.dismiss();
+                    try {
+                        JSONArray records = new JSONArray(response);
+                        boolean alreadyMarked = false;
+                        for (int i = 0; i < records.length(); i++) {
+                            JSONObject r = records.getJSONObject(i);
+                            if (r.getString("date").equals(today)) {
+                                alreadyMarked = true;
+                                break;
+                            }
+                        }
+
+                        if (alreadyMarked) {
+                            SupervisorActivity.this.runOnUiThread(() -> {
+                                // CHANGED: Don't show error toast, just refresh UI to show "Synced" state
+                                // Toast.makeText(SupervisorActivity.this, "Attendance already marked for this employee!", Toast.LENGTH_LONG).show();
+                                refreshAttendance(); // Refresh to lock UI
+                            });
+                        } else {
+                            SupervisorActivity.this.runOnUiThread(() -> proceedToCamera(employee));
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        SupervisorActivity.this.runOnUiThread(() -> proceedToCamera(employee));
+                    }
+                }
+
+                @Override
+                public void onError(String error) {
+                    progress.dismiss();
+                    SupervisorActivity.this.runOnUiThread(() -> proceedToCamera(employee));
+                }
+            });
+        } else {
+            proceedToCamera(employee);
         }
     }
 
@@ -1003,7 +1068,15 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
                     } else if (workInfo.getState() == WorkInfo.State.FAILED) {
                         updateCounts();
                         String error = workInfo.getOutputData().getString("error");
-                        Toast.makeText(SupervisorActivity.this, "Sync Failed: " + (error != null ? error : "Unknown"), Toast.LENGTH_LONG).show();
+                        String errorMsg = (error != null && !error.isEmpty()) ? error : "Unknown Error (State: " + workInfo.getState() + ", Attempt: " + workInfo.getRunAttemptCount() + ")";
+                        Toast.makeText(SupervisorActivity.this, "Sync Failed: " + errorMsg, Toast.LENGTH_LONG).show();
+                        
+                        // Also show dialog for better visibility
+                        new AlertDialog.Builder(SupervisorActivity.this)
+                            .setTitle("Sync Failed")
+                            .setMessage(errorMsg)
+                            .setPositiveButton("OK", null)
+                            .show();
                     }
                 }
             });

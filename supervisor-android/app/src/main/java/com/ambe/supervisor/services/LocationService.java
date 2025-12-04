@@ -117,6 +117,10 @@ public class LocationService extends Service {
         supervisorName = prefs.getString("name", "Unknown");
         userId = prefs.getString("userId", "Unknown");
         
+        // Load persisted state
+        lastInRange = prefs.getBoolean("lastInRange", false);
+        isFirstCheck = prefs.getBoolean("isFirstCheck", true);
+        
         if (assignedSiteId != null) {
             // Load asynchronously to avoid Main Thread Exception
             new Thread(() -> {
@@ -135,8 +139,9 @@ public class LocationService extends Service {
             return;
         }
 
-        LocationRequest locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000) // 10 seconds
-                .setMinUpdateIntervalMillis(5000) // 5 seconds
+        // Real-time updates for immediate geofence detection
+        LocationRequest locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000) // 2 seconds
+                .setMinUpdateIntervalMillis(1000) // 1 second
                 .build();
 
         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
@@ -179,6 +184,13 @@ public class LocationService extends Service {
             shouldLog = true;
             lastInRange = inRange;
             isFirstCheck = false;
+            
+            // Persist state
+            SharedPreferences prefs = getSharedPreferences("AmbeSupervisorPrefs", MODE_PRIVATE);
+            prefs.edit()
+                .putBoolean("lastInRange", lastInRange)
+                .putBoolean("isFirstCheck", isFirstCheck)
+                .apply();
         }
         // Periodic logging removed as per requirement
         // else if (currentTime - lastLogTime > LOG_INTERVAL) {

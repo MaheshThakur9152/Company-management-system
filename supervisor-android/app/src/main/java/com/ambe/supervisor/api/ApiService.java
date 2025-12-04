@@ -97,6 +97,19 @@ public class ApiService {
         getAttendanceSince(siteId, date, null, callback);
     }
 
+    public static void checkEmployeeAttendance(String employeeId, String month, String year, ApiCallback callback) {
+        new Thread(() -> {
+            try {
+                String endpoint = "/attendance?employee=" + employeeId + "&month=" + month + "&year=" + year;
+                String response = executeRequest(endpoint, "GET", null);
+                if (response != null) callback.onSuccess(response);
+                else callback.onError("Failed to fetch attendance");
+            } catch (Exception e) {
+                callback.onError(e.getMessage());
+            }
+        }).start();
+    }
+
     public static void getAttendanceSince(String siteId, String date, String updatedAfter, ApiCallback callback) {
         new Thread(() -> {
             try {
