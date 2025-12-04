@@ -47,7 +47,7 @@ export const CHART_DATA = [];
 // --- Simulated Backend Logic using LocalStorage (FALLBACK) ---
 // REPLACED WITH REAL BACKEND API CALLS
 
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api.ambeservice.com/api' : '/api');
+export const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api.ambeservice.com/api' : '/api');
 
 async function apiCall<T>(endpoint: string, method: string = 'GET', body?: any): Promise<T> {
     try {

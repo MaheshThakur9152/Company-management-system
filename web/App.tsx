@@ -206,7 +206,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
       setLocationLogs(await getLocationLogs());
     };
     loadData();
-    const interval = setInterval(loadData, 5000);
+    const interval = setInterval(loadData, 30000);
 
     // Initialize Socket
     let socket: any = null;

@@ -161,9 +161,9 @@ app.get('/', (req, res) => {
 });
 
 // Download Image
-app.get('/api/download/image/:publicId', (req, res) => {
+app.get('/api/download/image/*', (req, res) => {
   try {
-    const { publicId } = req.params;
+    const publicId = req.params[0];
     // Generate Cloudinary URL with download attachment and PNG format
     const downloadUrl = cloudinary.url(publicId, {
       resource_type: 'image',
