@@ -86,12 +86,12 @@ public class SyncWorker extends Worker {
             List<AttendanceEntity> unsynced = db.attendanceDao().getUnsyncedAttendance();
             if (unsynced.isEmpty()) return true;
 
-            boolean allSuccess = true;
+            // Prepare all records for batch sync
+            List<Map<String, Object>> syncPayload = new ArrayList<>();
+            List<AttendanceEntity> entitiesToMarkSynced = new ArrayList<>();
 
-            // Upload ONE BY ONE to avoid payload issues and ensure partial success
             for (AttendanceEntity entity : unsynced) {
                 try {
-                    List<Map<String, Object>> syncPayload = new ArrayList<>();
                     Map<String, Object> record = new HashMap<>();
                     // Use a unique string ID for backend (e.g., empId_date_time) or just random
                     record.put("id", entity.employeeId + "_" + System.currentTimeMillis()); 
@@ -119,16 +119,7 @@ public class SyncWorker extends Worker {
                     record.put("location", location);
 
                     syncPayload.add(record);
-
-                    String jsonBody = new Gson().toJson(syncPayload);
-                    String response = ApiService.syncAttendanceBlocking(jsonBody);
-
-                    if (response != null) {
-                        db.attendanceDao().markAsSynced(entity.id);
-                    } else {
-                        allSuccess = false;
-                        lastError = "Empty response from server";
-                    }
+                    entitiesToMarkSynced.add(entity);
                 } catch (Exception e) {
                     e.printStackTrace();
                     String msg = e.getMessage();
@@ -139,12 +130,27 @@ public class SyncWorker extends Worker {
                     if (msg != null && (msg.contains("already marked") || msg.contains("Duplicate") || msg.contains("locked"))) {
                         db.attendanceDao().markAsSynced(entity.id);
                     } else {
-                        allSuccess = false;
+                        // For batch, we can continue and let backend handle duplicates
                     }
                 }
             }
 
-            return allSuccess;
+            if (syncPayload.isEmpty()) return true;
+
+            // Send all in one batch API call
+            String jsonBody = new Gson().toJson(syncPayload);
+            String response = ApiService.syncAttendanceBlocking(jsonBody);
+
+            if (response != null) {
+                // Mark all as synced
+                for (AttendanceEntity entity : entitiesToMarkSynced) {
+                    db.attendanceDao().markAsSynced(entity.id);
+                }
+                return true;
+            } else {
+                lastError = "Empty response from server";
+                return false;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             lastError = e.getMessage();
