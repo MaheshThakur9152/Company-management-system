@@ -91,11 +91,13 @@ public class LocationService extends Service {
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
 
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Ambe Supervisor Service")
-                .setContentText("Tracking location in background...")
+                .setContentTitle("")
+                .setContentText("")
                 .setSmallIcon(R.drawable.app_logo) // Ensure this resource exists, or use a system icon
                 .setContentIntent(pendingIntent)
                 .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_MIN)
+                .setSilent(true)
                 .build();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -177,15 +179,16 @@ public class LocationService extends Service {
             shouldLog = true;
             lastInRange = inRange;
             isFirstCheck = false;
-        } else if (currentTime - lastLogTime > LOG_INTERVAL) {
-            // Periodic Log (Heartbeat)
-            shouldLog = true;
         }
+        // Periodic logging removed as per requirement
+        // else if (currentTime - lastLogTime > LOG_INTERVAL) {
+        //    shouldLog = true;
+        // }
 
         // Force log if site is not loaded, so we can debug
-        if (currentSite == null && currentTime - lastLogTime > 60000) { // Log every minute if site missing
-             shouldLog = true;
-        }
+        // if (currentSite == null && currentTime - lastLogTime > 60000) { // Log every minute if site missing
+        //      shouldLog = true;
+        // }
 
         if (shouldLog) {
             lastLogTime = currentTime;
@@ -246,8 +249,10 @@ public class LocationService extends Service {
             NotificationChannel serviceChannel = new NotificationChannel(
                     CHANNEL_ID,
                     "Location Service Channel",
-                    NotificationManager.IMPORTANCE_DEFAULT
+                    NotificationManager.IMPORTANCE_MIN
             );
+            serviceChannel.setShowBadge(false);
+            serviceChannel.setLockscreenVisibility(Notification.VISIBILITY_SECRET);
             NotificationManager manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(serviceChannel);
         }

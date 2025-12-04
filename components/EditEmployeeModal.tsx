@@ -23,6 +23,7 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
   });
 
   useEffect(() => {
+    if (!isOpen) return;
     const loadData = async () => {
         // Fetch dynamic sites
         const loadedSites = await getSites();

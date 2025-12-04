@@ -6,7 +6,7 @@ public class AppConfig {
     // Emulator (AVD) uses 10.0.2.2 to access host localhost
     private static final String EMULATOR_HOST = "http://10.0.2.2:3002";
     // Physical Device uses LAN IP
-    private static final String DEVICE_HOST = "https://api.ambeservice.com";
+    private static final String DEVICE_HOST = "http://192.168.1.96:3002";
 
     public static String getBaseUrl() {
         if (isEmulator()) {

@@ -78,8 +78,8 @@
 42        android:extractNativeLibs="false"
 43        android:icon="@drawable/app_logo"
 43-->F:\Company-management-system\supervisor-android\app\src\main\AndroidManifest.xml:24:9-42
-44        android:label="Ambe Supervisor"
-44-->F:\Company-management-system\supervisor-android\app\src\main\AndroidManifest.xml:25:9-40
+44        android:label="@string/app_name"
+44-->F:\Company-management-system\supervisor-android\app\src\main\AndroidManifest.xml:25:9-41
 45        android:largeHeap="true"
 45-->F:\Company-management-system\supervisor-android\app\src\main\AndroidManifest.xml:29:9-33
 46        android:roundIcon="@drawable/app_logo"

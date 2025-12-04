@@ -19,7 +19,8 @@ const AttendanceSchema = new mongoose.Schema({
   isLocked: { type: Boolean, default: false },
   remarks: String,
   overtimeHours: Number,
-  supervisorName: String // Name of the supervisor who logged this
+  supervisorName: String, // Name of the supervisor who logged this
+  siteId: String // Added siteId for filtering
 }, { timestamps: true });
 
 // Compound index to ensure one record per employee per day

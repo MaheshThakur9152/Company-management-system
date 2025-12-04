@@ -1,8 +1,8 @@
 <resources>
-    <string name="app_name">Ambe Supervisor</string>
+    <string name="app_name">Attendance App</string>
     <string name="company_name">AMBE</string>
-    <string name="app_subtitle">Supervisor App</string>
-    <string name="login_title">Supervisor Login</string>
+    <string name="app_subtitle">Attendance App</string>
+    <string name="login_title">Attendance Login</string>
     <string name="label_username">USERNAME</string>
     <string name="hint_username">Enter username</string>
     <string name="label_password">PASSWORD</string>

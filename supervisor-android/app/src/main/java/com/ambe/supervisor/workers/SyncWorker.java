@@ -6,6 +6,7 @@ import androidx.annotation.NonNull;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 import androidx.work.ListenableWorker.Result;
+import androidx.work.Data;
 
 import com.ambe.supervisor.api.ApiService;
 import com.ambe.supervisor.database.AppDatabase;
@@ -25,6 +26,7 @@ import android.util.Base64;
 public class SyncWorker extends Worker {
 
     private final AppDatabase db;
+    private String lastError = "";
 
     public SyncWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
@@ -58,16 +60,24 @@ public class SyncWorker extends Worker {
     public Result doWork() {
         try {
             boolean attendanceSynced = syncAttendance();
-            boolean locationSynced = syncLocationLogs();
+            // We don't care if location logs fail, attendance is priority
+            syncLocationLogs(); 
 
-            if (attendanceSynced && locationSynced) {
+            if (attendanceSynced) {
                 return Result.success();
             } else {
-                return Result.retry();
+                // Return failure with error message so user can see it
+                Data output = new Data.Builder()
+                    .putString("error", lastError != null ? lastError : "Unknown Error")
+                    .build();
+                return Result.failure(output);
             }
         } catch (Exception e) {
             e.printStackTrace();
-            return Result.retry();
+            Data output = new Data.Builder()
+                .putString("error", e.getMessage())
+                .build();
+            return Result.failure(output);
         }
     }
 
@@ -76,13 +86,17 @@ public class SyncWorker extends Worker {
             List<AttendanceEntity> unsynced = db.attendanceDao().getUnsyncedAttendance();
             if (unsynced.isEmpty()) return true;
 
-            List<Map<String, Object>> syncPayload = new ArrayList<>();
+            boolean allSuccess = true;
+
+            // Upload ONE BY ONE to avoid payload issues and ensure partial success
             for (AttendanceEntity entity : unsynced) {
                 try {
+                    List<Map<String, Object>> syncPayload = new ArrayList<>();
                     Map<String, Object> record = new HashMap<>();
                     // Use a unique string ID for backend (e.g., empId_date_time) or just random
                     record.put("id", entity.employeeId + "_" + System.currentTimeMillis()); 
                     record.put("employeeId", entity.employeeId);
+                    record.put("siteId", entity.siteId); // Added siteId
                     record.put("date", entity.date);
                     record.put("status", entity.status);
                     record.put("checkInTime", entity.timestamp); // Map timestamp -> checkInTime
@@ -105,25 +119,35 @@ public class SyncWorker extends Worker {
                     record.put("location", location);
 
                     syncPayload.add(record);
+
+                    String jsonBody = new Gson().toJson(syncPayload);
+                    String response = ApiService.syncAttendanceBlocking(jsonBody);
+
+                    if (response != null) {
+                        db.attendanceDao().markAsSynced(entity.id);
+                    } else {
+                        allSuccess = false;
+                        lastError = "Empty response from server";
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    // Skip bad record
+                    String msg = e.getMessage();
+                    lastError = msg;
+                    
+                    // Handle "Already Marked" or "Duplicate" as SUCCESS
+                    // Backend returns 200 with errors array usually, but if it throws 409/500:
+                    if (msg != null && (msg.contains("already marked") || msg.contains("Duplicate") || msg.contains("locked"))) {
+                        db.attendanceDao().markAsSynced(entity.id);
+                    } else {
+                        allSuccess = false;
+                    }
                 }
             }
 
-            if (syncPayload.isEmpty()) return true;
-
-            String jsonBody = new Gson().toJson(syncPayload);
-            String response = ApiService.syncAttendanceBlocking(jsonBody);
-
-            if (response != null) {
-                for (AttendanceEntity entity : unsynced) {
-                    db.attendanceDao().markAsSynced(entity.id);
-                }
-                return true;
-            }
+            return allSuccess;
         } catch (Exception e) {
             e.printStackTrace();
+            lastError = e.getMessage();
         }
         return false;
     }

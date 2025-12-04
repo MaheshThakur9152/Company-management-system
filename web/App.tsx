@@ -72,20 +72,11 @@ const extractCloudinaryPublicId = (url: string | undefined | null) => {
         // Cloudinary URL format: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{public_id}.{format}
         const parts = url.split('/');
         const uploadIndex = parts.indexOf('upload');
-        
-        if (uploadIndex !== -1 && uploadIndex + 1 < parts.length) {
-            // Check if the next segment is a version number (starts with 'v' followed by digits)
-            const nextSegment = parts[uploadIndex + 1];
-            const isVersion = /^v\d+$/.test(nextSegment);
-            
-            // If version exists, skip it (start from uploadIndex + 2), otherwise start from uploadIndex + 1
-            const startIndex = isVersion ? uploadIndex + 2 : uploadIndex + 1;
-            
-            if (startIndex < parts.length) {
-                const publicIdWithExt = parts.slice(startIndex).join('/');
-                // Remove file extension
-                return publicIdWithExt.replace(/\.[^/.]+$/, '');
-            }
+        if (uploadIndex !== -1 && uploadIndex + 2 < parts.length) {
+            // Get everything after 'upload/v{version}/'
+            const publicIdWithExt = parts.slice(uploadIndex + 2).join('/');
+            // Remove file extension
+            return publicIdWithExt.replace(/\.[^/.]+$/, '');
         }
     } catch (error) {
         console.error('Error extracting public ID:', error);
@@ -205,29 +196,47 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
   useEffect(() => {
     if (!isAuthenticated) return;
     const loadData = async () => {
-      setAttendanceData(await getSharedAttendanceData());
-      setInvoices(await getInvoices());
-      setEmployees(await getEmployees());
-      setSites(await getSites());
+      const [att, inv, emp, sts, loc, usrs] = await Promise.all([
+        getSharedAttendanceData(),
+        getInvoices(),
+        getEmployees(),
+        getSites(),
+        getLocationLogs(),
+        userRole === 'SuperAdmin' ? getUsers() : Promise.resolve([])
+      ]);
+
+      setAttendanceData(att);
+      setInvoices(inv);
+      setEmployees(emp);
+      setSites(sts);
+      setLocationLogs(loc);
       if (userRole === 'SuperAdmin') {
-          setUsers(await getUsers());
+          setUsers(usrs);
       }
-      setLocationLogs(await getLocationLogs());
     };
     loadData();
     const interval = setInterval(loadData, 30000);
 
     // Initialize Socket
     let socket: any = null;
+    let isMounted = true;
+
     const initSocket = async () => {
         try {
             const io = await getSocket();
+            if (!isMounted) return;
+
             const backendUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
                 ? 'http://localhost:3002' 
                 : window.location.origin; // Assume same origin for prod or adjust if needed
             
-            socket = io(backendUrl);
+            socket = io(backendUrl, {
+                transports: ['websocket', 'polling'],
+                reconnectionDelay: 5000
+            });
+
             socket.on('data_update', (data: { type: string }) => {
+                if (!isMounted) return;
                 if (data.type === 'employees') getEmployees().then(setEmployees);
                 if (data.type === 'sites') getSites().then(setSites);
             });
@@ -238,6 +247,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
     initSocket();
 
     return () => {
+        isMounted = false;
         clearInterval(interval);
         if (socket) socket.disconnect();
     };
@@ -1672,7 +1682,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                             Employee
                                         </div>
                                         <a 
-                                            href={emp.photoUrl?.includes('cloudinary.com') ? `/api/download/image?publicId=${encodeURIComponent(extractCloudinaryPublicId(emp.photoUrl))}` : getSafePhotoUrl(emp.photoUrl)}
+                                            href={emp.photoUrl?.includes('cloudinary.com') ? `/api/download/image/${extractCloudinaryPublicId(emp.photoUrl)}` : getSafePhotoUrl(emp.photoUrl)}
                                             target="_blank" 
                                             rel="noreferrer"
                                             download={!emp.photoUrl?.includes('cloudinary.com') ? `${emp.name.replace(/\s+/g, '_')}.png` : undefined}
@@ -1726,7 +1736,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                             {record.status}
                                         </div>
                                         <a 
-                                            href={record.photoUrl?.includes('cloudinary.com') ? `/api/download/image?publicId=${encodeURIComponent(extractCloudinaryPublicId(record.photoUrl))}` : getSafePhotoUrl(record.photoUrl)}
+                                            href={record.photoUrl?.includes('cloudinary.com') ? `/api/download/image/${extractCloudinaryPublicId(record.photoUrl)}` : getSafePhotoUrl(record.photoUrl)}
                                             target="_blank" 
                                             rel="noreferrer"
                                             download={!record.photoUrl?.includes('cloudinary.com') ? `${emp?.name?.replace(/\s+/g, '_') || 'attendance'}_${record.date}.png` : undefined}
@@ -2169,7 +2179,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                         <img src={getSafePhotoUrl(record.photoUrl)} className="w-full h-full object-cover" onError={handleImageError} />
                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                                         <a 
-                                            href={record.photoUrl?.includes('cloudinary.com') ? `/api/download/image?publicId=${encodeURIComponent(extractCloudinaryPublicId(record.photoUrl))}` : getSafePhotoUrl(record.photoUrl)}
+                                            href={record.photoUrl?.includes('cloudinary.com') ? `/api/download/image/${extractCloudinaryPublicId(record.photoUrl)}` : getSafePhotoUrl(record.photoUrl)}
                                             download={!record.photoUrl?.includes('cloudinary.com') ? `${emp?.name?.replace(/\s+/g, '_') || 'attendance'}_${record.date}.png` : undefined}
                                             target="_blank" 
                                             rel="noreferrer" 

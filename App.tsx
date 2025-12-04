@@ -16,20 +16,7 @@ const getDeviceId = () => {
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [sites, setSites] = useState<Site[]>(MOCK_SITES);
   const [isLoading, setIsLoading] = useState(true);
-
-  React.useEffect(() => {
-    const loadSites = async () => {
-      try {
-        const fetched = await getSites();
-        setSites(fetched);
-      } catch (e) {
-        console.error("Failed to load sites", e);
-      }
-    };
-    loadSites();
-  }, []);
 
   React.useEffect(() => {
     const checkUserAuth = async () => {

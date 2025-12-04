@@ -161,13 +161,9 @@ app.get('/', (req, res) => {
 });
 
 // Download Image
-app.get('/api/download/image', (req, res) => {
+app.get('/api/download/image/*', (req, res) => {
   try {
-    const publicId = req.query.publicId;
-    if (!publicId) {
-      return res.status(400).json({ error: 'Missing publicId parameter' });
-    }
-    
+    const publicId = req.params[0];
     // Generate Cloudinary URL with download attachment and PNG format
     const downloadUrl = cloudinary.url(publicId, {
       resource_type: 'image',
@@ -276,6 +272,7 @@ app.put('/api/employees/:id', async (req, res) => {
 app.get('/api/attendance', async (req, res) => {
   try {
     const { sort, order, site, employee, month, year, updatedAfter } = req.query;
+    console.log('GET /api/attendance query:', req.query);
     let query = {};
     let sortOptions = {};
 
@@ -287,9 +284,10 @@ app.get('/api/attendance', async (req, res) => {
 
     // Filter by month/year
     if (month && year) {
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 1);
-      query.date = { $gte: startDate, $lt: endDate };
+      // Since date is stored as String (YYYY-MM-DD), we must use String comparison or Regex
+      // We cannot use Date objects for comparison against String fields
+      const m = month.toString().padStart(2, '0');
+      query.date = { $regex: `^${year}-${m}` };
     }
 
     // Efficient Polling: Get only records updated after a certain time
@@ -304,7 +302,9 @@ app.get('/api/attendance', async (req, res) => {
       sortOptions.date = -1; // Default sort by date desc
     }
 
+    console.log('GET /api/attendance mongo query:', query);
     const attendance = await Attendance.find(query).sort(sortOptions);
+    console.log(`Found ${attendance.length} records`);
     res.json(attendance);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -330,6 +330,14 @@ app.post('/api/attendance/sync', async (req, res) => {
               error: "Attendance already marked for this date. Updates are locked."
           });
           continue; 
+      }
+
+      // Ensure siteId is present
+      if (!record.siteId) {
+          const emp = await Employee.findOne({ id: record.employeeId });
+          if (emp) {
+              record.siteId = emp.siteId;
+          }
       }
 
       // Handle Photo Upload to Cloudinary if it's a base64 string

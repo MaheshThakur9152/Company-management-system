@@ -1,62 +1,58 @@
 [
     {
-        "merged": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-merged_res-41:\\layout_item_employee.xml.flat",
-        "source": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-main-43:\\layout\\item_employee.xml"
+        "merged": "com.ambe.supervisor.app-merged_res-41:/layout_item_employee.xml.flat",
+        "source": "com.ambe.supervisor.app-main-43:/layout/item_employee.xml"
     },
     {
-        "merged": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-merged_res-41:\\layout_activity_supervisor.xml.flat",
-        "source": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-main-43:\\layout\\activity_supervisor.xml"
-    },
-    {
-        "merged": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-merged_res-41:\\drawable_dialog_background.xml.flat",
-        "source": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-main-43:\\drawable\\dialog_background.xml"
-    },
-    {
-        "merged": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-merged_res-41:\\drawable_bg_avatar_present.xml.flat",
-        "source": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-main-43:\\drawable\\bg_avatar_present.xml"
-    },
-    {
-        "merged": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-merged_res-41:\\layout_activity_login.xml.flat",
-        "source": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-main-43:\\layout\\activity_login.xml"
+        "merged": "com.ambe.supervisor.app-merged_res-41:/drawable_bg_input.xml.flat",
+        "source": "com.ambe.supervisor.app-main-43:/drawable/bg_input.xml"
     },
     {
         "merged": "com.ambe.supervisor.app-merged_res-41:/xml_file_paths.xml.flat",
         "source": "com.ambe.supervisor.app-main-43:/xml/file_paths.xml"
     },
     {
-        "merged": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-merged_res-41:\\drawable_bg_geo_card.xml.flat",
-        "source": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-main-43:\\drawable\\bg_geo_card.xml"
+        "merged": "com.ambe.supervisor.app-merged_res-41:/drawable_bg_badge_white.xml.flat",
+        "source": "com.ambe.supervisor.app-main-43:/drawable/bg_badge_white.xml"
     },
     {
-        "merged": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-merged_res-41:\\drawable_bg_badge_white.xml.flat",
-        "source": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-main-43:\\drawable\\bg_badge_white.xml"
+        "merged": "com.ambe.supervisor.app-merged_res-41:/drawable_edit_text_bg.xml.flat",
+        "source": "com.ambe.supervisor.app-main-43:/drawable/edit_text_bg.xml"
     },
     {
-        "merged": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-merged_res-41:\\drawable_edit_text_bg.xml.flat",
-        "source": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-main-43:\\drawable\\edit_text_bg.xml"
+        "merged": "com.ambe.supervisor.app-merged_res-41:/layout_activity_login.xml.flat",
+        "source": "com.ambe.supervisor.app-main-43:/layout/activity_login.xml"
     },
     {
-        "merged": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-merged_res-41:\\layout_dialog_enter_name.xml.flat",
-        "source": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-main-43:\\layout\\dialog_enter_name.xml"
+        "merged": "com.ambe.supervisor.app-merged_res-41:/drawable_bg_geo_card.xml.flat",
+        "source": "com.ambe.supervisor.app-main-43:/drawable/bg_geo_card.xml"
     },
     {
-        "merged": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-merged_res-41:\\drawable_bg_sync_button.xml.flat",
-        "source": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-main-43:\\drawable\\bg_sync_button.xml"
+        "merged": "com.ambe.supervisor.app-merged_res-41:/drawable_bg_avatar_default.xml.flat",
+        "source": "com.ambe.supervisor.app-main-43:/drawable/bg_avatar_default.xml"
     },
     {
-        "merged": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-merged_res-41:\\xml_file_paths.xml.flat",
-        "source": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-main-43:\\xml\\file_paths.xml"
+        "merged": "com.ambe.supervisor.app-merged_res-41:/layout_dialog_enter_name.xml.flat",
+        "source": "com.ambe.supervisor.app-main-43:/layout/dialog_enter_name.xml"
     },
     {
-        "merged": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-merged_res-41:\\drawable_app_logo.png.flat",
-        "source": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-main-43:\\drawable\\app_logo.png"
+        "merged": "com.ambe.supervisor.app-merged_res-41:/drawable_app_logo.png.flat",
+        "source": "com.ambe.supervisor.app-main-43:/drawable/app_logo.png"
     },
     {
-        "merged": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-merged_res-41:\\drawable_bg_input.xml.flat",
-        "source": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-main-43:\\drawable\\bg_input.xml"
+        "merged": "com.ambe.supervisor.app-merged_res-41:/layout_activity_supervisor.xml.flat",
+        "source": "com.ambe.supervisor.app-main-43:/layout/activity_supervisor.xml"
     },
     {
-        "merged": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-merged_res-41:\\drawable_bg_avatar_default.xml.flat",
-        "source": "C:\\Users\\USER\\.gradle\\daemon\\8.13\\com.ambe.supervisor.app-main-43:\\drawable\\bg_avatar_default.xml"
+        "merged": "com.ambe.supervisor.app-merged_res-41:/drawable_dialog_background.xml.flat",
+        "source": "com.ambe.supervisor.app-main-43:/drawable/dialog_background.xml"
+    },
+    {
+        "merged": "com.ambe.supervisor.app-merged_res-41:/drawable_bg_avatar_present.xml.flat",
+        "source": "com.ambe.supervisor.app-main-43:/drawable/bg_avatar_present.xml"
+    },
+    {
+        "merged": "com.ambe.supervisor.app-merged_res-41:/drawable_bg_sync_button.xml.flat",
+        "source": "com.ambe.supervisor.app-main-43:/drawable/bg_sync_button.xml"
     }
 ]

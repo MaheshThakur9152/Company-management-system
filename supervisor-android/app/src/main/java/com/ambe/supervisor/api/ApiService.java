@@ -123,8 +123,8 @@ public class ApiService {
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod(method);
         conn.setRequestProperty("Content-Type", "application/json");
-        conn.setConnectTimeout(10000);
-        conn.setReadTimeout(10000);
+        conn.setConnectTimeout(30000); // Increased to 30 seconds
+        conn.setReadTimeout(30000);    // Increased to 30 seconds
 
         if (jsonBody != null && (method.equals("POST") || method.equals("PUT"))) {
             conn.setDoOutput(true);
