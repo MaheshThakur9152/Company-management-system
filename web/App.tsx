@@ -72,11 +72,20 @@ const extractCloudinaryPublicId = (url: string | undefined | null) => {
         // Cloudinary URL format: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{public_id}.{format}
         const parts = url.split('/');
         const uploadIndex = parts.indexOf('upload');
-        if (uploadIndex !== -1 && uploadIndex + 2 < parts.length) {
-            // Get everything after 'upload/v{version}/'
-            const publicIdWithExt = parts.slice(uploadIndex + 2).join('/');
-            // Remove file extension
-            return publicIdWithExt.replace(/\.[^/.]+$/, '');
+        
+        if (uploadIndex !== -1 && uploadIndex + 1 < parts.length) {
+            // Check if the next segment is a version number (starts with 'v' followed by digits)
+            const nextSegment = parts[uploadIndex + 1];
+            const isVersion = /^v\d+$/.test(nextSegment);
+            
+            // If version exists, skip it (start from uploadIndex + 2), otherwise start from uploadIndex + 1
+            const startIndex = isVersion ? uploadIndex + 2 : uploadIndex + 1;
+            
+            if (startIndex < parts.length) {
+                const publicIdWithExt = parts.slice(startIndex).join('/');
+                // Remove file extension
+                return publicIdWithExt.replace(/\.[^/.]+$/, '');
+            }
         }
     } catch (error) {
         console.error('Error extracting public ID:', error);
