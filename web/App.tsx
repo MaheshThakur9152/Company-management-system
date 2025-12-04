@@ -1672,7 +1672,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                             Employee
                                         </div>
                                         <a 
-                                            href={emp.photoUrl?.includes('cloudinary.com') ? `/api/download/image/${extractCloudinaryPublicId(emp.photoUrl)}` : getSafePhotoUrl(emp.photoUrl)}
+                                            href={emp.photoUrl?.includes('cloudinary.com') ? `/api/download/image?publicId=${encodeURIComponent(extractCloudinaryPublicId(emp.photoUrl))}` : getSafePhotoUrl(emp.photoUrl)}
                                             target="_blank" 
                                             rel="noreferrer"
                                             download={!emp.photoUrl?.includes('cloudinary.com') ? `${emp.name.replace(/\s+/g, '_')}.png` : undefined}
@@ -1726,7 +1726,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                             {record.status}
                                         </div>
                                         <a 
-                                            href={record.photoUrl?.includes('cloudinary.com') ? `/api/download/image/${extractCloudinaryPublicId(record.photoUrl)}` : getSafePhotoUrl(record.photoUrl)}
+                                            href={record.photoUrl?.includes('cloudinary.com') ? `/api/download/image?publicId=${encodeURIComponent(extractCloudinaryPublicId(record.photoUrl))}` : getSafePhotoUrl(record.photoUrl)}
                                             target="_blank" 
                                             rel="noreferrer"
                                             download={!record.photoUrl?.includes('cloudinary.com') ? `${emp?.name?.replace(/\s+/g, '_') || 'attendance'}_${record.date}.png` : undefined}
@@ -2169,7 +2169,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                         <img src={getSafePhotoUrl(record.photoUrl)} className="w-full h-full object-cover" onError={handleImageError} />
                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                                         <a 
-                                            href={record.photoUrl?.includes('cloudinary.com') ? `/api/download/image/${extractCloudinaryPublicId(record.photoUrl)}` : getSafePhotoUrl(record.photoUrl)}
+                                            href={record.photoUrl?.includes('cloudinary.com') ? `/api/download/image?publicId=${encodeURIComponent(extractCloudinaryPublicId(record.photoUrl))}` : getSafePhotoUrl(record.photoUrl)}
                                             download={!record.photoUrl?.includes('cloudinary.com') ? `${emp?.name?.replace(/\s+/g, '_') || 'attendance'}_${record.date}.png` : undefined}
                                             target="_blank" 
                                             rel="noreferrer" 
