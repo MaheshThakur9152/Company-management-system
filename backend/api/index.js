@@ -164,10 +164,16 @@ app.get('/', (req, res) => {
 // View Image (Redirect to Cloudinary URL for display)
 app.get('/api/view/image/*', (req, res) => {
   try {
-    const publicId = req.params[0];
+    let publicId = req.params[0];
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME || 'di9eeahdy';
 
     if (!cloudName) return res.status(500).json({ error: "Cloudinary config missing" });
+
+    // Clean publicId
+    if (publicId) {
+        if (publicId.startsWith('/')) publicId = publicId.substring(1);
+        publicId = publicId.trim();
+    }
 
     const viewUrl = `https://res.cloudinary.com/${cloudName}/image/upload/${publicId}`;
     return res.redirect(viewUrl);
