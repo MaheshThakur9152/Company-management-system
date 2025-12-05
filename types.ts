@@ -37,6 +37,7 @@ export interface Employee {
   id: string;
   biometricCode: string;
   name: string;
+  phone?: string;
   role: 'Janitor' | 'Key Supervisor' | 'Security';
   siteId: string;
   photoUrl: string;

@@ -143,6 +143,15 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
                         placeholder="e.g. 3765"
                     />
                  </div>
+                 <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Phone Number</label>
+                    <input 
+                        value={formData.phone || ''}
+                        onChange={(e) => handleChange('phone', e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary outline-none font-mono"
+                        placeholder="e.g. 9876543210"
+                    />
+                 </div>
              </div>
           </div>
 

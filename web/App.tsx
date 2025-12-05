@@ -13,8 +13,8 @@ import {
   getSharedAttendanceData, getInvoices, 
   updateInvoice, getEmployees, addEmployee, updateEmployee, 
   deleteEmployee, getSites, addSite, updateSite, deleteSite,
-  addInvoice, updateAttendanceRecord, deleteAttendancePhoto,
-  loginUser, verifyOtp, getUsers, addUser, deleteUser, revokeUserTrust, updateUser, getLocationLogs, revokeSupervisorDevice
+  addInvoice, updateAttendanceRecord, deleteAttendancePhoto, deleteAttendanceRecord,
+  loginUser, verifyOtp, getUsers, addUser, deleteUser, revokeUserTrust, updateUser, getLocationLogs, revokeSupervisorDevice, deleteInvoice
 } from '../services/mockData';
 
 import EditInvoiceModal from '../components/EditInvoiceModal';
@@ -181,8 +181,8 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
   // Filter & Search
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSiteFilter, setSelectedSiteFilter] = useState<string>('all');
-  const [selectedMonth, setSelectedMonth] = useState<number>(11); // Default Nov
-  const [selectedYear, setSelectedYear] = useState<number>(2025); // Default 2025
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedDay, setSelectedDay] = useState<number | 'all'>('all');
   
   // Invoice Filters
@@ -583,6 +583,23 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
     setActiveTab('invoices-tax'); // Switch to Tax Invoices tab
   };
 
+  const handleDeleteInvoice = async (invoice: Invoice) => {
+    if (userRole !== 'SuperAdmin') {
+        alert("Only Super Admin can delete invoices.");
+        return;
+    }
+    
+    if (!confirm(`Are you sure you want to permanently delete invoice ${invoice.invoiceNo}? This action cannot be undone.`)) return;
+    
+    const success = await deleteInvoice(invoice.id);
+    if (success) {
+        setInvoices(await getInvoices());
+        alert("Invoice deleted successfully.");
+    } else {
+        alert("Failed to delete invoice.");
+    }
+  };
+
   const handleSaveEmployee = async (emp: Employee) => {
     const employeeToSave = { ...emp };
     // Direct creation for Admin
@@ -886,22 +903,42 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
     setAttendanceModalOpen(true);
   };
 
-  const saveManualAttendance = async (status: AttendanceStatus) => {
+  const saveManualAttendance = async (status: AttendanceStatus | null) => {
     if (!selectedAttendance) return;
-    const record: AttendanceRecord = {
-      id: Date.now().toString(), employeeId: selectedAttendance.empId, date: selectedAttendance.date, status: status,
-      checkInTime: 'Manual', isSynced: true, isLocked: true, remarks: 'Added by Admin'
-    };
-    await updateAttendanceRecord(record);
+
+    if (status === null) {
+        const success = await deleteAttendanceRecord(selectedAttendance.empId, selectedAttendance.date);
+        if (!success) {
+            alert("Failed to clear attendance. Please try again.");
+            return;
+        }
+    } else {
+        const record: AttendanceRecord = {
+            id: Date.now().toString(), employeeId: selectedAttendance.empId, date: selectedAttendance.date, status: status,
+            checkInTime: 'Manual', isSynced: true, isLocked: true, remarks: 'Added by Admin'
+        };
+        await updateAttendanceRecord(record);
+    }
+    
     setAttendanceData(await getSharedAttendanceData());
     setAttendanceModalOpen(false);
   };
 
   // --- EXCEL GENERATION FOR SINGLE INVOICE ---
   const downloadInvoiceExcel = async (invoice: Invoice) => {
-    const site = sites.find(s => s.id === invoice.siteId);
+    let site = sites.find(s => s.id === invoice.siteId);
+    
+    // If site not found in current state, try to fetch fresh sites
     if (!site) {
-      alert("Site details not found for this invoice.");
+      const freshSites = await getSites();
+      site = freshSites.find(s => s.id === invoice.siteId);
+      if (site) {
+        setSites(freshSites);
+      }
+    }
+    
+    if (!site) {
+      alert("Site details not found for this invoice. Please refresh and try again.");
       return;
     }
 
@@ -1265,6 +1302,9 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                             <td className="p-4 text-right flex justify-end gap-2">
                                                 <button onClick={() => downloadInvoiceExcel(inv)} className="p-2 hover:bg-green-50 text-green-600 rounded transition-colors" title="Download Excel"><Download size={16}/></button>
                                                 <button onClick={() => { setEditingInvoice(inv); setShowInvoiceModal(true); }} className="p-2 hover:bg-blue-50 text-blue-600 rounded transition-colors" title="Edit Invoice"><Edit2 size={16}/></button>
+                                                {userRole === 'SuperAdmin' && (
+                                                    <button onClick={() => handleDeleteInvoice(inv)} className="p-2 hover:bg-red-50 text-red-600 rounded transition-colors" title="Delete Invoice"><Trash2 size={16}/></button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
@@ -1311,7 +1351,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                     )}
                                 </div>
                             </div>
-                            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between text-xs text-gray-500"><span>{emp.role}</span><span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-medium">{sites.find(s=>s.id===emp.siteId)?.name || 'Unknown Site'}</span></div>
+                            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between text-xs text-gray-500"><span>{emp.role}</span><span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-medium">{emp.phone || 'No Phone'}</span></div>
                         </div>
                       ))}</div>
                   </div>
@@ -1431,7 +1471,11 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                             <td className="p-3 sticky left-0 bg-white z-10 border-r text-left font-medium text-gray-900">
                                                 <div className="flex items-center justify-between gap-3 min-w-[180px]">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="relative">
+                                                        <div 
+                                                            className="relative cursor-pointer hover:opacity-80 transition-opacity"
+                                                            onClick={() => { setEditingEmployee(emp); setShowEmployeeModal(true); }}
+                                                            title="Click to Edit Staff"
+                                                        >
                                                             <img src={getSafePhotoUrl(emp.photoUrl)} className="w-8 h-8 rounded-full object-cover border border-gray-100 shadow-sm" alt="" onError={handleImageError} />
                                                             <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${emp.status==='Active'?'bg-green-500':'bg-gray-300'}`}></div>
                                                         </div>
@@ -1460,9 +1504,9 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                 return null;
                                                             })()}
                                                             <div className="font-bold text-gray-800">{emp.name}</div>
-                                                            <div className="flex items-center gap-1 mt-0.5">
+                                                            <div className="flex items-center gap-2 mt-1">
                                                                 <div className="text-[10px] text-gray-400 font-mono">{emp.biometricCode}</div>
-                                                                <div className="text-[9px] bg-gray-100 px-1 rounded text-gray-500">{sites.find(s => s.id === emp.siteId)?.name}</div>
+                                                                <div className="text-xs font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">{emp.phone || 'No Phone'}</div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1707,7 +1751,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                     <div className="p-4">
                                         <div className="font-bold text-gray-800 truncate" title={emp.name}>{emp.name}</div>
                                         <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                                            <MapPin size={12} /> {site?.name || 'Unknown Site'}
+                                            <Phone size={12} /> {emp.phone || 'No Phone'}
                                         </div>
                                         <div className="text-xs text-gray-400 mt-1">{emp.role}</div>
                                     </div>
@@ -2169,7 +2213,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                 )}
                             </div>
                         )}
-                        <div className="mb-4"><p className="text-sm text-gray-500">Employee</p><p className="font-bold text-lg text-gray-800">{selectedAttendance.empName}</p></div><div className="mb-6"><p className="text-sm text-gray-500">Date</p><p className="font-bold text-gray-800">{selectedAttendance.date}</p></div><div className="grid grid-cols-2 gap-3"><button onClick={() => saveManualAttendance('P')} className="bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 py-3 rounded-lg font-bold">Present (P)</button><button onClick={() => saveManualAttendance('A')} className="bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 py-3 rounded-lg font-bold">Absent (A)</button><button onClick={() => saveManualAttendance('HD')} className="bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 py-3 rounded-lg font-bold">Half Day (HD)</button><button onClick={() => saveManualAttendance('W/O')} className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 py-3 rounded-lg font-bold">Weekly Off</button><button onClick={() => saveManualAttendance('WOP')} className="bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 py-3 rounded-lg font-bold">Weekoff Present</button><button onClick={() => saveManualAttendance(null as any)} className="col-span-2 bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 py-3 rounded-lg font-bold flex items-center justify-center gap-2"><RotateCcw size={16} /> Clear / Reset</button></div></div>
+                        <div className="mb-4"><p className="text-sm text-gray-500">Employee</p><p className="font-bold text-lg text-gray-800">{selectedAttendance.empName}</p></div><div className="mb-6"><p className="text-sm text-gray-500">Date</p><p className="font-bold text-gray-800">{selectedAttendance.date}</p></div><div className="grid grid-cols-2 gap-3"><button onClick={() => saveManualAttendance('P')} className="bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 py-3 rounded-lg font-bold">Present (P)</button><button onClick={() => saveManualAttendance('A')} className="bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 py-3 rounded-lg font-bold">Absent (A)</button><button onClick={() => saveManualAttendance('HD')} className="bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 py-3 rounded-lg font-bold">Half Day (HD)</button><button onClick={() => saveManualAttendance('W/O')} className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 py-3 rounded-lg font-bold">Weekly Off</button><button onClick={() => saveManualAttendance('WOP')} className="bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 py-3 rounded-lg font-bold">Weekoff Present</button><button onClick={() => saveManualAttendance(null)} className="col-span-2 bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 py-3 rounded-lg font-bold flex items-center justify-center gap-2"><RotateCcw size={16} /> Clear / Reset</button></div></div>
                 </div>
             </div>
         )}

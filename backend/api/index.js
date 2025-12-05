@@ -177,12 +177,18 @@ app.get('/api/view/image/*', (req, res) => {
 // Download Image (Forces download via fl_attachment)
 app.get('/api/download/image/*', (req, res) => {
   try {
-    const publicId = req.params[0]; // full cloudinary public_id
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    let publicId = req.params[0]; // full cloudinary public_id
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME || 'di9eeahdy';
 
     if (!cloudName) {
       console.error("Cloudinary Cloud Name not set!");
       return res.status(500).json({ error: "Cloudinary configuration missing" });
+    }
+
+    // Clean publicId
+    if (publicId) {
+        if (publicId.startsWith('/')) publicId = publicId.substring(1);
+        publicId = publicId.trim();
     }
 
     // fl_attachment forces download
@@ -434,6 +440,16 @@ app.post('/api/attendance/sync', async (req, res) => {
         errors: errors,
         details: result 
     });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Delete Attendance Record (Admin Clear/Reset)
+app.delete('/api/attendance/record/:employeeId/:date', async (req, res) => {
+  try {
+    const { employeeId, date } = req.params;
+    await Attendance.findOneAndDelete({ employeeId, date });
+    io.emit('data_update', { type: 'attendance' }); // Notify clients
+    res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

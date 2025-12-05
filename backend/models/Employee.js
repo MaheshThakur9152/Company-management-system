@@ -7,6 +7,7 @@ const EmployeeSchema = new mongoose.Schema({
   role: { type: String, default: 'Janitor' },
   siteId: { type: String, required: true },
   photoUrl: String,
+  phone: String,
   weeklyOff: { type: String, default: 'Sunday' },
   status: { type: String, enum: ['Active', 'Inactive', 'Pending', 'Deleted'], default: 'Active' },
   joiningDate: String,

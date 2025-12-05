@@ -109,9 +109,18 @@ export const updateAttendanceRecord = async (record: AttendanceRecord): Promise<
     }
 };
 
+export const deleteAttendanceRecord = async (employeeId: string, date: string): Promise<boolean> => {
+    try {
+        await apiCall(`/attendance/record/${encodeURIComponent(employeeId)}/${encodeURIComponent(date)}`, 'DELETE');
+        return true;
+    } catch (e) {
+        return false;
+    }
+};
+
 export const deleteAttendancePhoto = async (employeeId: string, date: string): Promise<boolean> => {
     try {
-        await apiCall(`/attendance/photo/${employeeId}/${date}`, 'DELETE');
+        await apiCall(`/attendance/photo/${encodeURIComponent(employeeId)}/${encodeURIComponent(date)}`, 'DELETE');
         return true;
     } catch (e) {
         return false;
@@ -140,6 +149,15 @@ export const addInvoice = async (invoice: Invoice): Promise<boolean> => {
 export const updateInvoice = async (updatedInvoice: Invoice): Promise<boolean> => {
     try {
         await apiCall(`/invoices/${updatedInvoice.id}`, 'PUT', updatedInvoice);
+        return true;
+    } catch (e) {
+        return false;
+    }
+};
+
+export const deleteInvoice = async (invoiceId: string): Promise<boolean> => {
+    try {
+        await apiCall(`/invoices/${invoiceId}`, 'DELETE');
         return true;
     } catch (e) {
         return false;
