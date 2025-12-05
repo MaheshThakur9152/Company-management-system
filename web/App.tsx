@@ -10,6 +10,7 @@ import {
 
 import { Invoice, Employee, AttendanceRecord, Site, AttendanceStatus, User, LocationLog } from '../types';
 import { 
+  API_URL,
   getSharedAttendanceData, getInvoices, 
   updateInvoice, getEmployees, addEmployee, updateEmployee, 
   deleteEmployee, getSites, addSite, updateSite, deleteSite,
@@ -59,7 +60,7 @@ const getSafePhotoUrl = (url: string | undefined | null) => {
     if (trimmedUrl.startsWith('http') || trimmedUrl.startsWith('data:')) return trimmedUrl;
     
     // It's a public_id, use the view endpoint
-    return `/api/view/image/${trimmedUrl}`;
+    return `${API_URL}/view/image/${trimmedUrl}`;
 };
 
 const extractCloudinaryPublicId = (url: string | undefined | null) => {
@@ -1738,7 +1739,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                             Employee
                                         </div>
                                         <a 
-                                            href={extractCloudinaryPublicId(emp.photoUrl) && !emp.photoUrl?.startsWith('data:') ? `/api/download/image/${extractCloudinaryPublicId(emp.photoUrl)}` : getSafePhotoUrl(emp.photoUrl)}
+                                            href={extractCloudinaryPublicId(emp.photoUrl) && !emp.photoUrl?.startsWith('data:') ? `${API_URL}/download/image/${extractCloudinaryPublicId(emp.photoUrl)}` : getSafePhotoUrl(emp.photoUrl)}
                                             target="_blank" 
                                             rel="noreferrer"
                                             download={(!extractCloudinaryPublicId(emp.photoUrl) || emp.photoUrl?.startsWith('data:')) ? `${emp.name.replace(/\s+/g, '_')}.png` : undefined}
@@ -1792,7 +1793,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                             {record.status}
                                         </div>
                                         <a 
-                                            href={extractCloudinaryPublicId(record.photoUrl) && !record.photoUrl?.startsWith('data:') ? `/api/download/image/${extractCloudinaryPublicId(record.photoUrl)}` : getSafePhotoUrl(record.photoUrl)}
+                                            href={extractCloudinaryPublicId(record.photoUrl) && !record.photoUrl?.startsWith('data:') ? `${API_URL}/download/image/${extractCloudinaryPublicId(record.photoUrl)}` : getSafePhotoUrl(record.photoUrl)}
                                             target="_blank" 
                                             rel="noreferrer"
                                             download={(!extractCloudinaryPublicId(record.photoUrl) || record.photoUrl?.startsWith('data:')) ? `${emp?.name?.replace(/\s+/g, '_') || 'attendance'}_${record.date}.png` : undefined}
@@ -2235,7 +2236,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                         <img src={getSafePhotoUrl(record.photoUrl)} className="w-full h-full object-cover" onError={handleImageError} />
                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                                         <a 
-                                            href={extractCloudinaryPublicId(record.photoUrl) && !record.photoUrl?.startsWith('data:') ? `/api/download/image/${extractCloudinaryPublicId(record.photoUrl)}` : getSafePhotoUrl(record.photoUrl)}
+                                            href={extractCloudinaryPublicId(record.photoUrl) && !record.photoUrl?.startsWith('data:') ? `${API_URL}/download/image/${extractCloudinaryPublicId(record.photoUrl)}` : getSafePhotoUrl(record.photoUrl)}
                                             download={!(extractCloudinaryPublicId(record.photoUrl) && !record.photoUrl?.startsWith('data:')) ? `${emp?.name?.replace(/\s+/g, '_') || 'attendance'}_${record.date}.png` : undefined}
                                             target="_blank" 
                                             rel="noreferrer" 
