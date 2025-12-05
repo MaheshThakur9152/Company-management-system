@@ -2,15 +2,18 @@ require('dotenv').config();
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.hostinger.com',
-  port: parseInt(process.env.EMAIL_PORT || '587'),
+  host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
+  port: parseInt(process.env.EMAIL_PORT || '465'),
   secure: process.env.EMAIL_SECURE === 'true', 
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   },
   debug: true, // Enable debug output
-  logger: true // Log information to console
+  logger: true, // Log information to console
+  connectionTimeout: 60000,
+  greetingTimeout: 60000,
+  socketTimeout: 60000
 });
 
 async function sendTestEmail() {

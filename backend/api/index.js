@@ -37,7 +37,7 @@ console.log('SMTP User:', process.env.EMAIL_USER ? process.env.EMAIL_USER.substr
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
-  port: parseInt(process.env.EMAIL_PORT || '587'),
+  port: parseInt(process.env.EMAIL_PORT || '465'), // Changed to 465 (SSL)
   secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
   auth: {
     user: process.env.EMAIL_USER, // Set these in .env
@@ -48,9 +48,11 @@ const transporter = nodemailer.createTransport({
     ciphers: 'SSLv3',
     rejectUnauthorized: false
   },
-  connectionTimeout: 10000, // 10 seconds
-  greetingTimeout: 10000,
-  socketTimeout: 10000
+  connectionTimeout: 60000, // 60 seconds
+  greetingTimeout: 60000,
+  socketTimeout: 60000,
+  logger: true,
+  debug: true
 });
 
 // Helper function for Cloudinary upload
