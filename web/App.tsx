@@ -57,29 +57,32 @@ const getSafePhotoUrl = (url: string | undefined | null) => {
     if (!url) return PLACEHOLDER_IMAGE;
     const trimmedUrl = url.trim();
     if (trimmedUrl.startsWith('http') || trimmedUrl.startsWith('data:')) return trimmedUrl;
-    // If it looks like a base64 string (long and no spaces after trim), prepend data URI scheme
-    // Also handle potential newlines in base64
-    const cleanBase64 = trimmedUrl.replace(/\s/g, '');
-    if (cleanBase64.length > 100) {
-        return `data:image/jpeg;base64,${cleanBase64}`;
-    }
-    return trimmedUrl;
+    
+    // It's a public_id, use the view endpoint
+    return `/api/view/image/${trimmedUrl}`;
 };
 
 const extractCloudinaryPublicId = (url: string | undefined | null) => {
-    if (!url || !url.includes('cloudinary.com')) return '';
-    try {
-        // Cloudinary URL format: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{public_id}.{format}
-        const parts = url.split('/');
-        const uploadIndex = parts.indexOf('upload');
-        if (uploadIndex !== -1 && uploadIndex + 2 < parts.length) {
-            // Get everything after 'upload/v{version}/'
-            const publicIdWithExt = parts.slice(uploadIndex + 2).join('/');
-            // Remove file extension
-            return publicIdWithExt.replace(/\.[^/.]+$/, '');
+    if (!url) return '';
+    // If it's a full Cloudinary URL
+    if (url.includes('cloudinary.com')) {
+        try {
+            // Cloudinary URL format: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{public_id}.{format}
+            const parts = url.split('/');
+            const uploadIndex = parts.indexOf('upload');
+            if (uploadIndex !== -1 && uploadIndex + 2 < parts.length) {
+                // Get everything after 'upload/v{version}/'
+                const publicIdWithExt = parts.slice(uploadIndex + 2).join('/');
+                // Remove file extension
+                return publicIdWithExt.replace(/\.[^/.]+$/, '');
+            }
+        } catch (error) {
+            console.error('Error extracting public ID:', error);
         }
-    } catch (error) {
-        console.error('Error extracting public ID:', error);
+    }
+    // If it's not a URL and not base64, assume it's already a public_id
+    if (!url.startsWith('http') && !url.startsWith('data:')) {
+        return url;
     }
     return '';
 };
@@ -113,7 +116,16 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
   const [userRole, setUserRole] = useState<'Admin' | 'SuperAdmin'>(
     (user?.role === 'boss' || user?.role === 'superadmin' || user?.email === 'nandani@ambeservice.com' || user?.email === 'ambeservices.nandani@gmail.com') ? 'SuperAdmin' : 'Admin'
   );
-  const [activeTab, setActiveTab] = useState<'invoices-tax' | 'invoices-proforma' | 'employees' | 'attendance' | 'logs' | 'sites' | 'payroll' | 'ledger' | 'users' | 'photos' | 'supervisor-logs'>('invoices-tax');
+  
+  const [activeTab, setActiveTab] = useState<'invoices-tax' | 'invoices-proforma' | 'employees' | 'attendance' | 'logs' | 'sites' | 'payroll' | 'ledger' | 'users' | 'photos' | 'supervisor-logs'>(() => {
+      const saved = localStorage.getItem('admin_active_tab');
+      return (saved as any) || 'invoices-tax';
+  });
+
+  useEffect(() => {
+      localStorage.setItem('admin_active_tab', activeTab);
+  }, [activeTab]);
+
   const [invoicesExpanded, setInvoicesExpanded] = useState(true);
   const [officeEmployeeExpanded, setOfficeEmployeeExpanded] = useState(false);
   const [ledgerType, setLedgerType] = useState<'client' | 'employee' | 'expense'>('client');
@@ -1682,10 +1694,10 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                             Employee
                                         </div>
                                         <a 
-                                            href={emp.photoUrl?.includes('cloudinary.com') ? `/api/download/image/${extractCloudinaryPublicId(emp.photoUrl)}` : getSafePhotoUrl(emp.photoUrl)}
+                                            href={extractCloudinaryPublicId(emp.photoUrl) && !emp.photoUrl?.startsWith('data:') ? `/api/download/image/${extractCloudinaryPublicId(emp.photoUrl)}` : getSafePhotoUrl(emp.photoUrl)}
                                             target="_blank" 
                                             rel="noreferrer"
-                                            download={!emp.photoUrl?.includes('cloudinary.com') ? `${emp.name.replace(/\s+/g, '_')}.png` : undefined}
+                                            download={(!extractCloudinaryPublicId(emp.photoUrl) || emp.photoUrl?.startsWith('data:')) ? `${emp.name.replace(/\s+/g, '_')}.png` : undefined}
                                             className="absolute bottom-3 right-3 bg-white/90 p-2 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white text-blue-600"
                                             title="Download PNG"
                                         >
@@ -1736,10 +1748,10 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                             {record.status}
                                         </div>
                                         <a 
-                                            href={record.photoUrl?.includes('cloudinary.com') ? `/api/download/image/${extractCloudinaryPublicId(record.photoUrl)}` : getSafePhotoUrl(record.photoUrl)}
+                                            href={extractCloudinaryPublicId(record.photoUrl) && !record.photoUrl?.startsWith('data:') ? `/api/download/image/${extractCloudinaryPublicId(record.photoUrl)}` : getSafePhotoUrl(record.photoUrl)}
                                             target="_blank" 
                                             rel="noreferrer"
-                                            download={!record.photoUrl?.includes('cloudinary.com') ? `${emp?.name?.replace(/\s+/g, '_') || 'attendance'}_${record.date}.png` : undefined}
+                                            download={(!extractCloudinaryPublicId(record.photoUrl) || record.photoUrl?.startsWith('data:')) ? `${emp?.name?.replace(/\s+/g, '_') || 'attendance'}_${record.date}.png` : undefined}
                                             className="absolute bottom-3 right-3 bg-white/90 p-2 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white text-blue-600"
                                             title="Download PNG"
                                         >

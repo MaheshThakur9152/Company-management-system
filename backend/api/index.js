@@ -54,16 +54,15 @@ const transporter = nodemailer.createTransport({
 });
 
 // Helper function for Cloudinary upload
-const uploadToCloudinary = async (base64String, folder, publicId) => {
+const uploadToCloudinary = async (base64String, folder) => {
   try {
     const uploadResponse = await cloudinary.uploader.upload(base64String, {
       folder: folder,
-      public_id: publicId,
       resource_type: 'image',
       quality: 100, // No compression
       format: 'png' // Convert to PNG
     });
-    return uploadResponse.secure_url;
+    return uploadResponse.public_id; // Return public_id directly
   } catch (error) {
     console.error('Cloudinary upload failed:', error);
     return null;
@@ -160,20 +159,42 @@ app.get('/', (req, res) => {
   res.send('Ambe Backend is running!');
 });
 
-// Download Image
-app.get('/api/download/image/*', (req, res) => {
+// View Image (Redirect to Cloudinary URL for display)
+app.get('/api/view/image/*', (req, res) => {
   try {
     const publicId = req.params[0];
-    // Generate Cloudinary URL with download attachment and PNG format
-    const downloadUrl = cloudinary.url(publicId, {
-      resource_type: 'image',
-      format: 'png',
-      quality: 100,
-      flags: 'attachment'
-    });
-    res.redirect(downloadUrl);
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+
+    if (!cloudName) return res.status(500).json({ error: "Cloudinary config missing" });
+
+    const viewUrl = `https://res.cloudinary.com/${cloudName}/image/upload/${publicId}`;
+    return res.redirect(viewUrl);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to generate download URL' });
+    return res.status(500).json({ error: 'Failed to generate view URL' });
+  }
+});
+
+// Download Image (Forces download via fl_attachment)
+app.get('/api/download/image/*', (req, res) => {
+  try {
+    const publicId = req.params[0]; // full cloudinary public_id
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+
+    if (!cloudName) {
+      console.error("Cloudinary Cloud Name not set!");
+      return res.status(500).json({ error: "Cloudinary configuration missing" });
+    }
+
+    // fl_attachment forces download
+    const downloadUrl =
+      `https://res.cloudinary.com/${cloudName}/image/upload/fl_attachment/${publicId}`;
+
+    console.log(`Redirecting to: ${downloadUrl}`);
+    return res.redirect(downloadUrl);
+
+  } catch (error) {
+    console.error("Download Error:", error);
+    return res.status(500).json({ error: 'Failed to generate download URL' });
   }
 });
 
@@ -190,6 +211,11 @@ app.post('/api/sites', async (req, res) => {
   try {
     const siteData = req.body;
     
+    // Force username to lowercase if provided
+    if (siteData.username) {
+        siteData.username = siteData.username.toLowerCase();
+    }
+
     // Auto-generate username/password if missing
     if (!siteData.username && siteData.name) {
         siteData.username = siteData.name.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 12);
@@ -207,6 +233,10 @@ app.post('/api/sites', async (req, res) => {
 
 app.put('/api/sites/:id', async (req, res) => {
   try {
+    // Force username to lowercase if provided
+    if (req.body.username) {
+        req.body.username = req.body.username.toLowerCase();
+    }
     const site = await Site.findOneAndUpdate({ id: req.params.id }, req.body, { new: true });
     io.emit('data_update', { type: 'sites' });
     res.json(site);
@@ -241,8 +271,8 @@ app.post('/api/employees', async (req, res) => {
     
     // Handle Photo Upload
     if (employeeData.photoUrl && employeeData.photoUrl.startsWith('data:image')) {
-      const url = await uploadToCloudinary(employeeData.photoUrl, 'ambe_employees', `${employeeData.id}_${Date.now()}`);
-      if (url) employeeData.photoUrl = url;
+      const publicId = await uploadToCloudinary(employeeData.photoUrl, 'ambe_employees');
+      if (publicId) employeeData.photoUrl = publicId;
     }
 
     const employee = new Employee(employeeData);
@@ -258,8 +288,8 @@ app.put('/api/employees/:id', async (req, res) => {
 
     // Handle Photo Upload
     if (employeeData.photoUrl && employeeData.photoUrl.startsWith('data:image')) {
-      const url = await uploadToCloudinary(employeeData.photoUrl, 'ambe_employees', `${req.params.id}_${Date.now()}`);
-      if (url) employeeData.photoUrl = url;
+      const publicId = await uploadToCloudinary(employeeData.photoUrl, 'ambe_employees');
+      if (publicId) employeeData.photoUrl = publicId;
     }
 
     const employee = await Employee.findOneAndUpdate({ id: req.params.id }, employeeData, { new: true });
@@ -342,23 +372,46 @@ app.post('/api/attendance/sync', async (req, res) => {
 
       // Handle Photo Upload to Cloudinary if it's a base64 string
       if (record.photoUrl && record.photoUrl.startsWith('data:image')) {
-        const url = await uploadToCloudinary(record.photoUrl, 'ambe_attendance', `${record.employeeId}_${record.date}_${Date.now()}`);
-        if (url) record.photoUrl = url;
+        const publicId = await uploadToCloudinary(record.photoUrl, 'ambe_attendance');
+        if (publicId) record.photoUrl = publicId;
       }
 
       // Prepare bulk operation
+      // CHANGED: Use insertOne to strictly prevent duplicates (Race Condition Fix)
+      // If a record exists (from another device), this will fail with E11000
       bulkOps.push({
-        updateOne: {
-          filter: { employeeId: record.employeeId, date: record.date },
-          update: { $set: { ...record, isSynced: true, isLocked: true } },
-          upsert: true
+        insertOne: {
+          document: { ...record, isSynced: true, isLocked: true }
         }
       });
     }
 
-    let result = { matchedCount: 0, modifiedCount: 0, upsertedCount: 0 };
+    let result = { matchedCount: 0, modifiedCount: 0, upsertedCount: 0, insertedCount: 0 };
     if (bulkOps.length > 0) {
-        result = await Attendance.bulkWrite(bulkOps);
+        try {
+            // ordered: false ensures we process all records even if some fail (duplicates)
+            result = await Attendance.bulkWrite(bulkOps, { ordered: false });
+        } catch (err) {
+            // Handle BulkWriteError
+            if (err.code === 11000 || err.writeErrors) {
+                // Filter out duplicate key errors (we treat them as "already synced")
+                const nonDuplicateErrors = err.writeErrors ? err.writeErrors.filter(e => e.code !== 11000) : [];
+                
+                if (nonDuplicateErrors.length > 0) {
+                    throw err; // Re-throw if there are real errors
+                }
+                
+                // If only duplicates, we consider it a success (idempotent)
+                // We can count how many were inserted vs failed
+                result = { 
+                    insertedCount: err.result.nInserted, 
+                    modifiedCount: 0, 
+                    upsertedCount: 0 
+                };
+            } else {
+                throw err;
+            }
+        }
         
         // Emit Socket Event to all clients in the same site (if siteId is available in records)
         // Assuming all records in a sync batch belong to the same site (usually true for a supervisor)
@@ -369,7 +422,7 @@ app.post('/api/attendance/sync', async (req, res) => {
              if (emp && emp.siteId) {
                  io.to(emp.siteId).emit('attendance_update', { 
                      message: 'New attendance synced', 
-                     count: result.upsertedCount + result.modifiedCount 
+                     count: (result.insertedCount || 0) + (result.upsertedCount || 0) + (result.modifiedCount || 0)
                  });
              }
         }
@@ -377,7 +430,7 @@ app.post('/api/attendance/sync', async (req, res) => {
 
     res.json({ 
         success: true, 
-        syncedCount: result.upsertedCount + result.modifiedCount, 
+        syncedCount: (result.insertedCount || 0) + (result.upsertedCount || 0) + (result.modifiedCount || 0), 
         errors: errors,
         details: result 
     });
@@ -501,8 +554,8 @@ app.post('/api/users', async (req, res) => {
 
     // Handle Photo Upload
     if (userData.photoUrl && userData.photoUrl.startsWith('data:image')) {
-      const url = await uploadToCloudinary(userData.photoUrl, 'ambe_users', `${userData.userId}_${Date.now()}`);
-      if (url) userData.photoUrl = url;
+      const publicId = await uploadToCloudinary(userData.photoUrl, 'ambe_users');
+      if (publicId) userData.photoUrl = publicId;
     }
 
     const user = new User(userData);
@@ -901,11 +954,12 @@ app.post('/api/supervisor/login', async (req, res) => {
         const { username, password, deviceId, deviceName } = req.body;
         if (!username || !password) return res.status(400).json({ error: "Username and password required" });
 
-        const cleanUser = username.trim().toLowerCase();
+        const cleanUser = username.trim();
         const cleanPass = password.trim().toLowerCase().replace(/\s/g, '');
 
-        // Find site by username
-        const site = await Site.findOne({ username: cleanUser });
+        // Find site by username (Case Insensitive)
+        const escapedUser = escapeRegex(cleanUser);
+        const site = await Site.findOne({ username: { $regex: new RegExp(`^${escapedUser}$`, 'i') } });
         
         if (!site) {
             return res.status(401).json({ error: "Invalid Username" });
@@ -917,18 +971,11 @@ app.post('/api/supervisor/login', async (req, res) => {
         if (cleanPass === dbPass) {
             // Device Binding Check
             if (deviceId) {
-                // STRICT BINDING: Only allow login if deviceId matches or if no device is bound yet
-                if (site.deviceId && site.deviceId !== deviceId) {
-                     console.log(`[Login Failed] Device Mismatch for ${cleanUser}. DB: ${site.deviceId}, Req: ${deviceId}`);
-                     return res.status(403).json({ error: "This account is bound to another device. Contact Admin to reset." });
-                }
-                
-                // Bind if not bound
-                if (!site.deviceId) {
-                    site.deviceId = deviceId;
-                    site.deviceName = deviceName || 'Unknown Android Device';
-                    await site.save();
-                }
+                // STRICT BINDING REMOVED: Allow multiple devices as per user request
+                // We update this to track the last active device, but we don't block others.
+                site.deviceId = deviceId;
+                site.deviceName = deviceName || 'Unknown Android Device';
+                await site.save();
             }
 
             const userData = {

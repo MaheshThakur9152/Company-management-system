@@ -45,8 +45,7 @@
         android:largeHeap="true"
         android:roundIcon="@drawable/app_logo"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="true" >
+        android:theme="@style/AppTheme" >
         <activity
             android:name="com.ambe.supervisor.activities.LoginActivity"
             android:exported="true" >

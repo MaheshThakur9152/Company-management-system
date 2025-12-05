@@ -177,6 +177,7 @@ export interface LocationLog {
   supervisorName: string;
   status: 'In Range' | 'Out of Range';
   siteName: string;
+  siteId?: string;
   timestamp: string;
   location: {
     latitude: number;

@@ -1052,9 +1052,8 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
 
         btnFooterSync.setText("Syncing...");
 
-        // Trigger WorkManager with Expedited Policy for immediate execution
+        // Trigger WorkManager (Removed Expedited to avoid crash on older Android versions without getForegroundInfo)
         OneTimeWorkRequest syncRequest = new OneTimeWorkRequest.Builder(SyncWorker.class)
-            .setExpedited(androidx.work.OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .build();
             
         WorkManager.getInstance(this).enqueue(syncRequest);

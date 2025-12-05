@@ -18,7 +18,7 @@ const AddSiteModal: React.FC<AddSiteModalProps> = ({ isOpen, site, onClose, onSa
   });
   
   const mapRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const googleMapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -45,7 +45,7 @@ const AddSiteModal: React.FC<AddSiteModalProps> = ({ isOpen, site, onClose, onSa
 
         const map = new google.maps.Map(mapRef.current, {
             center: defaultLocation,
-            zoom: 15,
+            zoom: 17,
             mapTypeControl: false,
             streetViewControl: false,
         });
@@ -78,35 +78,33 @@ const AddSiteModal: React.FC<AddSiteModalProps> = ({ isOpen, site, onClose, onSa
 
         // Autocomplete
         if (searchInputRef.current) {
-            searchInputRef.current.innerHTML = '';
-            if (google.maps.places.PlaceAutocompleteElement) {
-                const autocomplete = new google.maps.places.PlaceAutocompleteElement();
-                searchInputRef.current.appendChild(autocomplete);
+            const autocomplete = new google.maps.places.Autocomplete(searchInputRef.current, {
+                fields: ['geometry', 'name', 'formatted_address'],
+            });
+            autocomplete.bindTo('bounds', map);
+
+            autocomplete.addListener('place_changed', () => {
+                const place = autocomplete.getPlace();
                 
-                autocomplete.addEventListener('gmp-places-select', async (event: any) => {
-                    const place = event.place;
-                    await place.fetchFields({ fields: ['geometry', 'name', 'formatted_address'] });
-                    
-                    if (!place.geometry || !place.geometry.location) return;
+                if (!place.geometry || !place.geometry.location) {
+                    return;
+                }
 
-                    if (place.geometry.viewport) {
-                        map.fitBounds(place.geometry.viewport);
-                    } else {
-                        map.setCenter(place.geometry.location);
-                        map.setZoom(17);
-                    }
-                    marker.setPosition(place.geometry.location);
+                // Always center and zoom in close
+                map.setCenter(place.geometry.location);
+                map.setZoom(18);
+                marker.setPosition(place.geometry.location);
 
-                    handleChange('latitude', place.geometry.location.lat());
-                    handleChange('longitude', place.geometry.location.lng());
-                    handleChange('location', place.formatted_address || place.name);
-                });
-            }
+                handleChange('latitude', place.geometry.location.lat());
+                handleChange('longitude', place.geometry.location.lng());
+                handleChange('location', place.formatted_address || place.name);
+            });
         }
     } else if (isOpen && googleMapRef.current && site) {
         // Update map if site changes while open (unlikely but good practice) or re-opening
         const location = { lat: site.latitude, lng: site.longitude };
         googleMapRef.current.setCenter(location);
+        googleMapRef.current.setZoom(17);
         markerRef.current.setPosition(location);
     }
   }, [isOpen, mapLoaded, site]);
@@ -380,7 +378,44 @@ const AddSiteModal: React.FC<AddSiteModalProps> = ({ isOpen, site, onClose, onSa
 
              {/* Search Box */}
              <div className="relative mb-2 space-y-2">
-                <div ref={searchInputRef} className="w-full" />
+                <div className="relative flex gap-2">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-3 text-gray-400" size={16} />
+                        <input 
+                            ref={searchInputRef}
+                            type="text"
+                            className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 focus:ring-2 focus:ring-primary outline-none"
+                            placeholder="Search for a location..."
+                        />
+                    </div>
+                    <button
+                        onClick={() => {
+                            if (navigator.geolocation) {
+                                navigator.geolocation.getCurrentPosition((position) => {
+                                    const pos = {
+                                        lat: position.coords.latitude,
+                                        lng: position.coords.longitude,
+                                    };
+                                    if (googleMapRef.current && markerRef.current) {
+                                        googleMapRef.current.setCenter(pos);
+                                        googleMapRef.current.setZoom(18);
+                                        markerRef.current.setPosition(pos);
+                                        handleChange('latitude', pos.lat);
+                                        handleChange('longitude', pos.lng);
+                                    }
+                                }, () => {
+                                    alert("Error: The Geolocation service failed.");
+                                });
+                            } else {
+                                alert("Error: Your browser doesn't support geolocation.");
+                            }
+                        }}
+                        className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors"
+                        title="Use Current Location"
+                    >
+                        <Navigation size={20} />
+                    </button>
+                </div>
                 <input 
                     type="text"
                     placeholder="Or paste Google Maps Link (e.g. https://maps.google.com/?q=...)"

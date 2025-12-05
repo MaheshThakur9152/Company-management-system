@@ -6,7 +6,7 @@ const locationLogSchema = new mongoose.Schema({
   siteId: { type: String, required: true },
   latitude: { type: Number, required: true },
   longitude: { type: Number, required: true },
-  status: { type: String, enum: ['In Range', 'Out of Range'], required: true },
+  status: { type: String, required: true },
   timestamp: { type: Date, default: Date.now }
 });
 
