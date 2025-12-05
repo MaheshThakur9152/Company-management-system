@@ -165,7 +165,7 @@ app.get('/', (req, res) => {
 app.get('/api/view/image/*', (req, res) => {
   try {
     const publicId = req.params[0];
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME || 'di9eeahdy';
 
     if (!cloudName) return res.status(500).json({ error: "Cloudinary config missing" });
 
