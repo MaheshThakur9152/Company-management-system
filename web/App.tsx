@@ -228,7 +228,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
       }
     };
     loadData();
-    const interval = setInterval(loadData, 30000);
+    const interval = setInterval(loadData, 60000);
 
     // Initialize Socket
     let socket: any = null;

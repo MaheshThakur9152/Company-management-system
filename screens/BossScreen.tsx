@@ -65,7 +65,7 @@ const BossScreen: React.FC<BossScreenProps> = ({ onLogout, user }) => {
         setAttendance(await getSharedAttendanceData());
     };
     loadData();
-    const interval = setInterval(loadData, 5000); // Auto-refresh every 5s
+    const interval = setInterval(loadData, 60000); // Auto-refresh every 60s
     return () => clearInterval(interval);
   }, []);
 

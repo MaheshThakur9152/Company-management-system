@@ -543,7 +543,7 @@ public class SupervisorActivity extends AppCompatActivity implements EmployeeAda
                         }
                     }).start();
                 }
-                handler.postDelayed(this, 5000); // Refresh every 5 seconds (Short Polling)
+                handler.postDelayed(this, 60000); // Refresh every 60 seconds (Long Polling)
             }
         };
         handler.post(refreshRunnable);

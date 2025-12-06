@@ -1,4 +1,11 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const compression = require('compression');
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
+const hpp = require('hpp');
 
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
@@ -13,7 +20,7 @@ const mongoose = require('mongoose'); // Added mongoose
 require('dotenv').config();
 const connectToDatabase = require('../utils/db');
 const cloudinary = require('cloudinary').v2;
-const nodemailer = require('nodemailer');
+const axios = require('axios');
 const jwt = require('jsonwebtoken'); // Import JWT
 const cookieParser = require('cookie-parser');
 
@@ -30,30 +37,7 @@ cloudinary.config({
 });
 
 // OTP Transporter
-console.log('Configuring SMTP Transporter...');
-console.log('SMTP Host:', process.env.EMAIL_HOST || 'smtp-relay.brevo.com');
-console.log('SMTP Port:', process.env.EMAIL_PORT || '587');
-console.log('SMTP User:', process.env.EMAIL_USER ? process.env.EMAIL_USER.substring(0, 3) + '***' : 'Not Set');
-
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
-  port: parseInt(process.env.EMAIL_PORT || '465'), // Changed to 465 (SSL)
-  secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER, // Set these in .env
-    pass: process.env.EMAIL_PASS
-  },
-  // Add these to help with connection issues
-  tls: {
-    ciphers: 'SSLv3',
-    rejectUnauthorized: false
-  },
-  connectionTimeout: 60000, // 60 seconds
-  greetingTimeout: 60000,
-  socketTimeout: 60000,
-  logger: true,
-  debug: true
-});
+console.log('Configuring Brevo API Transporter...');
 
 // Helper function for Cloudinary upload
 const uploadToCloudinary = async (base64String, folder) => {
@@ -85,11 +69,36 @@ const http = require('http');
 const { Server } = require('socket.io');
 
 const app = express();
+
+// Middleware
+app.use(helmet());
+app.use(compression());
+app.use(morgan('combined'));
+
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 300, // Limit each IP to 300 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many requests from this IP, please try again later.'
+});
+app.use(limiter);
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Allow all origins for now (App + Web)
-    methods: ["GET", "POST"]
+    origin: [
+      'http://localhost:5173', 
+      'http://localhost:5173/', 
+      'http://127.0.0.1:5173', 
+      'http://localhost:3000', 
+      'https://ambeservice.com', 
+      'https://admin.ambeservice.com',
+      'https://admin.ambeservice.com/'
+    ],
+    methods: ["GET", "POST"],
+    credentials: true
   },
   allowEIO3: true // Allow older clients (Android socket.io-client 2.x uses EIO3 sometimes)
 });
@@ -152,6 +161,15 @@ app.options("*", cors({
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' })); // Increased limit for base64 images
+
+// Data Sanitization against NoSQL query injection
+app.use(mongoSanitize());
+
+// Data Sanitization against XSS
+app.use(xss());
+
+// Prevent Parameter Pollution
+app.use(hpp());
 
 
 // --- Routes ---
@@ -604,21 +622,30 @@ app.delete('/api/users/:id', async (req, res) => {
 
 // --- OTP Auth ---
 const sendOtpEmail = async (user, otp) => {
-    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-        try {
-            // For testing, force email to the specific testing account if it's Nandani or Ambe
-            let targetEmail = user.email;
-            if (user.userId === 'nandani') {
-                targetEmail = 'ambeservices.nandani@gmail.com';
-            } else if (user.userId === 'ambe') {
-                targetEmail = process.env.TEST_EMAIL_RECIPIENT || 'maheshthakurharishankar@gmail.com';
-            }
+    const apiKey = process.env.BREVO_API_KEY;
 
-            await transporter.sendMail({
-                from: process.env.EMAIL_FROM || 'media@ambeservice.com', // Use verified sender email
-                to: targetEmail, 
-                subject: 'Ambe Service Login OTP',
-                html: `
+    try {
+        // For testing, force email to the specific testing account if it's Nandani or Ambe
+        let targetEmail = user.email;
+        if (user.userId === 'nandani') {
+            targetEmail = 'ambeservices.nandani@gmail.com';
+        } else if (user.userId === 'ambe') {
+            targetEmail = process.env.TEST_EMAIL_RECIPIENT || 'maheshthakurharishankar@gmail.com';
+        }
+
+        const emailData = {
+            sender: {
+                name: 'Ambe Service',
+                email: process.env.EMAIL_FROM || 'media@ambeservice.com'
+            },
+            to: [
+                {
+                    email: targetEmail,
+                    name: user.name || 'User'
+                }
+            ],
+            subject: 'Ambe Service Login OTP',
+            htmlContent: `
 <!DOCTYPE html>
 <html>
 <head>
@@ -650,12 +677,20 @@ const sendOtpEmail = async (user, otp) => {
   </div>
 </body>
 </html>
-                `
-            });
-            console.log(`[OTP] Sent to ${targetEmail}`);
-        } catch (err) {
-            console.error("Failed to send email", err);
-        }
+            `
+        };
+
+        const response = await axios.post('https://api.brevo.com/v3/smtp/email', emailData, {
+            headers: {
+                'api-key': apiKey,
+                'Content-Type': 'application/json',
+                'accept': 'application/json'
+            }
+        });
+
+        console.log(`[OTP] Sent to ${targetEmail} via Brevo API. MessageId: ${response.data.messageId}`);
+    } catch (err) {
+        console.error("Failed to send email via Brevo API", err.response ? err.response.data : err.message);
     }
 };
 
@@ -767,7 +802,7 @@ app.post('/api/auth/verify-otp', async (req, res) => {
         // Set HTTP-only cookie
         res.cookie('authToken', token, {
             httpOnly: true,
-            secure: false, // Set to true in production with HTTPS
+            secure: process.env.NODE_ENV === 'production', // Secure in production
             sameSite: 'lax',
             maxAge: 24 * 60 * 60 * 1000 // 24 hours
         });
@@ -1020,7 +1055,7 @@ app.post('/api/supervisor/login', async (req, res) => {
             // Set HTTP-only cookie
             res.cookie('authToken', token, {
                 httpOnly: true,
-                secure: false, // Set to true in production
+                secure: process.env.NODE_ENV === 'production', // Secure in production
                 sameSite: 'lax',
                 maxAge: 24 * 60 * 60 * 1000 // 24 hours
             });

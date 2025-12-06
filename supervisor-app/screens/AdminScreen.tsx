@@ -27,7 +27,8 @@ const AdminScreen: React.FC<AdminScreenProps> = ({ onLogout }) => {
             setSites(await getSites());
         };
         loadData();
-        const interval = setInterval(loadData, 5000);
+        // Poll every 60s to check for new synced data from supervisors
+        const interval = setInterval(loadData, 60000);
         return () => clearInterval(interval);
     }, []);
 

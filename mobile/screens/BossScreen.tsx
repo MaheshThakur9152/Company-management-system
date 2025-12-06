@@ -126,7 +126,8 @@ const BossScreen: React.FC<BossScreenProps> = ({ onLogout, user }) => {
 
     useEffect(() => {
         loadData();
-        const interval = setInterval(loadData, 10000); // Auto refresh
+        // Poll every 60s to check for new synced data from supervisors
+        const interval = setInterval(loadData, 60000);
         return () => clearInterval(interval);
     }, []);
 
