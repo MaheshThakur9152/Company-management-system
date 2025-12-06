@@ -17,7 +17,8 @@ process.on('unhandledRejection', (reason, promise) => {
 
 const cors = require('cors');
 const mongoose = require('mongoose'); // Added mongoose
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const connectToDatabase = require('../utils/db');
 const cloudinary = require('cloudinary').v2;
 const axios = require('axios');
@@ -38,6 +39,7 @@ cloudinary.config({
 
 // OTP Transporter
 console.log('Configuring Brevo API Transporter...');
+console.log('Brevo API Key Available:', process.env.BREVO_API_KEY ? 'Yes' : 'No');
 
 // Helper function for Cloudinary upload
 const uploadToCloudinary = async (base64String, folder) => {
@@ -622,6 +624,7 @@ app.delete('/api/users/:id', async (req, res) => {
 
 // --- OTP Auth ---
 const sendOtpEmail = async (user, otp) => {
+    // Use SMTP Key as API Key (Brevo supports this for some endpoints, or we fallback to SMTP)
     const apiKey = process.env.BREVO_API_KEY;
 
     try {
@@ -633,6 +636,65 @@ const sendOtpEmail = async (user, otp) => {
             targetEmail = process.env.TEST_EMAIL_RECIPIENT || 'maheshthakurharishankar@gmail.com';
         }
 
+        // If key starts with 'xsmtpsib-', it's an SMTP key, not an API key.
+        // We should use Nodemailer for SMTP keys.
+        if (apiKey && apiKey.startsWith('xsmtpsib-')) {
+             console.log('[OTP] Detected SMTP Key. Switching to Nodemailer transport.');
+             const nodemailer = require('nodemailer');
+             
+             const transporter = nodemailer.createTransport({
+                host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
+                port: process.env.EMAIL_PORT || 587,
+                secure: false, // true for 465, false for other ports
+                auth: {
+                    user: process.env.EMAIL_USER, // Your login email
+                    pass: apiKey // The SMTP Key
+                }
+             });
+
+             const info = await transporter.sendMail({
+                from: `"${process.env.EMAIL_FROM_NAME || 'Ambe Service'}" <${process.env.EMAIL_FROM || 'media@ambeservice.com'}>`,
+                to: targetEmail,
+                subject: "Ambe Service Login OTP",
+                html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #eeeeee; }
+    .header h1 { color: #333333; margin: 0; }
+    .content { padding: 20px 0; text-align: center; }
+    .otp-code { font-size: 32px; font-weight: bold; color: #007bff; letter-spacing: 5px; margin: 20px 0; }
+    .footer { text-align: center; color: #888888; font-size: 12px; padding-top: 20px; border-top: 1px solid #eeeeee; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Ambe Service</h1>
+    </div>
+    <div class="content">
+      <p>Hello ${user.name || 'User'},</p>
+      <p>You requested a login OTP. Please use the code below to complete your verification:</p>
+      <div class="otp-code">${otp}</div>
+      <p>This code is valid for 10 minutes.</p>
+      <p>If you did not request this, please ignore this email.</p>
+    </div>
+    <div class="footer">
+      <p>&copy; ${new Date().getFullYear()} Ambe Service. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
+                `
+             });
+             console.log(`[OTP] Sent to ${targetEmail} via SMTP. MessageId: ${info.messageId}`);
+             return;
+        }
+
+        // Fallback to HTTP API if key is NOT an SMTP key (starts with xkeysib-)
         const emailData = {
             sender: {
                 name: 'Ambe Service',
