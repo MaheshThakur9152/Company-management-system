@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-// Vercel deployment trigger: Fixed image loading error
+// Vercel deployment trigger: Fixed image loading error - Force Update
 import { 
   FileText, Users, Plus, LogOut, Menu, FileSpreadsheet, 
   Edit2, LayoutDashboard, CheckCircle, XCircle, Trash2, 
@@ -1409,7 +1409,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                 >
                                     <option value="all">All Sites</option>
                                     {sites.map(site => (
-                                        <option key={site.id} value={site.id}>{site.name}</option>
+                                        <option key={site.id} value={site.id}>{site.attendanceGridName || site.name}</option>
                                     ))}
                                 </select>
                             </div>

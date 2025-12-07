@@ -488,7 +488,7 @@ const AdminScreen: React.FC<AdminScreenProps> = ({ onLogout }) => {
                               >
                                 <option value="all">All Sites</option>
                                 {sites.map(site => (
-                                    <option key={site.id} value={site.id}>{site.name}</option>
+                                    <option key={site.id} value={site.id}>{site.attendanceGridName || site.name}</option>
                                 ))}
                               </select>
                               <button 
@@ -644,6 +644,16 @@ const AdminScreen: React.FC<AdminScreenProps> = ({ onLogout }) => {
                                 <p className="text-gray-500 text-sm mt-1">Live visual inspection of current month's data.</p>
                             </div>
                             <div className="flex gap-3">
+                              <select 
+                                value={selectedSiteFilter}
+                                onChange={(e) => setSelectedSiteFilter(e.target.value)}
+                                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none"
+                              >
+                                <option value="all">All Sites</option>
+                                {sites.map(site => (
+                                    <option key={site.id} value={site.id}>{site.attendanceGridName || site.name}</option>
+                                ))}
+                              </select>
                             </div>
                         </div>
                         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
@@ -666,7 +676,9 @@ const AdminScreen: React.FC<AdminScreenProps> = ({ onLogout }) => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {employees.map((emp) => {
+                                    {employees
+                                    .filter(emp => selectedSiteFilter === 'all' || emp.siteId === selectedSiteFilter)
+                                    .map((emp) => {
                                         const empRecords = attendanceData.filter(r => r.employeeId === emp.id);
                                         return (
                                             <tr key={emp.id} className="border-b hover:bg-gray-50">

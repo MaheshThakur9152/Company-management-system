@@ -9,6 +9,7 @@ const SiteSchema = new mongoose.Schema({
   longitude: { type: Number, required: true },
   geofenceRadius: { type: Number, default: 200 },
   clientName: String,
+  attendanceGridName: String,
   clientGstin: String,
   clientEmail: String,
   clientContact: String,

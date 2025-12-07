@@ -66,6 +66,7 @@ const User = require('../models/User');
 const LedgerEntry = require('../models/LedgerEntry');
 const SalaryRecord = require('../models/SalaryRecord');
 const LocationLog = require('../models/LocationLog');
+const JobRole = require('../models/JobRole');
 
 const http = require('http');
 const { Server } = require('socket.io');
@@ -329,6 +330,28 @@ app.put('/api/employees/:id', async (req, res) => {
     const employee = await Employee.findOneAndUpdate({ id: req.params.id }, employeeData, { new: true });
     io.emit('data_update', { type: 'employees' }); // Notify clients
     res.json(employee);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Job Roles
+app.get('/api/roles', async (req, res) => {
+  try {
+    const roles = await JobRole.find({}).sort({ name: 1 });
+    res.json(roles);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/roles', async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: "Role name is required" });
+    
+    const existing = await JobRole.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
+    if (existing) return res.status(400).json({ error: "Role already exists" });
+
+    const role = new JobRole({ name });
+    await role.save();
+    res.json(role);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

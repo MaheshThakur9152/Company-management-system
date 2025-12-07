@@ -130,6 +130,7 @@ const AddSiteModal: React.FC<AddSiteModalProps> = ({ isOpen, site, onClose, onSa
         longitude: 72.8777,
         geofenceRadius: 200,
         clientName: '',
+        attendanceGridName: '',
         clientGstin: '',
         clientEmail: '',
         clientContact: '',
@@ -266,6 +267,15 @@ const AddSiteModal: React.FC<AddSiteModalProps> = ({ isOpen, site, onClose, onSa
                     onChange={(e) => handleChange('name', e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary outline-none"
                     placeholder="Ajmera Manhattan"
+                />
+             </div>
+             <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Attendance Grid Name</label>
+                <input 
+                    value={formData.attendanceGridName || ''}
+                    onChange={(e) => handleChange('attendanceGridName', e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary outline-none"
+                    placeholder="Short Name for Grid (e.g. Ajmera)"
                 />
              </div>
              <div>

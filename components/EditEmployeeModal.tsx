@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, MapPin, Briefcase, Calendar, Upload } from 'lucide-react';
+import { X, Save, User, MapPin, Briefcase, Calendar, Upload, Plus, Check } from 'lucide-react';
 import { Employee, Site } from '../types';
 import { getSites } from '../services/mockData';
 
@@ -12,8 +12,16 @@ interface EditEmployeeModalProps {
   defaultSiteId?: string;
 }
 
+interface JobRole {
+    _id: string;
+    name: string;
+}
+
 const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee, onClose, onSave, defaultSiteId }) => {
   const [sites, setSites] = useState<Site[]>([]);
+  const [roles, setRoles] = useState<string[]>(['Janitor', 'Key Supervisor', 'Security', 'Manager']);
+  const [isAddingRole, setIsAddingRole] = useState(false);
+  const [newRoleName, setNewRoleName] = useState('');
   
   const [formData, setFormData] = useState<Partial<Employee>>({
     role: 'Janitor',
@@ -28,6 +36,30 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
         // Fetch dynamic sites
         const loadedSites = await getSites();
         setSites(loadedSites);
+
+        // Fetch Roles
+        const defaultRoles = ['Janitor', 'Key Supervisor', 'Security', 'Manager'];
+        let allRoles = [...defaultRoles];
+        
+        try {
+            const res = await fetch('/api/roles');
+            if (res.ok) {
+                const data: JobRole[] = await res.json();
+                if (data.length > 0) {
+                    const dbRoles = data.map(r => r.name);
+                    // Merge default roles with DB roles, removing duplicates
+                    allRoles = Array.from(new Set([...defaultRoles, ...dbRoles]));
+                }
+            }
+        } catch (err) {
+            console.error("Failed to fetch roles", err);
+        }
+
+        // Ensure current employee's role is in the list (for custom roles)
+        if (employee && employee.role && !allRoles.includes(employee.role)) {
+            allRoles.push(employee.role);
+        }
+        setRoles(allRoles.sort());
 
         if (employee) {
             setFormData(employee);
@@ -55,6 +87,31 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
     };
     loadData();
   }, [employee, isOpen]);
+
+  const handleAddRole = async () => {
+      if (!newRoleName.trim()) return;
+      
+      try {
+          const res = await fetch('/api/roles', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: newRoleName.trim() })
+          });
+          
+          if (res.ok) {
+              const newRole = await res.json();
+              setRoles(prev => [...prev, newRole.name].sort());
+              setFormData(prev => ({ ...prev, role: newRole.name }));
+              setIsAddingRole(false);
+              setNewRoleName('');
+          } else {
+              alert("Failed to add role");
+          }
+      } catch (err) {
+          console.error("Error adding role", err);
+          alert("Error adding role");
+      }
+  };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -160,15 +217,53 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
                     <Briefcase size={12} /> Role
                 </label>
-                <select 
-                    value={formData.role}
-                    onChange={(e) => handleChange('role', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-primary"
-                >
-                    <option value="Janitor">Janitor</option>
-                    <option value="Key Supervisor">Key Supervisor</option>
-                    <option value="Security">Security</option>
-                </select>
+                <div className="flex gap-2">
+                    {isAddingRole ? (
+                        <div className="flex-1 flex gap-1 items-center animate-in fade-in slide-in-from-left-2 duration-200 w-full min-w-0">
+                            <input 
+                                autoFocus
+                                value={newRoleName}
+                                onChange={(e) => setNewRoleName(e.target.value)}
+                                placeholder="New Role"
+                                className="flex-1 min-w-0 border border-gray-300 rounded-lg px-2 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddRole()}
+                            />
+                            <button 
+                                onClick={handleAddRole}
+                                className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex-shrink-0"
+                                title="Save Role"
+                            >
+                                <Check size={16} />
+                            </button>
+                            <button 
+                                onClick={() => setIsAddingRole(false)}
+                                className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors flex-shrink-0"
+                                title="Cancel"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            <select 
+                                value={formData.role}
+                                onChange={(e) => handleChange('role', e.target.value)}
+                                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-primary"
+                            >
+                                {roles.map(role => (
+                                    <option key={role} value={role}>{role}</option>
+                                ))}
+                            </select>
+                            <button 
+                                onClick={() => setIsAddingRole(true)}
+                                className="p-2 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg hover:bg-blue-100 transition-colors"
+                                title="Add New Role"
+                            >
+                                <Plus size={18} />
+                            </button>
+                        </>
+                    )}
+                </div>
              </div>
              <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">

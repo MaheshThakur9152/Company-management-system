@@ -20,6 +20,7 @@ export interface Site {
   
   // Detailed Client Info
   clientName?: string;
+  attendanceGridName?: string;
   clientGstin?: string;
   clientEmail?: string;
   clientContact?: string;
@@ -38,7 +39,7 @@ export interface Employee {
   biometricCode: string;
   name: string;
   phone?: string;
-  role: 'Janitor' | 'Key Supervisor' | 'Security';
+  role: string;
   siteId: string;
   photoUrl: string;
   weeklyOff: string;
