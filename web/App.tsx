@@ -181,10 +181,14 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
 
   // Filter & Search
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSiteFilter, setSelectedSiteFilter] = useState<string>('all');
+  const [selectedSiteFilter, setSelectedSiteFilter] = useState<string>(() => localStorage.getItem('selectedSiteFilter') || 'all');
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedDay, setSelectedDay] = useState<number | 'all'>('all');
+
+  useEffect(() => {
+    localStorage.setItem('selectedSiteFilter', selectedSiteFilter);
+  }, [selectedSiteFilter]);
   
   // Invoice Filters
   const [invFilterMonth, setInvFilterMonth] = useState<string>('all');
@@ -1129,7 +1133,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
             <X size={24} />
           </button>
         </div>
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto pr-4 sidebar-nav">
           <div className="space-y-1">
             <button onClick={() => setInvoicesExpanded(!invoicesExpanded)} className={`w-full flex justify-between items-center px-4 py-3 rounded-lg hover:bg-white/5 text-left`}>
               <div className="flex gap-3 items-center"><FileText size={18} /> Invoices</div>
@@ -2193,13 +2197,23 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
 
         {attendanceModalOpen && selectedAttendance && (
             <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
-                <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200">
-                    <div className="bg-primary px-6 py-4 flex justify-between items-center"><h3 className="text-white font-bold">Update Attendance</h3><button onClick={() => setAttendanceModalOpen(false)} className="text-white/80 hover:text-white"><X size={20} /></button></div>
-                    <div className="p-6">
+                <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col animate-in zoom-in duration-200 overflow-hidden">
+                    <div className="bg-primary px-6 py-4 flex justify-between items-center shrink-0">
+                        <h3 className="text-white font-bold">Update Attendance</h3>
+                        <button onClick={() => setAttendanceModalOpen(false)} className="text-white/80 hover:text-white">
+                            <X size={20} />
+                        </button>
+                    </div>
+                    <div className="p-6 overflow-y-auto flex-1">
                         {selectedAttendance.photoUrl && (
                             <div className="mb-6 flex justify-center flex-col items-center gap-2">
-                                <div className="relative">
-                                    <img src={getSafePhotoUrl(selectedAttendance.photoUrl)} className="w-48 h-48 rounded-lg object-cover border-4 border-white shadow-lg bg-gray-100" alt="Attendance" onError={handleImageError} />
+                                <div className="relative w-full max-w-xs">
+                                    <img 
+                                        src={getSafePhotoUrl(selectedAttendance.photoUrl)} 
+                                        className="w-full h-auto max-h-48 rounded-lg object-cover border-4 border-white shadow-lg bg-gray-100" 
+                                        alt="Attendance" 
+                                        onError={handleImageError} 
+                                    />
                                     <div className="absolute -bottom-3 -right-3 bg-green-500 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-sm flex items-center gap-1">
                                         <CheckCircle size={12} /> Verified
                                     </div>
@@ -2214,7 +2228,25 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                 )}
                             </div>
                         )}
-                        <div className="mb-4"><p className="text-sm text-gray-500">Employee</p><p className="font-bold text-lg text-gray-800">{selectedAttendance.empName}</p></div><div className="mb-6"><p className="text-sm text-gray-500">Date</p><p className="font-bold text-gray-800">{selectedAttendance.date}</p></div><div className="grid grid-cols-2 gap-3"><button onClick={() => saveManualAttendance('P')} className="bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 py-3 rounded-lg font-bold">Present (P)</button><button onClick={() => saveManualAttendance('A')} className="bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 py-3 rounded-lg font-bold">Absent (A)</button><button onClick={() => saveManualAttendance('HD')} className="bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 py-3 rounded-lg font-bold">Half Day (HD)</button><button onClick={() => saveManualAttendance('W/O')} className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 py-3 rounded-lg font-bold">Weekly Off</button><button onClick={() => saveManualAttendance('WOP')} className="bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 py-3 rounded-lg font-bold">Weekoff Present</button><button onClick={() => saveManualAttendance(null)} className="col-span-2 bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 py-3 rounded-lg font-bold flex items-center justify-center gap-2"><RotateCcw size={16} /> Clear / Reset</button></div></div>
+                        <div className="mb-4">
+                            <p className="text-sm text-gray-500">Employee</p>
+                            <p className="font-bold text-lg text-gray-800">{selectedAttendance.empName}</p>
+                        </div>
+                        <div className="mb-6">
+                            <p className="text-sm text-gray-500">Date</p>
+                            <p className="font-bold text-gray-800">{selectedAttendance.date}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 pb-4">
+                            <button onClick={() => saveManualAttendance('P')} className="bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 py-3 rounded-lg font-bold">Present (P)</button>
+                            <button onClick={() => saveManualAttendance('A')} className="bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 py-3 rounded-lg font-bold">Absent (A)</button>
+                            <button onClick={() => saveManualAttendance('HD')} className="bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 py-3 rounded-lg font-bold">Half Day (HD)</button>
+                            <button onClick={() => saveManualAttendance('W/O')} className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 py-3 rounded-lg font-bold">Weekly Off</button>
+                            <button onClick={() => saveManualAttendance('WOP')} className="bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 py-3 rounded-lg font-bold">Weekoff Present</button>
+                            <button onClick={() => saveManualAttendance(null)} className="col-span-2 bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 py-3 rounded-lg font-bold flex items-center justify-center gap-2">
+                                <RotateCcw size={16} /> Clear / Reset
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         )}

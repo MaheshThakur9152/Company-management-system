@@ -7,3 +7,32 @@
 .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+
+/* Custom scrollbar for sidebar navigation */
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: #34495E; /* Same as sidebar background (secondary) */
+  border-radius: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: #4A5C6A; /* Slightly lighter shade of secondary */
+  border-radius: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: #5D6D7E; /* Brighter on hover */
+}
+
+.sidebar-nav::-webkit-scrollbar-button {
+  display: none; /* Hide arrows/buttons */
+}
+
+/* Firefox support for sidebar */
+.sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: #4A5C6A #34495E;
+}

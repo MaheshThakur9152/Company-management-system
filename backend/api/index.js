@@ -1,11 +1,4 @@
 const express = require('express');
-const rateLimit = require('express-rate-limit');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const compression = require('compression');
-const mongoSanitize = require('express-mongo-sanitize');
-const xss = require('xss-clean');
-const hpp = require('hpp');
 
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
@@ -72,21 +65,6 @@ const http = require('http');
 const { Server } = require('socket.io');
 
 const app = express();
-
-// Middleware
-app.use(helmet());
-app.use(compression());
-app.use(morgan('combined'));
-
-// Rate Limiting
-const limiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 300, // Limit each IP to 300 requests per windowMs
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: 'Too many requests from this IP, please try again later.'
-});
-app.use(limiter);
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -164,16 +142,6 @@ app.options("*", cors({
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' })); // Increased limit for base64 images
-
-// Data Sanitization against NoSQL query injection
-app.use(mongoSanitize());
-
-// Data Sanitization against XSS
-app.use(xss());
-
-// Prevent Parameter Pollution
-app.use(hpp());
-
 
 // --- Routes ---
 
