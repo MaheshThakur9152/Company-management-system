@@ -54,14 +54,41 @@ const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     target.src = PLACEHOLDER_IMAGE;
 };
 
+// Cache helpers for stable data
+const getCachedData = (key: string) => {
+  try {
+    const data = localStorage.getItem(key);
+    if (data) {
+      const parsed = JSON.parse(data);
+      // Cache for 5 minutes
+      if (Date.now() - parsed.timestamp < 5 * 60 * 1000) {
+        return parsed.data;
+      }
+    }
+  } catch (e) {}
+  return null;
+};
+
+const setCachedData = (key: string, data: any) => {
+  try {
+    localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() }));
+  } catch (e) {}
+};
+
 const getSafePhotoUrl = (url: string | undefined | null) => {
     if (!url) return PLACEHOLDER_IMAGE;
     const trimmedUrl = url.trim();
-    if (trimmedUrl.startsWith('http') || trimmedUrl.startsWith('data:')) return trimmedUrl;
+    if (trimmedUrl.startsWith('http') || trimmedUrl.startsWith('data:')) {
+        // If it's a Cloudinary URL, add optimization parameters
+        if (trimmedUrl.includes('cloudinary.com') && trimmedUrl.includes('/image/upload/')) {
+            return trimmedUrl.replace('/image/upload/', '/image/upload/f_auto,q_auto/');
+        }
+        return trimmedUrl;
+    }
     
-    // It's a public_id, construct direct Cloudinary URL
+    // It's a public_id, construct direct Cloudinary URL with optimization
     const cloudName = 'di9eeahdy'; // From backend config
-    return `https://res.cloudinary.com/${cloudName}/image/upload/${trimmedUrl}`;
+    return `https://res.cloudinary.com/${cloudName}/image/upload/f_auto,q_auto/${trimmedUrl}`;
 };
 
 const extractCloudinaryPublicId = (url: string | undefined | null) => {
@@ -111,7 +138,7 @@ interface AdminWebAppProps {
   onUserUpdate?: (user: User) => void;
 }
 
-const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
+const AdminWebApp = React.memo(({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
   // If user is provided via props (Integrated mode), consider them authenticated.
   // Otherwise default to false (Standalone mode).
   const [isAuthenticated, setIsAuthenticated] = useState(!!user);
@@ -214,6 +241,13 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
   useEffect(() => {
     if (!isAuthenticated) return;
     const loadData = async () => {
+      // Load cached data first for instant UI
+      const cachedEmp = getCachedData('employees');
+      const cachedSites = getCachedData('sites');
+      if (cachedEmp) setEmployees(cachedEmp);
+      if (cachedSites) setSites(cachedSites);
+
+      // Fetch fresh data
       const [att, inv, emp, sts, loc, usrs] = await Promise.all([
         getSharedAttendanceData(),
         getInvoices(),
@@ -231,6 +265,10 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
       if (userRole === 'SuperAdmin') {
           setUsers(usrs);
       }
+
+      // Cache stable data
+      setCachedData('employees', emp);
+      setCachedData('sites', sts);
     };
     loadData();
     const interval = setInterval(loadData, 60000);
@@ -1031,7 +1069,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
   };
 
   // Filter Employees based on site selection
-  const filteredEmployees = employees.filter(e => {
+  const filteredEmployees = useMemo(() => employees.filter(e => {
       const matchesSearch = e.name.toLowerCase().includes(searchTerm.toLowerCase()) || e.biometricCode.includes(searchTerm);
       const matchesSite = selectedSiteFilter === 'all' || e.siteId === selectedSiteFilter;
       
@@ -1048,7 +1086,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
       }
 
       return matchesSearch && matchesSite && isVisible;
-  });
+  }), [employees, searchTerm, selectedSiteFilter, selectedYear, selectedMonth]);
 
   if (!isAuthenticated) {
     return (
@@ -1331,7 +1369,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                         <div key={emp.id} className={`bg-white p-5 rounded-xl border shadow-sm hover:shadow-md ${emp.status === 'Pending' ? 'border-yellow-400 bg-yellow-50' : (emp.status === 'Deleted' ? 'border-red-400 bg-red-50 opacity-75' : '')}`}>
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-4">
-                                    <img src={getSafePhotoUrl(emp.photoUrl)} className="w-12 h-12 rounded-full object-cover border" onError={handleImageError} />
+                                    <img src={getSafePhotoUrl(emp.photoUrl)} className="w-12 h-12 rounded-full object-cover border" onError={handleImageError} loading="lazy" />
                                     <div>
                                         <h3 className="font-bold text-gray-800">{emp.name}</h3>
                                         <div className="text-xs text-gray-500 font-mono">{emp.biometricCode}</div>
@@ -1482,7 +1520,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                             onClick={() => { setEditingEmployee(emp); setShowEmployeeModal(true); }}
                                                             title="Click to Edit Staff"
                                                         >
-                                                            <img src={getSafePhotoUrl(emp.photoUrl)} className="w-8 h-8 rounded-full object-cover border border-gray-100 shadow-sm" alt="" onError={handleImageError} />
+                                                            <img src={getSafePhotoUrl(emp.photoUrl)} className="w-8 h-8 rounded-full object-cover border border-gray-100 shadow-sm" alt="" onError={handleImageError} loading="lazy" />
                                                             <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${emp.status==='Active'?'bg-green-500':'bg-gray-300'}`}></div>
                                                         </div>
                                                         <div className="text-left">
@@ -1546,7 +1584,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                     </div>
                                                                     {/* Hover Preview - Fixed positioning to avoid clipping */}
                                                                     <div className="fixed hidden group-hover:block z-[9999] pointer-events-none" style={{ transform: 'translate(-50%, -110%)' }}>
-                                                                        <img src={getSafePhotoUrl(record.photoUrl)} className="w-48 h-48 rounded-lg shadow-2xl border-4 border-white object-cover bg-gray-800" alt="Preview" onError={handleImageError} />
+                                                                        <img src={getSafePhotoUrl(record.photoUrl)} className="w-48 h-48 rounded-lg shadow-2xl border-4 border-white object-cover bg-gray-800" alt="Preview" onError={handleImageError} loading="lazy" />
                                                                     </div>
                                                                 </div>
                                                             ); 
@@ -2266,7 +2304,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                             return (
                                 <div key={record.id} className="bg-gray-50 rounded-lg border p-3 hover:shadow-md transition-shadow">
                                     <div className="aspect-square rounded-lg overflow-hidden mb-3 border bg-white relative group">
-                                        <img src={getSafePhotoUrl(record.photoUrl)} className="w-full h-full object-cover" onError={handleImageError} />
+                                        <img src={getSafePhotoUrl(record.photoUrl)} className="w-full h-full object-cover" onError={handleImageError} loading="lazy" />
                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                                         <a 
                                             href={extractCloudinaryPublicId(record.photoUrl) && !record.photoUrl?.startsWith('data:') ? `${API_URL}/download/image/${extractCloudinaryPublicId(record.photoUrl)}` : getSafePhotoUrl(record.photoUrl)}
@@ -2389,6 +2427,6 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
       </div>
     </div>
   );
-};
+});
 
 export default AdminWebApp;
