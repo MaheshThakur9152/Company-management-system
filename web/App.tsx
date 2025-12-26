@@ -171,6 +171,12 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
   const [users, setUsers] = useState<any[]>([]); // Admin Users
   const [locationLogs, setLocationLogs] = useState<LocationLog[]>([]);
 
+  // Loading States
+  const [loadingAttendance, setLoadingAttendance] = useState(false);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+
   // Login State
   const [loginEmail, setLoginEmail] = useState('admin@ambeservice.com');
   const [loginPassword, setLoginPassword] = useState('password');
@@ -251,26 +257,14 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
       if (cachedEmp && Array.isArray(cachedEmp)) setEmployees(cachedEmp);
       if (cachedSites && Array.isArray(cachedSites)) setSites(cachedSites);
 
-      // Fetch fresh data
-      const [att, inv, emp, sts, loc, usrs] = await Promise.all([
-        getSharedAttendanceData(),
-        getInvoices(),
+      // Always load essential data
+      const [emp, sts] = await Promise.all([
         getEmployees(),
-        getSites(),
-        getLocationLogs(),
-        userRole === 'SuperAdmin' ? getUsers() : Promise.resolve([])
+        getSites()
       ]);
 
-      setAttendanceData(att);
-      setInvoices(inv);
       setEmployees(emp);
       setSites(sts);
-      setLocationLogs(loc);
-      if (userRole === 'SuperAdmin') {
-          setUsers(usrs);
-      }
-
-      // Cache stable data
       setCachedData('employees', emp);
       setCachedData('sites', sts);
     };
@@ -312,6 +306,66 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
         if (socket) socket.disconnect();
     };
   }, [isAuthenticated, userRole]);
+
+  // Lazy load data based on active tab
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const loadTabData = async () => {
+      if (activeTab === 'attendance' && attendanceData.length === 0) {
+        setLoadingAttendance(true);
+        try {
+          // Load attendance data for current month only initially
+          const currentDate = new Date();
+          const currentMonth = currentDate.getMonth() + 1;
+          const currentYear = currentDate.getFullYear();
+          
+          // For now, load all and filter client-side (can be optimized later with API pagination)
+          const att = await getSharedAttendanceData();
+          const filteredAtt = att.filter(record => {
+            const recordDate = new Date(record.date);
+            return recordDate.getMonth() + 1 === currentMonth && recordDate.getFullYear() === currentYear;
+          });
+          setAttendanceData(filteredAtt);
+        } finally {
+          setLoadingAttendance(false);
+        }
+      } else if ((activeTab === 'invoices-tax' || activeTab === 'invoices-proforma') && invoices.length === 0) {
+        setLoadingInvoices(true);
+        try {
+          // Try cache first for invoices
+          const cachedInv = getCachedData('invoices');
+          if (cachedInv && Array.isArray(cachedInv)) {
+            setInvoices(cachedInv);
+          }
+          // Load fresh data
+          const inv = await getInvoices();
+          setInvoices(inv);
+          setCachedData('invoices', inv);
+        } finally {
+          setLoadingInvoices(false);
+        }
+      } else if (activeTab === 'logs' && locationLogs.length === 0) {
+        setLoadingLogs(true);
+        try {
+          const loc = await getLocationLogs();
+          setLocationLogs(loc);
+        } finally {
+          setLoadingLogs(false);
+        }
+      } else if (activeTab === 'users' && userRole === 'SuperAdmin' && users.length === 0) {
+        setLoadingUsers(true);
+        try {
+          const usrs = await getUsers();
+          setUsers(usrs);
+        } finally {
+          setLoadingUsers(false);
+        }
+      }
+    };
+
+    loadTabData();
+  }, [isAuthenticated, activeTab, userRole]);
 
   const handleDeletePhoto = async (empId: string, date: string) => {
     if (!confirm("Are you sure you want to delete this photo?")) return;
@@ -1256,6 +1310,14 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
             <div className="max-w-7xl mx-auto">
                 {(activeTab === 'invoices-tax' || activeTab === 'invoices-proforma') && (
                     <div className="space-y-6">
+                        {loadingInvoices && (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                            <div className="inline-flex items-center gap-2 text-green-700">
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-green-700 border-t-transparent"></div>
+                              Loading invoices...
+                            </div>
+                          </div>
+                        )}
                         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                             <h2 className="text-2xl font-bold">{activeTab === 'invoices-proforma' ? 'Proforma Invoices' : 'Tax Invoices'}</h2>
                             <div className="flex flex-wrap gap-2 items-center">
@@ -1281,6 +1343,22 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                     <option value="Unpaid">Unpaid</option>
                                     <option value="Approved">Approved</option>
                                 </select>
+                                <button 
+                                    onClick={async () => {
+                                        setLoadingInvoices(true);
+                                        try {
+                                            const inv = await getInvoices();
+                                            setInvoices(inv);
+                                            setCachedData('invoices', inv);
+                                        } finally {
+                                            setLoadingInvoices(false);
+                                        }
+                                    }}
+                                    disabled={loadingInvoices}
+                                    className="bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm hover:bg-gray-700 transition-colors disabled:opacity-50"
+                                >
+                                    <RotateCcw size={18} /> Refresh
+                                </button>
                                 <button onClick={() => setShowBillModal(true)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm hover:bg-indigo-700 transition-colors">
                                     <Receipt size={18} /> Generate Bill
                                 </button>
@@ -1406,6 +1484,14 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                 )}
                 {activeTab === 'attendance' && (
                   <div className="space-y-6 animate-in fade-in">
+                      {loadingAttendance && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                          <div className="inline-flex items-center gap-2 text-blue-700">
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-700 border-t-transparent"></div>
+                            Loading attendance data...
+                          </div>
+                        </div>
+                      )}
                       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                         <h2 className="text-2xl font-bold flex items-center gap-2">
                             Attendance Grid
@@ -1461,6 +1547,22 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                 </select>
                             </div>
                             
+                            <button 
+                                onClick={async () => {
+                                    setLoadingAttendance(true);
+                                    try {
+                                        const att = await getSharedAttendanceData();
+                                        setAttendanceData(att);
+                                    } finally {
+                                        setLoadingAttendance(false);
+                                    }
+                                }}
+                                disabled={loadingAttendance}
+                                className="bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm hover:bg-orange-700 transition-colors disabled:opacity-50"
+                            >
+                                <Download size={18} /> Load Full History
+                            </button>
+
                             <div className="relative">
                                 <button 
                                     onClick={() => setShowAutoInvoiceDropdown(!showAutoInvoiceDropdown)} 
