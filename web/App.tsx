@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 // Vercel deployment trigger: Fixed image loading error - Force Update
 import { 
   FileText, Users, Plus, LogOut, Menu, FileSpreadsheet, 
@@ -65,14 +65,18 @@ const getCachedData = (key: string) => {
         return parsed.data;
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error('Cache read error:', e);
+  }
   return null;
 };
 
 const setCachedData = (key: string, data: any) => {
   try {
     localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() }));
-  } catch (e) {}
+  } catch (e) {
+    console.error('Cache write error:', e);
+  }
 };
 
 const getSafePhotoUrl = (url: string | undefined | null) => {
@@ -138,7 +142,7 @@ interface AdminWebAppProps {
   onUserUpdate?: (user: User) => void;
 }
 
-const AdminWebApp = React.memo(({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
+const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
   // If user is provided via props (Integrated mode), consider them authenticated.
   // Otherwise default to false (Standalone mode).
   const [isAuthenticated, setIsAuthenticated] = useState(!!user);
@@ -244,8 +248,8 @@ const AdminWebApp = React.memo(({ onExit, user, onUserUpdate }: AdminWebAppProps
       // Load cached data first for instant UI
       const cachedEmp = getCachedData('employees');
       const cachedSites = getCachedData('sites');
-      if (cachedEmp) setEmployees(cachedEmp);
-      if (cachedSites) setSites(cachedSites);
+      if (cachedEmp && Array.isArray(cachedEmp)) setEmployees(cachedEmp);
+      if (cachedSites && Array.isArray(cachedSites)) setSites(cachedSites);
 
       // Fetch fresh data
       const [att, inv, emp, sts, loc, usrs] = await Promise.all([
@@ -2427,6 +2431,6 @@ const AdminWebApp = React.memo(({ onExit, user, onUserUpdate }: AdminWebAppProps
       </div>
     </div>
   );
-});
+};
 
 export default AdminWebApp;
