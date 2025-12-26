@@ -312,55 +312,36 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
     if (!isAuthenticated) return;
 
     const loadTabData = async () => {
-      if (activeTab === 'attendance' && attendanceData.length === 0) {
-        setLoadingAttendance(true);
-        try {
-          // Load attendance data for current month only initially
-          const currentDate = new Date();
-          const currentMonth = currentDate.getMonth() + 1;
-          const currentYear = currentDate.getFullYear();
-          
-          // For now, load all and filter client-side (can be optimized later with API pagination)
+      try {
+        if (activeTab === 'attendance' && attendanceData.length === 0) {
+          setLoadingAttendance(true);
           const att = await getSharedAttendanceData();
-          const filteredAtt = att.filter(record => {
-            const recordDate = new Date(record.date);
-            return recordDate.getMonth() + 1 === currentMonth && recordDate.getFullYear() === currentYear;
-          });
-          setAttendanceData(filteredAtt);
-        } finally {
-          setLoadingAttendance(false);
-        }
-      } else if ((activeTab === 'invoices-tax' || activeTab === 'invoices-proforma') && invoices.length === 0) {
-        setLoadingInvoices(true);
-        try {
-          // Try cache first for invoices
+          setAttendanceData(att);
+        } else if ((activeTab === 'invoices-tax' || activeTab === 'invoices-proforma') && invoices.length === 0) {
+          setLoadingInvoices(true);
           const cachedInv = getCachedData('invoices');
           if (cachedInv && Array.isArray(cachedInv)) {
             setInvoices(cachedInv);
           }
-          // Load fresh data
           const inv = await getInvoices();
           setInvoices(inv);
           setCachedData('invoices', inv);
-        } finally {
-          setLoadingInvoices(false);
-        }
-      } else if (activeTab === 'logs' && locationLogs.length === 0) {
-        setLoadingLogs(true);
-        try {
+        } else if (activeTab === 'logs' && locationLogs.length === 0) {
+          setLoadingLogs(true);
           const loc = await getLocationLogs();
           setLocationLogs(loc);
-        } finally {
-          setLoadingLogs(false);
-        }
-      } else if (activeTab === 'users' && userRole === 'SuperAdmin' && users.length === 0) {
-        setLoadingUsers(true);
-        try {
+        } else if (activeTab === 'users' && userRole === 'SuperAdmin' && users.length === 0) {
+          setLoadingUsers(true);
           const usrs = await getUsers();
           setUsers(usrs);
-        } finally {
-          setLoadingUsers(false);
         }
+      } catch (error) {
+        console.error('Error loading tab data:', error);
+      } finally {
+        setLoadingAttendance(false);
+        setLoadingInvoices(false);
+        setLoadingLogs(false);
+        setLoadingUsers(false);
       }
     };
 
@@ -1560,7 +1541,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                 disabled={loadingAttendance}
                                 className="bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm hover:bg-orange-700 transition-colors disabled:opacity-50"
                             >
-                                <Download size={18} /> Load Full History
+                                <RotateCcw size={18} /> Refresh Data
                             </button>
 
                             <div className="relative">
