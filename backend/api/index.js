@@ -43,7 +43,10 @@ const uploadToCloudinary = async (base64String, folder) => {
       quality: 100, // No compression
       format: 'png' // Convert to PNG
     });
-    return uploadResponse.public_id; // Return public_id directly
+    return {
+      secure_url: uploadResponse.secure_url,
+      public_id: uploadResponse.public_id
+    };
   } catch (error) {
     console.error('Cloudinary upload failed:', error);
     return null;
@@ -274,8 +277,8 @@ app.post('/api/employees', async (req, res) => {
     
     // Handle Photo Upload
     if (employeeData.photoUrl && employeeData.photoUrl.startsWith('data:image')) {
-      const publicId = await uploadToCloudinary(employeeData.photoUrl, 'ambe_employees');
-      if (publicId) employeeData.photoUrl = publicId;
+      const uploadResult = await uploadToCloudinary(employeeData.photoUrl, 'ambe_employees');
+      if (uploadResult) employeeData.photoUrl = uploadResult.secure_url;
     }
 
     const employee = new Employee(employeeData);
@@ -291,8 +294,8 @@ app.put('/api/employees/:id', async (req, res) => {
 
     // Handle Photo Upload
     if (employeeData.photoUrl && employeeData.photoUrl.startsWith('data:image')) {
-      const publicId = await uploadToCloudinary(employeeData.photoUrl, 'ambe_employees');
-      if (publicId) employeeData.photoUrl = publicId;
+      const uploadResult = await uploadToCloudinary(employeeData.photoUrl, 'ambe_employees');
+      if (uploadResult) employeeData.photoUrl = uploadResult.secure_url;
     }
 
     const employee = await Employee.findOneAndUpdate({ id: req.params.id }, employeeData, { new: true });
@@ -397,8 +400,11 @@ app.post('/api/attendance/sync', async (req, res) => {
 
       // Handle Photo Upload to Cloudinary if it's a base64 string
       if (record.photoUrl && record.photoUrl.startsWith('data:image')) {
-        const publicId = await uploadToCloudinary(record.photoUrl, 'ambe_attendance');
-        if (publicId) record.photoUrl = publicId;
+        const uploadResult = await uploadToCloudinary(record.photoUrl, 'ambe_attendance');
+        if (uploadResult) {
+          record.photoUrl = uploadResult.secure_url;
+          // Store public_id in a separate field if schema allows, else we can extract from URL later
+        }
       }
 
       // Prepare bulk operation
@@ -478,7 +484,21 @@ app.delete('/api/attendance/photo/:employeeId/:date', async (req, res) => {
     const { employeeId, date } = req.params;
     const record = await Attendance.findOne({ employeeId, date });
     
-    if (record) {
+    if (record && record.photoUrl) {
+        // Extract public_id from secure_url and delete from Cloudinary
+        if (record.photoUrl.includes('cloudinary.com')) {
+            const parts = record.photoUrl.split('/');
+            const uploadIndex = parts.indexOf('upload');
+            if (uploadIndex !== -1 && uploadIndex + 2 < parts.length) {
+                const publicIdWithExt = parts.slice(uploadIndex + 2).join('/');
+                const publicId = publicIdWithExt.replace(/\.[^/.]+$/, '');
+                try {
+                    await cloudinary.uploader.destroy(publicId);
+                } catch (deleteError) {
+                    console.error('Failed to delete from Cloudinary:', deleteError);
+                }
+            }
+        }
         record.photoUrl = null;
         await record.save();
     }
@@ -589,8 +609,8 @@ app.post('/api/users', async (req, res) => {
 
     // Handle Photo Upload
     if (userData.photoUrl && userData.photoUrl.startsWith('data:image')) {
-      const publicId = await uploadToCloudinary(userData.photoUrl, 'ambe_users');
-      if (publicId) userData.photoUrl = publicId;
+      const uploadResult = await uploadToCloudinary(userData.photoUrl, 'ambe_users');
+      if (uploadResult) userData.photoUrl = uploadResult.secure_url;
     }
 
     const user = new User(userData);

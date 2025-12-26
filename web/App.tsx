@@ -59,8 +59,9 @@ const getSafePhotoUrl = (url: string | undefined | null) => {
     const trimmedUrl = url.trim();
     if (trimmedUrl.startsWith('http') || trimmedUrl.startsWith('data:')) return trimmedUrl;
     
-    // It's a public_id, use the view endpoint
-    return `${API_URL}/view/image/${trimmedUrl}`;
+    // It's a public_id, construct direct Cloudinary URL
+    const cloudName = 'di9eeahdy'; // From backend config
+    return `https://res.cloudinary.com/${cloudName}/image/upload/${trimmedUrl}`;
 };
 
 const extractCloudinaryPublicId = (url: string | undefined | null) => {
