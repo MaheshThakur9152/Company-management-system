@@ -25,3 +25,9 @@ dist-ssr
 
 .idx/
 .env
+
+# Ignore Android build artifacts and APKs
+supervisor-android/.gradle/
+supervisor-android/build/
+supervisor-android/app/build/
+*.apk
