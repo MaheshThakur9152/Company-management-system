@@ -14,3 +14,8 @@ Removed files (generated artifacts / binaries):
 Rationale: These are generated build artifacts and binary APKs that should not be tracked in source control. They were removed to reduce repo size and avoid accidental commits of generated content.
 
 If anything breaks, you can revert using the backup branch `cleanup/backup-2026-01-03` or revert commit `67bdacb`.
+
+Date: 2026-01-03
+Commit: e74bec4
+Removed: CLEANUP_PROPOSAL.md (user requested removal)
+
