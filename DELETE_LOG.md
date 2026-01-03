@@ -50,4 +50,16 @@ DELETE_LOG
 
 **Deletion commit SHA:** `1dd1125630736ca52569e45498c07faf2127d54f`
 
+## Additional deletions
+- Removed auxiliary/analysis root files:
+  - `analyze_babu.py`
+  - `bills_analysis.txt`
+  - `structure_analysis.txt`
+  - `excel_structure.json`
+  - `inspect_footer.py`
+  - `list_sheets.cjs`
+  - `metadata.json` (root duplicate; kept `frontend-1/public/metadata.json`)
+
+**Commit SHA for these deletions:** `d444326e1113d0e789496e6ca33ce57bfb502789`
+
 If you want me to also push the branch/tag to the remote, say "Push migration branch" and I will push `migration/backup-before-delete` and the tag `pre-delete-migration` to origin.
