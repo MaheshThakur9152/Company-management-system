@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "cd frontend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
     "preview": "vite preview"
   },
   "dependencies": {
