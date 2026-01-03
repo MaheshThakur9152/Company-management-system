@@ -43,4 +43,8 @@ DELETE_LOG
 1. I archived instead of permanently deleting to keep a safe, reversible state. If you prefer permanent deletion, tell me and I will remove these paths and update this log with commit SHAs.
 2. After your confirmation I will (A) delete the archived paths permanently and (B) proceed to debug the frontend white screen.
 
-**If you want me to proceed with permanent deletions now, say "Permanently delete archives".**
+**Action taken:** Per your confirmation, I permanently deleted the archived legacy files and committed the change.
+- Commit SHA: `2d2a238ce3c6948e4a1ad8ec16e7d12ffc5adc26`
+- Files removed: archived_deleted_files/* (see prior summary in this file for details)
+
+If you want me to also push the branch/tag to the remote, say "Push migration branch" and I will push `migration/backup-before-delete` and the tag `pre-delete-migration` to origin.
