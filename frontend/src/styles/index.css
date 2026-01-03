@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #20B2AA;
+  --color-secondary: #34495E;
+  --color-accent: #FF8C00;
+  --color-success: #4CAF50;
+  --color-error: #F44336;
+  --color-surface: #ffffff;
+  --color-background: #F8FAFC;
+
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "Roboto Mono", monospace;
+}
+
+/* Custom Scrollbar for Web Admin tables */
+.custom-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+
+/* Custom scrollbar for sidebar navigation */
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: #34495E; /* Same as sidebar background (secondary) */
+  border-radius: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: #4A5C6A; /* Slightly lighter shade of secondary */
+  border-radius: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: #5D6D7E; /* Brighter on hover */
+}
+
+/* Firefox support for sidebar */
+.sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: #4A5C6A #34495E;
+}

@@ -1,0 +1,9 @@
+{
+  "name": "Ambe Service Facility Manager",
+  "description": "A comprehensive attendance and billing management system. Features role-based access for Supervisors (Camera Attendance), Admins (Billing/Employees), and Owners (Analytics). Implemented as a Mobile-First PWA.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
