@@ -5,10 +5,26 @@ const http = require('http');
 const { Server } = require('socket.io');
 const app = require('../app');
 
+// Local helpers & models used by API routes below
+const upload = require('../middleware/upload');
+const { uploadBufferToCloudinary } = require('../utils/cloudinaryHelper');
+const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
+const axios = require('axios');
+const cloudinary = require('cloudinary').v2;
+const Site = require('../models/Site');
+const Employee = require('../models/Employee');
+const Attendance = require('../models/Attendance');
+const Invoice = require('../models/Invoice');
+const User = require('../models/User');
+const LedgerEntry = require('../models/LedgerEntry');
+const SalaryRecord = require('../models/SalaryRecord');
+const LocationLog = require('../models/LocationLog');
+const JobRole = require('../models/JobRole');
+
 (async () => {
   await connectToDatabase();
 
-  const PORT = process.env.PORT || 3002;
   const server = http.createServer(app);
   const io = new Server(server, {
     cors: {
@@ -97,21 +113,6 @@ const app = require('../app');
     } catch (e) { console.error('attendance sync error', e); res.status(500).json({ error: e.message }); }
   });
 
-  server.on('error', (err) => {
-    if (err && err.code === 'EADDRINUSE') {
-      console.error(`Port ${PORT} is already in use. Kill the process using that port or set a different PORT env var.`);
-      process.exit(1);
-    } else {
-      console.error('Server error:', err);
-      process.exit(1);
-    }
-  });
-
-  server.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
-
-  process.on('SIGINT', () => server.close(() => process.exit(0)));
-  process.on('SIGTERM', () => server.close(() => process.exit(0)));
-})();
   // --- Attendance emit batching to reduce socket churn ---
   const ATTENDANCE_EMIT_BATCH_MS = parseInt(process.env.ATTENDANCE_EMIT_BATCH_MS || '1000', 10);
   const attendanceEmitQueue = {}; // { [siteId]: { timer: NodeJS.Timeout|null, records: AttendanceRecord[] } }
@@ -162,33 +163,9 @@ const app = require('../app');
     }
   };
 
-  app.use(cookieParser());
-  app.use(cors({
-    origin: [
-      'http://localhost:5173',
-      'http://localhost:5173/',
-      'http://127.0.0.1:5173',
-      'http://localhost:3000',
-      'https://ambeservice.com',
-      'https://admin.ambeservice.com',
-      'https://admin.ambeservice.com/'
-    ],
-    credentials: true
-  }));
+  // Note: basic middleware (cookieParser, cors, json parser) is configured in `src/app.js`
+  // Avoid re-applying here to prevent duplication and undefined references.
 
-  app.options("*", cors({
-    origin: [
-      'http://localhost:5173',
-      'http://localhost:5173/',
-      'http://127.0.0.1:5173',
-      'http://localhost:3000',
-      'https://ambeservice.com',
-      'https://admin.ambeservice.com',
-      'https://admin.ambeservice.com/'
-    ],
-    credentials: true
-  }));
-  app.use(express.json({ limit: '10mb' }));
 
   // --- Routes ---
 
@@ -546,13 +523,26 @@ const app = require('../app');
 
   app.post('/api/auth/send-otp', async (req, res) => {
     try {
-      const { username } = req.body;
+      const { username, deviceId } = req.body;
       const regex = new RegExp(`^${escapeRegex(username.trim())}$`, 'i');
       let user = await User.findOne({ $or: [{ userId: { $regex: regex } }, { email: { $regex: regex } }] });
       if (!user && username.toLowerCase() === 'nandani') {
         user = new User({ userId: 'nandani', name: 'Nandani', role: 'superadmin', email: 'ambeservices.nandani@gmail.com' });
       }
       if (!user) return res.status(400).json({ error: "User not found" });
+
+      // If this device is already trusted for the user, issue tokens and skip OTP
+      if (deviceId && Array.isArray(user.trustedDevices) && user.trustedDevices.includes(deviceId)) {
+        const token = jwt.sign({ userId: user.userId, role: user.role }, process.env.JWT_SECRET || 'default_secret', { expiresIn: '24h' });
+        const { token: refreshPlain, hash: refreshHash } = generateRefreshToken();
+        await addRefreshTokenForUser(user, refreshHash, deviceId);
+        setAuthCookie(res, token);
+        setRefreshCookie(res, refreshPlain);
+        const safeUser = { ...user.toObject() };
+        delete safeUser.otp; delete safeUser.otpExpires; delete safeUser.refreshTokens; delete safeUser.password;
+        return res.json({ success: true, message: 'Device trusted. Logged in.', ...safeUser, token });
+      }
+
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
       console.log(`Generated OTP for ${user.userId || user.email}: ${otp}`);
       user.otp = otp;
@@ -565,18 +555,26 @@ const app = require('../app');
 
   app.post('/api/auth/verify-otp', async (req, res) => {
     try {
-      const { username, otp, deviceId } = req.body;
+      const { username, otp, deviceId, rememberDevice = true } = req.body;
       const regex = new RegExp(`^${escapeRegex(username.trim())}$`, 'i');
       const user = await User.findOne({ $or: [{ userId: { $regex: regex } }, { email: { $regex: regex } }] });
       if (!user || String(user.otp) !== String(otp) || user.otpExpires < Date.now()) {
         return res.status(400).json({ error: "Invalid or expired OTP" });
       }
+
+      // Clear OTP fields
       user.otp = null;
       user.otpExpires = null;
 
+      // If client provided a deviceId and asked to remember it, add to trusted devices
+      if (deviceId && rememberDevice) {
+        user.trustedDevices = user.trustedDevices || [];
+        if (!user.trustedDevices.includes(deviceId)) user.trustedDevices.push(deviceId);
+      }
+
       // generate access token
       const token = jwt.sign({ userId: user.userId, role: user.role }, process.env.JWT_SECRET || 'default_secret', { expiresIn: '24h' });
-      // generate refresh token and store hashed version in DB
+      // generate refresh token and store hashed version in DB (link to device)
       const { token: refreshPlain, hash: refreshHash } = generateRefreshToken();
       await addRefreshTokenForUser(user, refreshHash, deviceId);
 
@@ -590,6 +588,7 @@ const app = require('../app');
       delete safeUser.otp;
       delete safeUser.otpExpires;
       delete safeUser.refreshTokens;
+      delete safeUser.password;
       res.json({ ...safeUser, token });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
@@ -635,7 +634,7 @@ const app = require('../app');
   });
 
   app.post('/api/login', async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, deviceId } = req.body;
     if (mongoose.connection.readyState !== 1) {
       if (email === 'ambe' || email === 'admin@ambeservice.com') {
         return res.json({ userId: 'ambe', name: 'Ambe Admin (Offline)', role: 'admin', token: 'mock-token' });
@@ -646,6 +645,18 @@ const app = require('../app');
       const regex = new RegExp(`^${escapeRegex(email.trim())}$`, 'i');
       let user = await User.findOne({ $or: [{ email: { $regex: regex } }, { userId: { $regex: regex } }] });
       if (user && user.password === password) {
+        // If deviceId provided and trusted, skip OTP and issue tokens
+        if (deviceId && Array.isArray(user.trustedDevices) && user.trustedDevices.includes(deviceId)) {
+          const token = jwt.sign({ userId: user.userId, role: user.role }, process.env.JWT_SECRET || 'default_secret', { expiresIn: '24h' });
+          const { token: refreshPlain, hash: refreshHash } = generateRefreshToken();
+          await addRefreshTokenForUser(user, refreshHash, deviceId);
+          setAuthCookie(res, token);
+          setRefreshCookie(res, refreshPlain);
+          const safeUser = { ...user.toObject() };
+          delete safeUser.password; delete safeUser.refreshTokens; delete safeUser.otp; delete safeUser.otpExpires;
+          return res.json({ success: true, message: 'Logged in', ...safeUser, token });
+        }
+
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         console.log(`Login OTP for ${user.userId || user.email}: ${otp}`);
         user.otp = otp;
