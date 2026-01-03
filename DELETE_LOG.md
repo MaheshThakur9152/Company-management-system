@@ -45,6 +45,9 @@ DELETE_LOG
 
 **Action taken:** Per your confirmation, I permanently deleted the archived legacy files and committed the change.
 - Commit SHA: `2d2a238ce3c6948e4a1ad8ec16e7d12ffc5adc26`
-- Files removed: archived_deleted_files/* (see prior summary in this file for details)
+- Files removed (permanent): archived_deleted_files/* (see prior summary in this file for details)
+- Additional removals (root cleanup per `codebase_restructure_prompt.md`): `backend/`, `screens/`, `supervisor-app/`, `package-lock.json`, `postcss.config.js`, `tailwind.config.js`, `tsconfig.json`, `types.ts`
+
+**Deletion commit SHA:** `1dd1125630736ca52569e45498c07faf2127d54f`
 
 If you want me to also push the branch/tag to the remote, say "Push migration branch" and I will push `migration/backup-before-delete` and the tag `pre-delete-migration` to origin.
