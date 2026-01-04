@@ -681,7 +681,7 @@ function generatePayrollSheet(workbook, sheetName, siteName, employees, attendan
     if (isDailyRated) {
       dailyRate = dailyRateOverride;
     } else {
-      dailyRate = baseSalary / 31;
+      dailyRate = baseSalary / daysInMonth;
     }
     const hourlyRate = dailyRate / 9;
 

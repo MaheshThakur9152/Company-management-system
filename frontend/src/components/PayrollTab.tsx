@@ -3,6 +3,8 @@ import { Employee, AttendanceRecord, Site, SalaryRecord } from '@types';
 import { Download, Filter, Edit2, DollarSign, CheckCircle, XCircle, AlertTriangle, CheckSquare, Square } from 'lucide-react';
 import EditPayrollModal from './EditPayrollModal';
 import { updateEmployee, getEmployees, getSalaryRecords, updateSalaryRecord } from '@services/mockData';
+import { computeWorkingDaysForEmployee, getDaysInMonth } from '@utils/employeeUtils';
+import { isEmployeeActiveForMonth } from '@utils/employeeUtils';
 
 interface PayrollTabProps {
   employees: Employee[];
@@ -59,19 +61,7 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
 
   const filteredEmployees = localEmployees.filter(e => {
     const matchesSite = selectedSiteFilter === 'all' || e.siteId === selectedSiteFilter;
-    
-    // Filter out inactive employees who left before the selected month
-    let isVisible = true;
-    if (e.status === 'Inactive' && e.leavingDate) {
-        const leavingDate = new Date(e.leavingDate);
-        const reportMonthStart = new Date(selectedYear, selectedMonth - 1, 1);
-        
-        // If they left before the start of the current report month, hide them
-        if (leavingDate < reportMonthStart) {
-            isVisible = false;
-        }
-    }
-    
+    const isVisible = isEmployeeActiveForMonth(e, selectedMonth, selectedYear);
     return matchesSite && isVisible;
   });
 
@@ -81,15 +71,8 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
       return r.employeeId === emp.id && d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
     });
 
-    const pd = empRecords.filter(r => r.status === 'P').length;
-    const wo = empRecords.filter(r => r.status === 'W/O').length;
-    const woe = empRecords.filter(r => r.status === 'WOE').length;
-    const ph = empRecords.filter(r => r.status === 'PH').length; // Holiday
-    const hde = empRecords.filter(r => r.status === 'HDE').length;
-    const hdHalf = empRecords.filter(r => r.status === 'HD').length;
-
-    const effectivePD = pd + (hdHalf * 0.5);
-    const totalPaidDays = effectivePD + wo + woe + ph + hde;
+    // Compute working days using the shared rule helper
+    const { workingDays } = computeWorkingDaysForEmployee(empRecords, emp, selectedMonth, selectedYear);
     const totalOTHours = empRecords.reduce((sum, r) => sum + (r.overtimeHours || 0), 0);
 
     const salaryDetails = emp.salaryDetails || {};
@@ -101,11 +84,12 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
     if (isDailyRated) {
       dailyRate = dailyRateOverride;
     } else {
-      dailyRate = baseSalary / 31;
+      const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
+      dailyRate = baseSalary / daysInMonth;
     }
     const hourlyRate = dailyRate / 9;
 
-    const daysAmount = totalPaidDays * dailyRate;
+    const daysAmount = workingDays * dailyRate;
     const otAmount = totalOTHours * hourlyRate;
     const grossSalary = daysAmount + otAmount;
 
@@ -306,9 +290,9 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
                 onChange={(e) => onYearChange(parseInt(e.target.value))}
                 className="bg-transparent text-sm outline-none font-medium text-gray-700 cursor-pointer border-l pl-2"
              >
-                <option value="2024">2024</option>
-                <option value="2025">2025</option>
-                <option value="2026">2026</option>
+                {[2024, 2025, 2026, 2027].map(year => (
+                    <option key={year} value={year}>{year}</option>
+                ))}
              </select>
           </div>
 

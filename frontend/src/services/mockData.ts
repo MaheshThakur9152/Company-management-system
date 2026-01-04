@@ -137,12 +137,12 @@ export const getInvoices = async (): Promise<Invoice[]> => {
     }
 };
 
-export const addInvoice = async (invoice: Invoice): Promise<boolean> => {
+export const addInvoice = async (invoice: Invoice): Promise<Invoice> => {
     try {
-        await apiCall('/invoices', 'POST', invoice);
-        return true;
+        return await apiCall<Invoice>('/invoices', 'POST', invoice);
     } catch (e) {
-        return false;
+        console.error('Failed to add invoice', e);
+        throw e;
     }
 };
 

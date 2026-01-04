@@ -115,7 +115,7 @@ const EditPayrollModal: React.FC<EditPayrollModalProps> = ({ isOpen, employee, o
                   onChange={e => setFormData({...formData, baseSalary: Number(e.target.value)})}
                   className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary outline-none"
                 />
-                <p className="text-[10px] text-gray-400 mt-1">Daily Rate = Base / 31</p>
+                <p className="text-[10px] text-gray-400 mt-1">Daily Rate = Base / (days in selected month)</p>
               </div>
             )}
           </div>

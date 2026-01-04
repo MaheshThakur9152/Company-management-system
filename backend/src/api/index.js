@@ -417,13 +417,31 @@ const JobRole = require('../models/JobRole');
     try {
       const invoice = new Invoice(req.body);
       await invoice.save();
-      res.json(invoice);
-    } catch (e) { res.status(500).json({ error: e.message }); }
+      try { io.emit('data_update', { type: 'invoices' }); } catch (emitErr) { console.error('Socket emit failed for invoices', emitErr); }
+      return res.json(invoice);
+    } catch (e) {
+      // Handle duplicate key errors (e.g., due to race conditions or stale client state)
+      if (e && (e.code === 11000 || (e.name === 'MongoServerError' && e.code === 11000))) {
+        try {
+          const existing = await Invoice.findOne({ invoiceNo: req.body.invoiceNo });
+          if (existing) {
+            try { io.emit('data_update', { type: 'invoices' }); } catch (emitErr) { console.error('Socket emit failed for invoices', emitErr); }
+            return res.json(existing);
+          }
+        } catch (fetchErr) {
+          console.error('Failed to fetch existing invoice after duplicate error', fetchErr);
+        }
+        return res.status(409).json({ error: 'Duplicate invoice' });
+      }
+      console.error('Failed to save invoice', e);
+      return res.status(500).json({ error: e.message });
+    }
   });
 
   app.put('/api/invoices/:id', async (req, res) => {
     try {
       const invoice = await Invoice.findOneAndUpdate({ id: req.params.id }, req.body, { new: true });
+      try { io.emit('data_update', { type: 'invoices' }); } catch (emitErr) { console.error('Socket emit failed for invoices', emitErr); }
       res.json(invoice);
     } catch (e) { res.status(500).json({ error: e.message }); }
   });

@@ -199,12 +199,8 @@ const itemHeight = 6;
 let subTotal = 0;
 
 params.items.forEach((item, i) => {
-    let amt = 0;
-    if (item.description.toLowerCase().includes('overtime')) {
-        amt = item.workingDays * (item.rate / 31 / 9);
-    } else {
-        amt = item.workingDays * (item.rate / 31);
-    }
+    // Item amount is precomputed in the modal (uses days-in-month where required)
+    const amt = Number(item.amount) || 0;
     subTotal += amt;
 
     drawCell(0, 1, itemHeight, (i + 1).toString(), { align: 'center', valign: 'middle' });

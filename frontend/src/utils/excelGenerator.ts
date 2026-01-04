@@ -52,6 +52,7 @@ export interface BillParams {
   };
   terms?: string;
   signatory?: string;
+  daysInMonth?: number; // optional: use for rate calculations if supplied
 }
 
 const numberToWords = (num: number): string => {
@@ -141,8 +142,16 @@ export const generateBillExcel = async (params: BillParams) => {
   worksheet.getRow(39).height = 15;    // Ref Row 38
   worksheet.getRow(41).height = 14.45; // Ref Row 40
 
+  function safeMerge(range: string) {
+    try {
+        worksheet.mergeCells(range);
+    } catch (e) {
+        // ignore merge conflicts
+    }
+  }
+
   // --- Row 1: Title ---
-  worksheet.mergeCells('A1:G1');
+  safeMerge('A1:G1');
   const cellTitle = worksheet.getCell('A1');
   cellTitle.value = params.invoiceType || "TAX INVOICE"; 
   cellTitle.font = { name: 'Aptos Narrow', size: 14, bold: true };
@@ -151,7 +160,7 @@ export const generateBillExcel = async (params: BillParams) => {
   // --- Header Section ---
   
   // Row 2: Company Name
-  worksheet.mergeCells('A2:E2');
+  safeMerge('A2:E2');
   const cellA2 = worksheet.getCell('A2');
   cellA2.value = params.companyName || 'AMBE SERVICE FACILITIES PRIVATE LIMITED';
   cellA2.font = fontHeader;
@@ -159,7 +168,7 @@ export const generateBillExcel = async (params: BillParams) => {
   cellA2.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
   
   // Right side of Row 2 (F-G)
-  worksheet.mergeCells('F2:G2');
+  safeMerge('F2:G2');
   const cellF2 = worksheet.getCell('F2');
   cellF2.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }, left: { style: 'thin' } };
 
@@ -174,7 +183,7 @@ export const generateBillExcel = async (params: BillParams) => {
 
   addressLines.forEach((line, idx) => {
     const row = idx + 3;
-    worksheet.mergeCells(`A${row}:E${row}`);
+    safeMerge(`A${row}:E${row}`);
     const cell = worksheet.getCell(`A${row}`);
     cell.value = line;
     cell.font = fontBase;
@@ -183,14 +192,14 @@ export const generateBillExcel = async (params: BillParams) => {
     
     // Right side F-G
     if (row === 3 || row === 6) {
-        worksheet.mergeCells(`F${row}:G${row}`);
+        safeMerge(`F${row}:G${row}`);
         worksheet.getCell(`F${row}`).border = { right: { style: 'thin' }, left: { style: 'thin' } };
     }
   });
 
   // Invoice Details (Right Side)
   // F4: Proforma Invoice No
-  worksheet.mergeCells('F4:G4');
+  safeMerge('F4:G4');
   const cellF4 = worksheet.getCell('F4');
   cellF4.value = `Invoice No :  ${params.invoiceNo}`;
   cellF4.font = fontBase;
@@ -198,7 +207,7 @@ export const generateBillExcel = async (params: BillParams) => {
   cellF4.border = { left: { style: 'thin' }, right: { style: 'thin' } };
 
   // F5: Date
-  worksheet.mergeCells('F5:G5');
+  safeMerge('F5:G5');
   const cellF5 = worksheet.getCell('F5');
   cellF5.value = `Date:  ${params.date}`;
   cellF5.font = fontBase;
@@ -206,25 +215,25 @@ export const generateBillExcel = async (params: BillParams) => {
   cellF5.border = { left: { style: 'thin' }, right: { style: 'thin' } };
 
   // Row 7: CIN
-  worksheet.mergeCells('A7:E7');
+  safeMerge('A7:E7');
   const cellA7 = worksheet.getCell('A7');
   cellA7.value = "CIN NO. : U80200MH2023PTC412420";
   cellA7.font = fontBase;
   cellA7.alignment = { horizontal: 'left', indent: 1 };
   cellA7.border = { left: { style: 'thin' }, right: { style: 'thin' } };
   
-  worksheet.mergeCells('F7:G7');
+  safeMerge('F7:G7');
   worksheet.getCell('F7').border = { left: { style: 'thin' }, right: { style: 'thin' } };
 
   // Row 8: GSTIN & Billing Period
-  worksheet.mergeCells('A8:E8');
+  safeMerge('A8:E8');
   const cellA8 = worksheet.getCell('A8');
   cellA8.value = "GSTIN :  27AAZCA5609F1ZA";
   cellA8.font = fontBase;
   cellA8.alignment = { horizontal: 'left', indent: 1 };
   cellA8.border = { left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
 
-  worksheet.mergeCells('F8:G8');
+  safeMerge('F8:G8');
   const cellF8 = worksheet.getCell('F8');
   cellF8.value = `Billing Period :${params.billingPeriod}`;
   cellF8.font = fontBase;
@@ -232,14 +241,14 @@ export const generateBillExcel = async (params: BillParams) => {
   cellF8.border = { left: { style: 'thin' }, right: { style: 'thin' }, bottom: { style: 'thin' } };
 
   // Row 9: Name & Add of Party Header
-  worksheet.mergeCells('A9:E9');
+  safeMerge('A9:E9');
   const cellA9 = worksheet.getCell('A9');
   cellA9.value = "Name & Add of Party";
   cellA9.font = { ...fontBase, size: 10 };
   cellA9.alignment = { horizontal: 'left', indent: 1 };
   cellA9.border = { left: { style: 'thin' }, top: { style: 'thin' }, right: { style: 'thin' } };
 
-  worksheet.mergeCells('F9:G9');
+  safeMerge('F9:G9');
   const cellF9 = worksheet.getCell('F9');
   cellF9.value = "Work Order Ref No. :";
   cellF9.font = { ...fontBase, size: 10 };
@@ -247,14 +256,14 @@ export const generateBillExcel = async (params: BillParams) => {
   cellF9.border = { left: { style: 'thin' }, right: { style: 'thin' }, top: { style: 'thin' } };
 
   // Row 10: Client Name & Work Order No
-  worksheet.mergeCells('A10:E10');
+  safeMerge('A10:E10');
   const cellA10 = worksheet.getCell('A10');
   cellA10.value = params.site.clientName || "Lokhandwala Minerva CHS LTD (Prop.)"; 
   cellA10.font = fontBold;
   cellA10.alignment = { horizontal: 'left', indent: 1 };
   cellA10.border = { left: { style: 'thin' }, right: { style: 'thin' } };
 
-  worksheet.mergeCells('F10:G10');
+  safeMerge('F10:G10');
   const cellF10 = worksheet.getCell('F10');
   cellF10.value = params.workOrderNo;
   cellF10.font = { name: 'Bookman Old Style', size: 10 };
@@ -262,14 +271,14 @@ export const generateBillExcel = async (params: BillParams) => {
   cellF10.border = { left: { style: 'thin' }, right: { style: 'thin' }, bottom: { style: 'thin' } };
 
   // Row 11: Client Address & Work Order Period Header
-  worksheet.mergeCells('A11:E11');
+  safeMerge('A11:E11');
   const cellA11 = worksheet.getCell('A11');
   cellA11.value = params.site.location || "J.R. Boricha Marg. Mahalaxmi, Mumbai- 400011.";
   cellA11.font = { ...fontBase, size: 10 };
   cellA11.alignment = { horizontal: 'left', indent: 1 };
   cellA11.border = { left: { style: 'thin' }, right: { style: 'thin' } };
 
-  worksheet.mergeCells('F11:G11');
+  safeMerge('F11:G11');
   const cellF11 = worksheet.getCell('F11');
   cellF11.value = "Work Order Period : ";
   cellF11.font = fontBase;
@@ -277,14 +286,14 @@ export const generateBillExcel = async (params: BillParams) => {
   cellF11.border = { left: { style: 'thin' }, right: { style: 'thin' }, top: { style: 'thin' } };
 
   // Row 12: Client GSTIN & Work Order Period Value
-  worksheet.mergeCells('A12:E12');
+  safeMerge('A12:E12');
   const cellA12 = worksheet.getCell('A12');
   cellA12.value = `GSTIN : ${params.site.clientGstin || '27AAACL5105AIZ7'}`;
   cellA12.font = { ...fontBase, size: 10 };
   cellA12.alignment = { horizontal: 'left', indent: 1 };
   cellA12.border = { left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
 
-  worksheet.mergeCells('F12:G12');
+  safeMerge('F12:G12');
   const cellF12 = worksheet.getCell('F12');
   cellF12.value = params.workOrderPeriod;
   cellF12.font = fontBase;
@@ -292,7 +301,7 @@ export const generateBillExcel = async (params: BillParams) => {
   cellF12.border = { left: { style: 'thin' }, right: { style: 'thin' }, bottom: { style: 'thin' } };
 
   // Row 13-14: Greeting Text
-  worksheet.mergeCells('A13:G14');
+  safeMerge('A13:G14');
   const cellA13 = worksheet.getCell('A13');
   cellA13.value = "We thank you very much for valuable interest shown in our organzaion. We would like to submit  our bill for providing our services.";
   cellA13.font = fontBase;
@@ -305,7 +314,7 @@ export const generateBillExcel = async (params: BillParams) => {
   headerRow.values = headers;
   
   ['A', 'B', 'C', 'D', 'E', 'F', 'G'].forEach(col => {
-    worksheet.mergeCells(`${col}15:${col}16`);
+    safeMerge(`${col}15:${col}16`);
     const cell = worksheet.getCell(`${col}15`);
     cell.font = fontBase;
     cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
@@ -325,11 +334,8 @@ export const generateBillExcel = async (params: BillParams) => {
     row.getCell(5).value = item.workingDays;
     row.getCell(6).value = item.persons > 0 ? item.persons : null;
     
-    if (item.description.toLowerCase().includes('overtime')) {
-        row.getCell(7).value = { formula: `E${currentRow}*(D${currentRow}/31/9)` };
-    } else {
-        row.getCell(7).value = { formula: `E${currentRow}*(D${currentRow}/31)` };
-    }
+    // Item amount is precomputed in the modal (taking daysInMonth into account). Use provided amount to avoid hardcoded 31.
+    row.getCell(7).value = item.amount;
 
     // Apply styles to all cells in the row (1-7) explicitly to ensure borders are drawn even for empty cells
     for (let i = 1; i <= 7; i++) {
@@ -362,7 +368,7 @@ export const generateBillExcel = async (params: BillParams) => {
   subTotalRow = currentRow;
   
   // Sub Total
-  worksheet.mergeCells(`D${currentRow}:F${currentRow}`);
+  safeMerge(`D${currentRow}:F${currentRow}`);
   const cellSubTotal = worksheet.getCell(`D${currentRow}`);
   cellSubTotal.value = "Sub Total";
   cellSubTotal.font = fontBase;
@@ -383,7 +389,7 @@ export const generateBillExcel = async (params: BillParams) => {
   currentRow++;
 
   // Management Charges
-  worksheet.mergeCells(`D${currentRow}:F${currentRow}`);
+  safeMerge(`D${currentRow}:F${currentRow}`);
   const cellMgmt = worksheet.getCell(`D${currentRow}`);
   cellMgmt.value = `Management charges @ ${params.managementRate}%`;
   cellMgmt.font = fontBase;
@@ -404,14 +410,14 @@ export const generateBillExcel = async (params: BillParams) => {
   currentRow++;
 
   // Bank Details Header
-  worksheet.mergeCells(`A${currentRow}:C${currentRow}`);
+  safeMerge(`A${currentRow}:C${currentRow}`);
   const cellBankHeader = worksheet.getCell(`A${currentRow}`);
   cellBankHeader.value = "Bank Details";
   cellBankHeader.font = fontBold;
   cellBankHeader.alignment = { horizontal: 'left', indent: 1 };
   cellBankHeader.border = { left: { style: 'thin' }, top: { style: 'thin' }, right: { style: 'thin' } };
   
-  worksheet.mergeCells(`D${currentRow}:F${currentRow}`);
+  safeMerge(`D${currentRow}:F${currentRow}`);
   const cellTotalLabel = worksheet.getCell(`D${currentRow}`);
   cellTotalLabel.value = "Total ";
   cellTotalLabel.font = fontBold;
@@ -428,14 +434,14 @@ export const generateBillExcel = async (params: BillParams) => {
   currentRow++;
 
   // Bank Name & CGST
-  worksheet.mergeCells(`A${currentRow}:C${currentRow}`);
+  safeMerge(`A${currentRow}:C${currentRow}`);
   const cellBankName = worksheet.getCell(`A${currentRow}`);
   cellBankName.value = `Bank Name :  ${params.bankDetails?.name || 'Axis bank'}`;
   cellBankName.font = { ...fontBase, size: 10 };
   cellBankName.alignment = { horizontal: 'left', indent: 1 };
   cellBankName.border = { left: { style: 'thin' }, right: { style: 'thin' } };
   
-  worksheet.mergeCells(`D${currentRow}:F${currentRow}`);
+  safeMerge(`D${currentRow}:F${currentRow}`);
   const cellCgst = worksheet.getCell(`D${currentRow}`);
   cellCgst.value = `Add CGST @ ${params.cgstRate}%`;
   cellCgst.font = fontBold;
@@ -451,14 +457,14 @@ export const generateBillExcel = async (params: BillParams) => {
   currentRow++;
 
   // Acc No & SGST
-  worksheet.mergeCells(`A${currentRow}:C${currentRow}`);
+  safeMerge(`A${currentRow}:C${currentRow}`);
   const cellAcc = worksheet.getCell(`A${currentRow}`);
   cellAcc.value = `Acc no : ${params.bankDetails?.accNo || '924020001871570'}`;
   cellAcc.font = { ...fontBase, size: 10 };
   cellAcc.alignment = { horizontal: 'left', indent: 1 };
   cellAcc.border = { left: { style: 'thin' }, right: { style: 'thin' } };
 
-  worksheet.mergeCells(`D${currentRow}:F${currentRow}`);
+  safeMerge(`D${currentRow}:F${currentRow}`);
   const cellSgst = worksheet.getCell(`D${currentRow}`);
   cellSgst.value = `Add SGST @ ${params.sgstRate}%`;
   cellSgst.font = fontBold;
@@ -474,7 +480,7 @@ export const generateBillExcel = async (params: BillParams) => {
   currentRow++;
 
   // IFSC & Empty
-  worksheet.mergeCells(`A${currentRow}:C${currentRow}`);
+  safeMerge(`A${currentRow}:C${currentRow}`);
   const cellIfsc = worksheet.getCell(`A${currentRow}`);
   cellIfsc.value = `IFSC Code: ${params.bankDetails?.ifsc || 'UTIB0001572'}   Branch: ${params.bankDetails?.branch || 'kandivali west,Link Road.'}`;
   cellIfsc.font = { ...fontBase, size: 10 };
@@ -482,13 +488,13 @@ export const generateBillExcel = async (params: BillParams) => {
   cellIfsc.border = { left: { style: 'thin' }, right: { style: 'thin' } };
 
   // Empty D-G
-  worksheet.mergeCells(`D${currentRow}:F${currentRow}`);
+  safeMerge(`D${currentRow}:F${currentRow}`);
   worksheet.getCell(`D${currentRow}`).border = { left: { style: 'thin' }, right: { style: 'thin' } };
   worksheet.getCell(`G${currentRow}`).border = { left: { style: 'thin' }, right: { style: 'thin' } };
   currentRow++;
 
   // Amount in Words Header
-  worksheet.mergeCells(`A${currentRow}:C${currentRow}`);
+  safeMerge(`A${currentRow}:C${currentRow}`);
   const cellWordsHeader = worksheet.getCell(`A${currentRow}`);
   cellWordsHeader.value = "Amount Chargeble in words(INR) : ";
   cellWordsHeader.font = fontBold;
@@ -496,21 +502,14 @@ export const generateBillExcel = async (params: BillParams) => {
   cellWordsHeader.border = { left: { style: 'thin' }, top: { style: 'thin' }, right: { style: 'thin' } };
   
   // Empty D-G
-  worksheet.mergeCells(`D${currentRow}:F${currentRow}`);
+  safeMerge(`D${currentRow}:F${currentRow}`);
   worksheet.getCell(`D${currentRow}`).border = { left: { style: 'thin' }, right: { style: 'thin' } };
   worksheet.getCell(`G${currentRow}`).border = { left: { style: 'thin' }, right: { style: 'thin' } };
   currentRow++; 
   
   // Calculate Grand Total for Words
-  const subTotalVal = params.items.reduce((sum, item) => {
-      let amt = 0;
-      if (item.description.toLowerCase().includes('overtime')) {
-          amt = item.workingDays * (item.rate / 31 / 9);
-      } else {
-          amt = item.workingDays * (item.rate / 31);
-      }
-      return sum + amt;
-  }, 0);
+  // Sum the amounts provided by the items (already computed using the correct days-per-month)
+  const subTotalVal = params.items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
   const mgmtVal = subTotalVal * (params.managementRate / 100);
   const totalBeforeTaxVal = subTotalVal + mgmtVal;
   const cgstVal = totalBeforeTaxVal * (params.cgstRate / 100);
@@ -518,7 +517,7 @@ export const generateBillExcel = async (params: BillParams) => {
   const grandTotalVal = totalBeforeTaxVal + cgstVal + sgstVal;
 
   // Amount in Words Value
-  worksheet.mergeCells(`A${currentRow}:C${currentRow}`);
+  safeMerge(`A${currentRow}:C${currentRow}`);
   const cellWords = worksheet.getCell(`A${currentRow}`);
   cellWords.value = numberToWords(grandTotalVal);
   cellWords.font = { ...fontBase, size: 10 };
@@ -526,7 +525,7 @@ export const generateBillExcel = async (params: BillParams) => {
   cellWords.border = { left: { style: 'thin' }, right: { style: 'thin' } };
   
   // Total Amount Label
-  worksheet.mergeCells(`D${currentRow}:F${currentRow}`);
+  safeMerge(`D${currentRow}:F${currentRow}`);
   const cellGrandTotalLabel = worksheet.getCell(`D${currentRow}`);
   cellGrandTotalLabel.value = "Total Amount";
   cellGrandTotalLabel.font = fontBold;
@@ -542,27 +541,27 @@ export const generateBillExcel = async (params: BillParams) => {
   currentRow++;
 
   // Another row for words if needed (Empty)
-  worksheet.mergeCells(`A${currentRow}:C${currentRow}`);
+  safeMerge(`A${currentRow}:C${currentRow}`);
   const cellWords2 = worksheet.getCell(`A${currentRow}`);
   cellWords2.value = "Only"; 
   cellWords2.border = { left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
   
   // Empty D-G
-  worksheet.mergeCells(`D${currentRow}:F${currentRow}`);
+  safeMerge(`D${currentRow}:F${currentRow}`);
   worksheet.getCell(`D${currentRow}`).border = { left: { style: 'thin' }, right: { style: 'thin' }, bottom: { style: 'thin' } };
   worksheet.getCell(`G${currentRow}`).border = { left: { style: 'thin' }, right: { style: 'thin' }, bottom: { style: 'thin' } };
   currentRow++;
 
   // Spacer Row
-  worksheet.mergeCells(`A${currentRow}:C${currentRow}`);
+  safeMerge(`A${currentRow}:C${currentRow}`);
   worksheet.getCell(`A${currentRow}`).border = { left: { style: 'thin' }, right: { style: 'thin' } };
-  worksheet.mergeCells(`D${currentRow}:G${currentRow}`);
+  safeMerge(`D${currentRow}:G${currentRow}`);
   worksheet.getCell(`D${currentRow}`).border = { left: { style: 'thin' }, right: { style: 'thin' } };
   currentRow++;
 
   // Terms & Conditions
   const termsStartRow = currentRow;
-  worksheet.mergeCells(`A${currentRow}:C${currentRow+5}`);
+  safeMerge(`A${currentRow}:C${currentRow+5}`);
   const termsCell = worksheet.getCell(`A${currentRow}`);
   termsCell.value = params.terms || "Terms & condition : \nPayment can only be done in cheque/DD, NEFT, RTGS ";
   termsCell.font = fontBase;
@@ -570,7 +569,7 @@ export const generateBillExcel = async (params: BillParams) => {
   termsCell.border = { left: { style: 'thin' }, top: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
 
   // Signatory
-  worksheet.mergeCells(`D${currentRow}:G${currentRow+5}`);
+  safeMerge(`D${currentRow}:G${currentRow+5}`);
   const signCell = worksheet.getCell(`D${currentRow}`);
   signCell.value = params.signatory || "For Ambe Service Facilities Pvt Ltd  \n\n\n\n\nAuthorized signatory\n";
   signCell.font = fontBase;

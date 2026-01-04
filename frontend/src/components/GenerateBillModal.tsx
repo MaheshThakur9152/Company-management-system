@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Download, FileText, Plus, Trash2, Calendar } from 'lucide-react';
-import { Employee, AttendanceRecord, Site } from '@types';
+import { Employee, AttendanceRecord, Site, Invoice } from '@types';
 import { generateBillExcel } from '@utils/excelGenerator';
+import { computeWorkingDaysForEmployee, getDaysInMonth } from '@utils/employeeUtils';
 
 interface GenerateBillModalProps {
     isOpen: boolean;
@@ -9,9 +10,12 @@ interface GenerateBillModalProps {
     employees: Employee[];
     attendanceData: AttendanceRecord[];
     sites: Site[]; // To select site
+    selectedMonth: number; // 1-based
+    selectedYear: number;
+    onSave?: (invoice: Invoice) => void;
 }
 
-const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, employees, attendanceData, sites }) => {
+const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, employees, attendanceData, sites, selectedMonth, selectedYear, onSave }) => {
     const [selectedSiteId, setSelectedSiteId] = useState<string>('');
     const [companyName, setCompanyName] = useState('AMBE SERVICE FACILITIES PRIVATE LIMITED');
     const [invoiceType, setInvoiceType] = useState('TAX INVOICE');
@@ -40,7 +44,29 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
         if (isOpen && sites.length > 0 && !selectedSiteId) {
             setSelectedSiteId(sites[0].id);
         }
-    }, [isOpen, sites]);
+        
+        if (isOpen) {
+            const startDate = new Date(selectedYear, selectedMonth - 1, 1);
+            const endDate = new Date(selectedYear, selectedMonth, 0);
+            const monthName = startDate.toLocaleDateString('en-GB', { month: 'long' });
+            const endDay = endDate.getDate();
+            const getOrdinal = (n: number) => {
+                const s = ["th", "st", "nd", "rd"];
+                const v = n % 100;
+                return n + (s[(v - 20) % 10] || s[v] || s[0]);
+            };
+            setBillingPeriod(`1st to ${getOrdinal(endDay)} ${monthName} ${selectedYear}`);
+            
+            // Update invoice number year based on financial year
+            const fyStart = selectedMonth >= 4 ? selectedYear : selectedYear - 1;
+            const fyEnd = fyStart + 1;
+            const fyStr = `${fyStart.toString().slice(-2)}-${fyEnd.toString().slice(-2)}`;
+            setInvoiceNo(`ASF/P/${fyStr}/001`);
+            
+            // Update work order period if it's default
+            setWorkOrderPeriod(`01/04/${fyStart}-31/03/${fyEnd}`);
+        }
+    }, [isOpen, sites, selectedMonth, selectedYear]);
 
     useEffect(() => {
         if (selectedSiteId) {
@@ -82,12 +108,7 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
 
         siteEmployees.forEach(emp => {
             const empRecords = attendanceData.filter(r => r.employeeId === emp.id);
-            let days = 0;
-            empRecords.forEach(r => {
-                if (r.status === 'P') days += 1;
-                else if (r.status === 'HD') days += 0.5;
-                else if (r.status === 'W/O') days += 1;
-            });
+            const { workingDays } = computeWorkingDaysForEmployee(empRecords, emp, selectedMonth, selectedYear);
 
             let billRole = emp.role === 'Janitor' ? 'Lift Operator' : emp.role;
 
@@ -101,12 +122,14 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
             }
 
             roleMap[billRole].count += 1;
-            roleMap[billRole].days += days;
+            roleMap[billRole].days += workingDays;
         });
+
+        const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
 
         const newItems = Object.keys(roleMap).map(role => {
             const data = roleMap[role];
-            const amount = data.days * (data.rate / 31);
+            const amount = data.days * (data.rate / daysInMonth);
 
             return {
                 description: role,
@@ -136,10 +159,11 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
 
         if (field === 'rate' || field === 'workingDays') {
             const item = newItems[index];
+            const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
             if (item.description.toLowerCase().includes('overtime')) {
-                item.amount = item.workingDays * (item.rate / 31 / 9);
+                item.amount = item.workingDays * (item.rate / daysInMonth / 9);
             } else {
-                item.amount = item.workingDays * (item.rate / 31);
+                item.amount = item.workingDays * (item.rate / daysInMonth);
             }
         }
 
@@ -187,11 +211,53 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
                 branch
             },
             terms,
-            signatory
+            signatory,
+            // Pass days info to downstream generators if needed
+            daysInMonth: getDaysInMonth(selectedMonth, selectedYear)
         };
 
         try {
             await generateBillExcel(params);
+
+            if (onSave) {
+                // Calculate totals for Invoice object
+                const subTotal = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+                const managementAmount = subTotal * (managementRate / 100);
+                const taxable = subTotal + managementAmount;
+                const cgst = taxable * (cgstRate / 100);
+                const sgst = taxable * (sgstRate / 100);
+                const total = taxable + cgst + sgst;
+
+                const newInvoice: Invoice = {
+                    id: Date.now().toString() + Math.random(),
+                    invoiceNo: invoiceNo,
+                    siteId: site.id,
+                    siteName: site.name,
+                    billingPeriod: billingPeriod,
+                    generatedDate: new Date().toISOString().split('T')[0],
+                    dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    items: items.map(i => ({
+                        id: Date.now().toString() + Math.random(),
+                        description: i.description,
+                        hsn: i.hsn,
+                        rate: i.rate,
+                        days: i.workingDays,
+                        persons: i.persons,
+                        amount: i.amount
+                    })),
+                    subTotal: subTotal,
+                    managementRate: managementRate,
+                    managementAmount: managementAmount,
+                    taxableAmount: taxable,
+                    cgst: cgst,
+                    sgst: sgst,
+                    amount: Math.round(total),
+                    status: invoiceType === 'PROFORMA INVOICE' ? 'Pending Approval' : 'Unpaid',
+                    materialCharges: 0
+                };
+                onSave(newInvoice);
+            }
+            onClose();
         } catch (error) {
             console.error("Failed to generate bill:", error);
             alert("Failed to generate bill. Please try again.");
@@ -226,7 +292,19 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
                             <label className="block text-xs font-medium text-gray-500 mb-1">Invoice Type</label>
                             <select
                                 value={invoiceType}
-                                onChange={e => setInvoiceType(e.target.value)}
+                                onChange={e => {
+                                    const newType = e.target.value;
+                                    setInvoiceType(newType);
+                                    if (newType === 'PROFORMA INVOICE') {
+                                        const d = new Date();
+                                        setInvoiceNo(`PI/${d.getFullYear()}/${d.getMonth() + 1}/${Math.floor(Math.random() * 1000)}`);
+                                    } else {
+                                        const fyStart = selectedMonth >= 4 ? selectedYear : selectedYear - 1;
+                                        const fyEnd = fyStart + 1;
+                                        const fyStr = `${fyStart.toString().slice(-2)}-${fyEnd.toString().slice(-2)}`;
+                                        setInvoiceNo(`ASF/P/${fyStr}/001`);
+                                    }
+                                }}
                                 className="w-full p-2 border rounded-lg text-sm"
                             >
                                 <option value="TAX INVOICE">TAX INVOICE</option>

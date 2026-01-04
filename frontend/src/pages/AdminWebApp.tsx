@@ -30,6 +30,7 @@ import AttendanceLogs from '@components/AttendanceLogs';
 import { generateBillExcel, ensureExcelJSLoaded } from '@utils/excelGenerator';
 import '@utils/excelExportBrowser.js'; // Import for side effects (window.generateAttendanceExcelBrowser)
 import { loadScript } from '@utils/scriptLoader';
+import { isEmployeeActiveForMonth } from '@utils/employeeUtils';
 
 // Access global variables safely
 const getXLSX = async () => {
@@ -288,7 +289,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
   
   // Invoice Filters
   const [invFilterMonth, setInvFilterMonth] = useState<string>('all');
-  const [invFilterYear, setInvFilterYear] = useState<number>(2025);
+  const [invFilterYear, setInvFilterYear] = useState<number>(new Date().getFullYear());
   const [invFilterSite, setInvFilterSite] = useState<string>('all');
   const [invFilterStatus, setInvFilterStatus] = useState<string>('all');
 
@@ -362,6 +363,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                 if (!isMounted) return;
                 if (data.type === 'employees') getEmployees().then(setEmployees);
                 if (data.type === 'sites') getSites().then(setSites);
+                if (data.type === 'invoices') getInvoices().then(setInvoices).catch(err => console.error('Failed to refresh invoices on data_update', err));
             });
 
             // Real-time attendance updates
@@ -670,7 +672,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
       invoiceNo: `ASF/P/${new Date().getFullYear()}-${(new Date().getFullYear()+1).toString().slice(-2)}/${(invoices.length+1).toString().padStart(3, '0')}`,
       siteId: '',
       siteName: 'New Project',
-      billingPeriod: 'Month 2025',
+      billingPeriod: `${new Date().toLocaleString('default', { month: 'long' })} ${new Date().getFullYear()}`,
       items: [],
       subTotal: 0,
       cgst: 0,
@@ -885,16 +887,28 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
 
     if (!confirm(confirmMessage)) return;
 
+    // Ensure we have the latest invoices to avoid duplicates
+    let currentInvoices = invoices;
+    if (currentInvoices.length === 0) {
+        try {
+            currentInvoices = await getInvoices();
+            setInvoices(currentInvoices);
+        } catch (e) {
+            console.error("Failed to fetch invoices before generation", e);
+        }
+    }
+
     let generatedCount = 0;
     const generatedSites: string[] = [];
     const skippedSites: string[] = [];
     const noAttendanceSites: string[] = [];
+    const failedSites: { site: string; error: string }[] = [];
     const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
     const invoicePrefix = type === 'Proforma' ? 'PI' : 'INV';
 
     for (const site of sitesToProcess) {
       // Check if invoice of SAME TYPE already exists for this site and period
-      const existingInvoice = invoices.find(inv => 
+      const existingInvoice = currentInvoices.find(inv => 
           inv.siteId === site.id && 
           inv.billingPeriod === targetBillingPeriod &&
           inv.invoiceNo.startsWith(invoicePrefix)
@@ -905,9 +919,16 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
           continue; 
       }
 
+      // Deduplicate and filter site employees
+      const seenSite = new Set<string>();
       const siteEmployees = employees.filter(e => {
+          if (!e || !e.id) return false;
+          if (seenSite.has(e.id)) return false; // dedupe
           if (e.siteId !== site.id) return false;
-          
+
+          // Filter out deleted/stopped employees
+          if (e.status === 'Deleted' || e.status === 'Stopped') return false;
+
           // Filter out inactive employees who left before the selected month
           if (e.status === 'Inactive' && e.leavingDate) {
               const leavingDate = new Date(e.leavingDate);
@@ -916,6 +937,8 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                   return false;
               }
           }
+
+          seenSite.add(e.id);
           return true;
       });
       if (siteEmployees.length === 0) {
@@ -989,7 +1012,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
           } else {
              // Back-calculate rate from salary
              amount = group.amount;
-             rate = group.days > 0 ? (group.amount * 31) / group.days : 0;
+             rate = group.days > 0 ? (group.amount * daysInMonth) / group.days : 0;
           }
 
           items.push({
@@ -1050,7 +1073,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
             billingPeriod: newInvoice.billingPeriod,
             workOrderNo: site.workOrderNo || "WO/2024-25/001", 
             workOrderDate: site.workOrderDate ? new Date(site.workOrderDate).toLocaleDateString('en-GB') : "01/04/2024",
-            workOrderPeriod: site.workOrderEndDate ? `Valid till ${new Date(site.workOrderEndDate).toLocaleDateString('en-GB')}` : "2024-2025",
+            workOrderPeriod: site.workOrderEndDate ? `Valid till ${new Date(site.workOrderEndDate).toLocaleDateString('en-GB')}` : "N/A",
             items: items.map(i => ({
                 description: i.description,
                 hsn: i.hsn,
@@ -1067,14 +1090,25 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
         console.error("Failed to generate Excel for " + site.name, error);
       }
 
-      await addInvoice(newInvoice);
-      generatedCount++;
-      generatedSites.push(site.name);
+      // Persist invoice and handle failures
+      try {
+        await addInvoice(newInvoice);
+        generatedCount++;
+        generatedSites.push(site.name);
+      } catch (err) {
+        console.error(`Failed to save invoice for site ${site.name}:`, err);
+        failedSites.push({ site: site.name, error: String(err && err.message ? err.message : err) });
+      }
     }
 
-    if (generatedCount > 0) {
+    if (generatedCount > 0 || failedSites.length > 0) {
         setInvoices(await getInvoices());
-        alert(`Successfully generated ${generatedCount} invoices for:\n${generatedSites.join('\n')}`);
+        let message = '';
+        if (generatedCount > 0) message += `Successfully generated ${generatedCount} invoices for:\n${generatedSites.join('\n')}`;
+        if (failedSites.length > 0) {
+            message += `\n\nFailed to persist for:\n${failedSites.map(f => `${f.site} - ${f.error}`).join('\n')}`;
+        }
+        alert(message);
         if (type === 'Proforma') setActiveTabAndHash('invoices-proforma');
         else setActiveTabAndHash('invoices-tax');
     } else {
@@ -1168,7 +1202,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
         billingPeriod: invoice.billingPeriod,
         workOrderNo: site.workOrderNo || "WO/2024-25/001", 
         workOrderDate: site.workOrderDate ? new Date(site.workOrderDate).toLocaleDateString('en-GB') : "01/04/2024",
-        workOrderPeriod: site.workOrderEndDate ? `Valid till ${new Date(site.workOrderEndDate).toLocaleDateString('en-GB')}` : "2024-2025",
+        workOrderPeriod: site.workOrderEndDate ? `Valid till ${new Date(site.workOrderEndDate).toLocaleDateString('en-GB')}` : "N/A",
         items: invoice.items.map(i => ({
           description: i.description,
           hsn: i.hsn || '9985',
@@ -1194,10 +1228,11 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
       // Use the advanced ExcelJS implementation from utils/excelExportBrowser.js
       // This matches the exact format of Ambe-Bill.xlsx including colors, fonts, and formulas
       if ((window as any).generateAttendanceExcelBrowser) {
-        // Filter employees first
-        const filteredEmployees = selectedSiteFilter === 'all' 
+        // Filter employees first (exclude employees not active in selected month)
+        const filteredEmployees = (selectedSiteFilter === 'all' 
           ? employees 
-          : employees.filter(e => e.siteId === selectedSiteFilter);
+          : employees.filter(e => e.siteId === selectedSiteFilter))
+          .filter(e => isEmployeeActiveForMonth(e, selectedMonth, selectedYear));
         
         const filteredSites = selectedSiteFilter === 'all'
           ? sites
@@ -1218,9 +1253,10 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
     try {
       await getExcelJS();
       if ((window as any).generatePayrollExcel) {
-        const employeesToExport = siteId === 'all' 
+        const employeesToExport = (siteId === 'all' 
           ? employees 
-          : employees.filter(e => e.siteId === siteId);
+          : employees.filter(e => e.siteId === siteId))
+          .filter(e => isEmployeeActiveForMonth(e, selectedMonth, selectedYear));
           
         await (window as any).generatePayrollExcel(employeesToExport, attendanceData, selectedMonth, selectedYear, sites);
       } else {
@@ -1232,25 +1268,29 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
     }
   };
 
-  // Filter Employees based on site selection
-  const filteredEmployees = useMemo(() => employees.filter(e => {
-      const matchesSearch = (e.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (e.biometricCode || '').includes(searchTerm);
-      const matchesSite = selectedSiteFilter === 'all' || e.siteId === selectedSiteFilter;
-      
-      // Filter out inactive employees who left before the selected month
-      let isVisible = true;
-      if (e.status === 'Inactive' && e.leavingDate) {
-          const leavingDate = new Date(e.leavingDate);
-          const reportMonthStart = new Date(selectedYear, selectedMonth - 1, 1);
-          
-          // If they left before the start of the current report month, hide them
-          if (leavingDate < reportMonthStart) {
-              isVisible = false;
-          }
+  // Filter Employees based on site selection and dedupe by id
+  const filteredEmployees = useMemo(() => {
+      // Deduplicate employees array by id (keep first occurrence)
+      const seen = new Set<string>();
+      const uniqueEmps: Employee[] = [];
+      for (const e of employees) {
+        if (!e || !e.id) continue;
+        if (seen.has(e.id)) continue;
+        seen.add(e.id);
+        uniqueEmps.push(e);
       }
 
-      return matchesSearch && matchesSite && isVisible;
-  }), [employees, searchTerm, selectedSiteFilter, selectedYear, selectedMonth]);
+      return uniqueEmps.filter(e => {
+        // Exclude deleted/stopped employees immediately
+        if (e.status === 'Deleted' || e.status === 'Stopped') return false;
+
+        const matchesSearch = (e.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (e.biometricCode || '').includes(searchTerm);
+        const matchesSite = selectedSiteFilter === 'all' || e.siteId === selectedSiteFilter;
+        const isVisible = isEmployeeActiveForMonth(e, selectedMonth, selectedYear);
+
+        return matchesSearch && matchesSite && isVisible;
+      });
+  }, [employees, searchTerm, selectedSiteFilter, selectedYear, selectedMonth]);
 
   if (!isAuthenticated) {
     return (
@@ -1435,9 +1475,9 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                     ))}
                                 </select>
                                 <select value={invFilterYear} onChange={(e) => setInvFilterYear(parseInt(e.target.value))} className="border rounded-lg px-3 py-2 text-sm bg-white shadow-sm outline-none focus:ring-2 focus:ring-primary/20">
-                                    <option value="2024">2024</option>
-                                    <option value="2025">2025</option>
-                                    <option value="2026">2026</option>
+                                    {[2024, 2025, 2026, 2027].map(year => (
+                                        <option key={year} value={year}>{year}</option>
+                                    ))}
                                 </select>
                                 <select value={invFilterSite} onChange={(e) => setInvFilterSite(e.target.value)} className="border rounded-lg px-3 py-2 text-sm bg-white shadow-sm outline-none focus:ring-2 focus:ring-primary/20 max-w-[150px]">
                                     <option value="all">All Sites</option>
@@ -1476,7 +1516,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                 <thead className="bg-gray-50 border-b"><tr><th className="p-4">Details</th><th className="p-4">Amount</th><th className="p-4">Status</th><th className="p-4 text-right">Actions</th></tr></thead>
                                 <tbody>
                                     {invoices.filter(inv => {
-                                        const isProforma = inv.invoiceNo.startsWith('PI');
+                                        const isProforma = inv.invoiceNo.startsWith('PI') || inv.status === 'Pending Approval' || inv.status === 'Approved';
                                         if (activeTab === 'invoices-proforma' && !isProforma) return false;
                                         if (activeTab === 'invoices-tax' && isProforma) return false;
 
@@ -1486,7 +1526,9 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                         const matchSite = invFilterSite === 'all' || inv.siteId === invFilterSite;
                                         const matchStatus = invFilterStatus === 'all' || inv.status === invFilterStatus;
                                         return matchMonth && matchYear && matchSite && matchStatus;
-                                    }).map(inv => (
+                                    })
+                                    .sort((a, b) => new Date(b.generatedDate).getTime() - new Date(a.generatedDate).getTime())
+                                    .map(inv => (
                                         <tr key={inv.id} className="border-b hover:bg-gray-50">
                                             <td className="p-4"><div>{inv.siteName}</div><div className="text-xs text-gray-500">{inv.invoiceNo}</div><div className="text-xs text-gray-400">{inv.billingPeriod}</div></td>
                                             <td className="p-4 font-bold">₹{(inv.amount || 0).toLocaleString()}</td>
@@ -1632,9 +1674,9 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                     onChange={(e) => setSelectedYear(parseInt(e.target.value))}
                                     className="bg-transparent text-sm outline-none font-medium text-gray-700 cursor-pointer border-l pl-2"
                                 >
-                                    <option value="2024">2024</option>
-                                    <option value="2025">2025</option>
-                                    <option value="2026">2026</option>
+                                    {[2024, 2025, 2026, 2027].map(year => (
+                                        <option key={year} value={year}>{year}</option>
+                                    ))}
                                 </select>
                             </div>
 
@@ -1991,9 +2033,9 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                     onChange={(e) => setSelectedYear(parseInt(e.target.value))}
                                     className="bg-transparent text-sm outline-none font-medium text-gray-700 cursor-pointer border-l pl-2"
                                 >
-                                    <option value="2024">2024</option>
-                                    <option value="2025">2025</option>
-                                    <option value="2026">2026</option>
+                                    {[2024, 2025, 2026, 2027].map(year => (
+                                        <option key={year} value={year}>{year}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
@@ -2655,6 +2697,23 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
             employees={employees}
             attendanceData={attendanceData}
             sites={sites}
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
+            onSave={async (invoice) => {
+                try {
+                    await addInvoice(invoice);
+                    setInvoices(await getInvoices());
+                    alert("Invoice saved successfully!");
+                    if (invoice.invoiceNo.startsWith('PI') || invoice.status === 'Pending Approval') {
+                        setActiveTabAndHash('invoices-proforma');
+                    } else {
+                        setActiveTabAndHash('invoices-tax');
+                    }
+                } catch (err) {
+                    console.error("Failed to save invoice:", err);
+                    alert("Failed to save invoice record.");
+                }
+            }}
         />
         <QuickDeductionsModal 
             isOpen={showDeductionModal}

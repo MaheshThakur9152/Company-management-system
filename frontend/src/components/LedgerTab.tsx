@@ -37,7 +37,11 @@ const LedgerTab: React.FC<LedgerTabProps> = ({
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(employees.length > 0 ? employees[0].id : '');
   const [selectedExpenseHead, setSelectedExpenseHead] = useState<string>('Salaries');
 
-  const [startDate, setStartDate] = useState<string>(`${new Date().getFullYear()}-04-01`); // Start of financial year
+  const [startDate, setStartDate] = useState<string>(() => {
+    const now = new Date();
+    const year = now.getMonth() < 3 ? now.getFullYear() - 1 : now.getFullYear();
+    return `${year}-04-01`;
+  }); // Start of financial year
   const [endDate, setEndDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [manualEntries, setManualEntries] = useState<ManualLedgerEntry[]>([]);
   const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>([]);
@@ -92,7 +96,7 @@ const LedgerTab: React.FC<LedgerTabProps> = ({
   if (ledgerType === 'client') {
       // --- CLIENT LEDGER LOGIC (Existing) ---
       const allSiteInvoices = invoices.filter(inv => 
-        (selectedSiteId === 'all' || inv.siteId === selectedSiteId) && !inv.invoiceNo.startsWith('PI')
+        (selectedSiteId === 'all' || inv.siteId === selectedSiteId) && !inv.invoiceNo.startsWith('PI') && !inv.invoiceNo.startsWith('ASF/P')
       );
       const allSiteManualEntries = manualEntries.filter(entry => 
         (selectedSiteId === 'all' || entry.siteId === selectedSiteId)
