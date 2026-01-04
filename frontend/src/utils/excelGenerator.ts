@@ -33,6 +33,8 @@ interface BillItem {
 export interface BillParams {
   site: any;
   companyName?: string;
+  /** optional URL (relative to public/) or data URL for the company logo to use in PDFs */
+  companyLogoUrl?: string;
   invoiceType?: string;
   invoiceNo: string;
   date: string;
@@ -99,7 +101,7 @@ export const generateBillExcel = async (params: BillParams) => {
         fitToWidth: 1,
         fitToHeight: 1,
         margins: {
-            left: 0.25, right: 0.25, top: 0.4, bottom: 0.4, header: 0.1, footer: 0.1
+            left: 0.25, right: 0.25, top: 0.25, bottom: 0.25, header: 0.1, footer: 0.1
         },
         horizontalCentered: true
     },
@@ -129,15 +131,19 @@ export const generateBillExcel = async (params: BillParams) => {
   
   const fontBase = { name: 'Aptos Narrow', size: 11, color: { theme: 1 } };
   const fontBold = { name: 'Aptos Narrow', size: 11, bold: true, color: { theme: 1 } };
-  const fontHeader = { name: 'Aptos Narrow', size: 18, color: { argb: 'FFFF0000' }, bold: true };
+  // slightly smaller header font to reduce required row height
+  const fontHeader = { name: 'Aptos Narrow', size: 16, color: { argb: 'FFFF0000' }, bold: true };
 
   // --- Row Heights (Shifted +1 from Book2 analysis because we keep Title at Row 1) ---
-  worksheet.getRow(2).height = 24;    // Ref Row 1
-  worksheet.getRow(14).height = 14.45; // Ref Row 13
+  // reduced row heights to tighten spacing across the header and greeting
+  worksheet.getRow(2).height = 16;    // Ref Row 1 (company name) - adjusted to fit header font
+  // Increase greeting area spacing so it doesn't touch the table below
+  worksheet.getRow(14).height = Math.max(worksheet.getRow(14).height || 12, 24); // Ref Row 13 (greeting) - increased spacing
   worksheet.getRow(16).height = 14.45; // Ref Row 15
-  worksheet.getRow(30).height = 15;    // Ref Row 29
-  worksheet.getRow(32).height = 14.65; // Ref Row 31
-  worksheet.getRow(34).height = 14.65; // Ref Row 33
+  // Increase spacing in the totals/bank area
+  worksheet.getRow(30).height = Math.max(worksheet.getRow(30).height || 15, 18);    // Ref Row 29
+  worksheet.getRow(32).height = Math.max(worksheet.getRow(32).height || 14.65, 18); // Ref Row 31
+  worksheet.getRow(34).height = Math.max(worksheet.getRow(34).height || 14.65, 18); // Ref Row 33
   worksheet.getRow(38).height = 15.75; // Ref Row 37
   worksheet.getRow(39).height = 15;    // Ref Row 38
   worksheet.getRow(41).height = 14.45; // Ref Row 40
@@ -166,6 +172,8 @@ export const generateBillExcel = async (params: BillParams) => {
   cellA2.font = fontHeader;
   cellA2.alignment = { horizontal: 'left', indent: 1 };
   cellA2.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+  // Ensure row height is enough for the header text (prevents clipping)
+  worksheet.getRow(2).height = Math.max(worksheet.getRow(2).height || 15, 22);
   
   // Right side of Row 2 (F-G)
   safeMerge('F2:G2');
@@ -187,9 +195,21 @@ export const generateBillExcel = async (params: BillParams) => {
     const cell = worksheet.getCell(`A${row}`);
     cell.value = line;
     cell.font = fontBase;
-    cell.alignment = { horizontal: 'left', vertical: 'top', indent: 1 };
+    // Allow wrapping and top alignment
+    cell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true, indent: 1 };
     cell.border = { left: { style: 'thin' }, right: { style: 'thin' } };
-    
+
+    // Estimate row height to accommodate wrapping
+    try {
+      const estimatedCharsPerLine = 40; // conservative
+      const linesNeeded = Math.max(1, Math.ceil((line || '').toString().length / estimatedCharsPerLine));
+      const targetRow = worksheet.getRow(row);
+      // use 11px per line to keep addresses compact
+      targetRow.height = Math.max(targetRow.height || 15, linesNeeded * 11);
+    } catch (e) {
+      // ignore
+    }
+
     // Right side F-G
     if (row === 3 || row === 6) {
         safeMerge(`F${row}:G${row}`);
@@ -248,14 +268,23 @@ export const generateBillExcel = async (params: BillParams) => {
   cellA9.alignment = { horizontal: 'left', indent: 1 };
   cellA9.border = { left: { style: 'thin' }, top: { style: 'thin' }, right: { style: 'thin' } };
 
+  // Only show Work Order fields for company names that include "facility"/"facilities"
+  const shouldShowWorkOrder = /facility|facilities/i.test((params.companyName || '').toString());
+
   safeMerge('F9:G9');
   const cellF9 = worksheet.getCell('F9');
-  cellF9.value = "Work Order Ref No. :";
-  cellF9.font = { ...fontBase, size: 10 };
-  cellF9.alignment = { horizontal: 'left', indent: 1 };
-  cellF9.border = { left: { style: 'thin' }, right: { style: 'thin' }, top: { style: 'thin' } };
+  if (shouldShowWorkOrder) {
+    cellF9.value = "Work Order Ref No. :";
+    cellF9.font = { ...fontBase, size: 10 };
+    cellF9.alignment = { horizontal: 'left', indent: 1 };
+    cellF9.border = { left: { style: 'thin' }, right: { style: 'thin' }, top: { style: 'thin' } };
+  } else {
+    // keep the cell but empty so sheet layout remains consistent
+    cellF9.value = '';
+    cellF9.border = { left: { style: 'thin' }, right: { style: 'thin' }, top: { style: 'thin' } };
+  }
 
-  // Row 10: Client Name & Work Order No
+  // Row 10: Client Name & (maybe) Work Order No
   safeMerge('A10:E10');
   const cellA10 = worksheet.getCell('A10');
   cellA10.value = params.site.clientName || "Lokhandwala Minerva CHS LTD (Prop.)"; 
@@ -265,25 +294,46 @@ export const generateBillExcel = async (params: BillParams) => {
 
   safeMerge('F10:G10');
   const cellF10 = worksheet.getCell('F10');
-  cellF10.value = params.workOrderNo;
-  cellF10.font = { name: 'Bookman Old Style', size: 10 };
-  cellF10.alignment = { horizontal: 'center' };
-  cellF10.border = { left: { style: 'thin' }, right: { style: 'thin' }, bottom: { style: 'thin' } };
+  if (shouldShowWorkOrder) {
+    cellF10.value = params.workOrderNo;
+    cellF10.font = { name: 'Bookman Old Style', size: 10 };
+    cellF10.alignment = { horizontal: 'center' };
+    cellF10.border = { left: { style: 'thin' }, right: { style: 'thin' }, bottom: { style: 'thin' } };
+  } else {
+    cellF10.value = '';
+    cellF10.border = { left: { style: 'thin' }, right: { style: 'thin' }, bottom: { style: 'thin' } };
+  }
 
   // Row 11: Client Address & Work Order Period Header
   safeMerge('A11:E11');
   const cellA11 = worksheet.getCell('A11');
   cellA11.value = params.site.location || "J.R. Boricha Marg. Mahalaxmi, Mumbai- 400011.";
   cellA11.font = { ...fontBase, size: 10 };
-  cellA11.alignment = { horizontal: 'left', indent: 1 };
+  // Allow wrapping and vertical top alignment so long addresses don't overflow
+  cellA11.alignment = { horizontal: 'left', vertical: 'top', wrapText: true, indent: 1 };
   cellA11.border = { left: { style: 'thin' }, right: { style: 'thin' } };
+  // Estimate required row height and set it so text doesn't get clipped in Excel
+  try {
+    const estimatedCharsPerLine = 40; // conservative estimate
+    const textLength = (cellA11.value || '').toString().length;
+    const estimatedLines = Math.max(1, Math.ceil(textLength / estimatedCharsPerLine));
+    const targetRow = worksheet.getRow(11);
+    targetRow.height = Math.max(targetRow.height || 15, estimatedLines * 14);
+  } catch (e) {
+    // ignore estimation errors
+  }
 
   safeMerge('F11:G11');
   const cellF11 = worksheet.getCell('F11');
-  cellF11.value = "Work Order Period : ";
-  cellF11.font = fontBase;
-  cellF11.alignment = { horizontal: 'left', indent: 1 };
-  cellF11.border = { left: { style: 'thin' }, right: { style: 'thin' }, top: { style: 'thin' } };
+  if (shouldShowWorkOrder) {
+    cellF11.value = "Work Order Period : ";
+    cellF11.font = fontBase;
+    cellF11.alignment = { horizontal: 'left', indent: 1 };
+    cellF11.border = { left: { style: 'thin' }, right: { style: 'thin' }, top: { style: 'thin' } };
+  } else {
+    cellF11.value = '';
+    cellF11.border = { left: { style: 'thin' }, right: { style: 'thin' }, top: { style: 'thin' } };
+  }
 
   // Row 12: Client GSTIN & Work Order Period Value
   safeMerge('A12:E12');
@@ -295,10 +345,15 @@ export const generateBillExcel = async (params: BillParams) => {
 
   safeMerge('F12:G12');
   const cellF12 = worksheet.getCell('F12');
-  cellF12.value = params.workOrderPeriod;
-  cellF12.font = fontBase;
-  cellF12.alignment = { wrapText: true, horizontal: 'left', indent: 1 };
-  cellF12.border = { left: { style: 'thin' }, right: { style: 'thin' }, bottom: { style: 'thin' } };
+  if (shouldShowWorkOrder) {
+    cellF12.value = params.workOrderPeriod;
+    cellF12.font = fontBase;
+    cellF12.alignment = { wrapText: true, horizontal: 'left', indent: 1 };
+    cellF12.border = { left: { style: 'thin' }, right: { style: 'thin' }, bottom: { style: 'thin' } };
+  } else {
+    cellF12.value = '';
+    cellF12.border = { left: { style: 'thin' }, right: { style: 'thin' }, bottom: { style: 'thin' } };
+  }
 
   // Row 13-14: Greeting Text
   safeMerge('A13:G14');
@@ -307,6 +362,9 @@ export const generateBillExcel = async (params: BillParams) => {
   cellA13.font = fontBase;
   cellA13.alignment = { wrapText: true, vertical: 'top', horizontal: 'left', indent: 1 };
   cellA13.border = { left: { style: 'thin' }, right: { style: 'thin' }, top: { style: 'thin' }, bottom: { style: 'thin' } };
+  // reduce merged greeting height to keep content compact
+  worksheet.getRow(13).height = Math.max(worksheet.getRow(13).height || 12, 12);
+  worksheet.getRow(14).height = Math.max(worksheet.getRow(14).height || 8, 8);
 
   // --- Table Header (Row 15-16) ---
   const headers = ["Sr No", "Description of Services", "HSN \nCode", "Rate", "Working\n Days", "Persons", "Amount \n(RS)"];
@@ -353,7 +411,7 @@ export const generateBillExcel = async (params: BillParams) => {
     currentRow++;
   });
 
-  // Fill empty rows
+  // Fill empty rows — increased to provide extra spacing before totals (matches annotated area)
   while (currentRow < 28) {
     const row = worksheet.getRow(currentRow);
     for (let i = 1; i <= 7; i++) {
@@ -361,8 +419,14 @@ export const generateBillExcel = async (params: BillParams) => {
         cell.value = ''; // Ensure cell is written
         cell.border = { left: { style: 'thin' }, right: { style: 'thin' } };
     }
+    // slightly increase height of spacer rows for better visual gap
+    row.height = Math.max(row.height || 15, 18);
     currentRow++;
   }
+
+  // add an extra spacer row to make sure totals don't crowd the previous section
+  const spacerRow = worksheet.getRow(currentRow);
+  spacerRow.height = Math.max(spacerRow.height || 15, 20);
 
   // --- Totals Section ---
   subTotalRow = currentRow;

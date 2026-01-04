@@ -46,6 +46,61 @@ export const generateBillPDF = async (params: BillParams) => {
     const { jsPDF } = jspdf;
     const doc = new jsPDF();
 
+    // Attempt to load company logo image (if provided). The pdf renderer accepts data URLs or absolute URLs.
+    let companyLogoDataUrl: string | null = null;
+    const tryLoadLogo = async () => {
+        const logoUrl = params.companyLogoUrl || '/ambe-logo.svg';
+        try {
+            const res = await fetch(logoUrl);
+            if (!res.ok) return null;
+            const blob = await res.blob();
+
+            // If SVG, convert to PNG via canvas for jsPDF compatibility
+            if (blob.type === 'image/svg+xml') {
+                const svgText = await blob.text();
+                const svgBlob = new Blob([svgText], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(svgBlob);
+                try {
+                    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+                        const img = new Image();
+                        img.onload = () => resolve(img);
+                        img.onerror = reject;
+                        img.src = url;
+                    });
+                    // Draw to canvas
+                    const canvas = document.createElement('canvas');
+                    // set canvas size proportional to desired width (use natural size)
+                    canvas.width = img.naturalWidth || 640;
+                    canvas.height = img.naturalHeight || 160;
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    URL.revokeObjectURL(url);
+                    return canvas.toDataURL('image/png');
+                } catch (e) {
+                    URL.revokeObjectURL(url);
+                    return null;
+                }
+            }
+
+            // For raster images, return data URL directly
+            return await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = () => reject(new Error('Failed to read logo blob'));
+                reader.readAsDataURL(blob);
+            });
+        } catch (e) {
+            return null;
+        }
+    };
+
+    try {
+        companyLogoDataUrl = await tryLoadLogo();
+    } catch (e) {
+        // ignore logo load errors — we'll fall back to the text header
+        companyLogoDataUrl = null;
+    }
+
     // -- Grid Configuration --
     const margin = 10;
     const pageWidth = 210;
@@ -101,17 +156,37 @@ export const generateBillPDF = async (params: BillParams) => {
         // Text
         if (text) {
             doc.setFont("helvetica", options.bold ? "bold" : "normal");
-            doc.setFontSize(options.fontSize || 9);
+            const fontSize = options.fontSize || 9;
+            doc.setFontSize(fontSize);
             doc.setTextColor(options.color === 'red' ? 255 : 0, 0, 0);
 
+            // X coordinate depending on alignment
             let textX = x + 2;
             if (options.align === 'center') textX = x + w / 2;
             else if (options.align === 'right') textX = x + w - 2;
 
-            let textY = y + 4;
-            if (options.valign === 'middle') textY = y + (height / 2) + 1;
+            // Prepare lines (handle string or string[]), using jsPDF split for wrapping
+            let lines: string[] = [];
+            if (Array.isArray(text)) {
+                text.forEach(t => {
+                    const wrapped = (doc as any).splitTextToSize(String(t), w - 4);
+                    lines = lines.concat(wrapped);
+                });
+            } else {
+                lines = (doc as any).splitTextToSize(String(text), w - 4);
+            }
 
-            doc.text(String(text), textX, textY, { align: options.align || 'left', maxWidth: w - 4 });
+            // compute line height in mm (approx): 1 pt = 0.352777778 mm
+            const lineHeight = fontSize * 0.352777778;
+            let textY = y + 4;
+            if (options.valign === 'middle') {
+                const totalTextHeight = lines.length * lineHeight;
+                // center the block vertically inside the cell
+                textY = y + (height / 2) - (totalTextHeight / 2) + (lineHeight / 2);
+            }
+
+            // Render the (possibly multi-line) text array
+            doc.text(lines, textX, textY, { align: options.align || 'left' });
 
             // Reset color
             doc.setTextColor(0, 0, 0);
@@ -119,35 +194,83 @@ export const generateBillPDF = async (params: BillParams) => {
     };
 
 // --- Row 1: Title ---
-drawCell(0, 7, 8, "TAX INVOICE", { align: 'center', bold: true, fontSize: 14, valign: 'middle' });
-y += 8;
+// If we have a logo, render it on the left and put title on the right to avoid clipping.
+if (companyLogoDataUrl) {
+    try {
+        // place logo within columns 0..2 area
+        const logoX = xCoords[0] + 2;
+        const logoW = xCoords[3] - xCoords[0] - 4; // span cols 0..2
+        const logoH = 14; // mm height for logo
+        // jsPDF supports addImage for data URLs; let the lib auto-detect format
+        (doc as any).addImage(companyLogoDataUrl, 'PNG', logoX, y + 1, logoW, logoH);
+        // Title to the right (cols 3..7)
+        drawCell(3, 4, 12, "TAX INVOICE", { align: 'center', bold: true, fontSize: 14, valign: 'middle' });
+        // Company name below: span cols 0..5 but with extra height
+        drawCell(0, 5, 12, (params.companyName || "AMBE SERVICE FACILITIES PRIVATE LIMITED"), { bold: true, fontSize: 14, color: 'red', valign: 'middle', borders: { bottom: false } });
+        drawCell(5, 2, 12, "", { borders: { bottom: false, left: false } });
+        y += 16;
+    } catch (e) {
+        // If image drawing fails, fallback to existing layout
+        drawCell(0, 7, 8, "TAX INVOICE", { align: 'center', bold: true, fontSize: 14, valign: 'middle' });
+        y += 8;
+        drawCell(0, 5, 12, (params.companyName || "AMBE SERVICE FACILITIES PRIVATE LIMITED"), { bold: true, fontSize: 14, color: 'red', valign: 'middle', borders: { bottom: false } });
+        drawCell(5, 2, 12, "", { borders: { bottom: false, left: false } });
+    }
+} else {
+    drawCell(0, 7, 8, "TAX INVOICE", { align: 'center', bold: true, fontSize: 14, valign: 'middle' });
+    y += 8;
 
-// --- Row 2: Company Name ---
-drawCell(0, 5, 8, "AMBE SERVICE FACILITIES PRIVATE LIMITED", { bold: true, fontSize: 14, color: 'red', valign: 'middle', borders: { bottom: false } });
-drawCell(5, 2, 8, "", { borders: { bottom: false, left: false } }); // Right side empty
-y += 8;
+    // --- Row 2: Company Name ---
+    // ensure company name fits — increase height to avoid clipping
+    drawCell(0, 5, 12, (params.companyName || "AMBE SERVICE FACILITIES PRIVATE LIMITED"), { bold: true, fontSize: 14, color: 'red', valign: 'middle', borders: { bottom: false } });
+    drawCell(5, 2, 12, "", { borders: { bottom: false, left: false } }); // Right side empty
+    y += 12;
+} 
 
 // --- Row 3-6: Address ---
-const addressHeight = 20;
+// compute dynamic height based on wrapped lines so long company addresses fit
 const addressLines = [
     "Shop No - 49 A, Ground Floor, Pooja Enclave CHS Ltd,",
     "Ganesh Nagar, Kandivali (West), Mumbai 400 067.",
     "Contact No: 022 45066566 / 9619607537",
     "Email : contact@ambeservice.com / Website : ambeservice.com"
 ];
-drawCell(0, 5, addressHeight, addressLines, { fontSize: 9, borders: { top: false, bottom: false } });
+// determine available width for columns 0..5
+const leftWidth = xCoords[5] - xCoords[0];
+let addrFontSize = 9;
+let addrLineHeight = addrFontSize * 0.352777778; // pt to mm approx
+let totalAddressLines = 0;
+let wrappedLinesPerLine: string[][] = [];
+addressLines.forEach(line => {
+    const wrapped = (doc as any).splitTextToSize(String(line), leftWidth - 4);
+    wrappedLinesPerLine.push(wrapped);
+    totalAddressLines += wrapped.length;
+});
+let addressHeight = Math.max(20, Math.ceil(totalAddressLines * addrLineHeight) + 6);
+
+// Fallback: if height exceeds a reasonable maximum, reduce font size until it fits
+const maxCompanyAddressHeight = 40; // mm
+while (addressHeight > maxCompanyAddressHeight && addrFontSize > 7) {
+    addrFontSize -= 0.5;
+    addrLineHeight = addrFontSize * 0.352777778;
+    totalAddressLines = 0;
+    wrappedLinesPerLine = [];
+    addressLines.forEach(line => {
+        const wrapped = (doc as any).splitTextToSize(String(line), leftWidth - 4);
+        wrappedLinesPerLine.push(wrapped);
+        totalAddressLines += wrapped.length;
+    });
+    addressHeight = Math.max(20, Math.ceil(totalAddressLines * addrLineHeight) + 6);
+}
+
+drawCell(0, 5, addressHeight, addressLines, { fontSize: addrFontSize, borders: { top: false, bottom: false } });
 
 // Right Side Header Details (Invoice No, Date)
-// We need to split this height into rows manually or just draw text at offsets
-// Let's draw the right box outline
-drawCell(5, 2, addressHeight, "", { borders: { top: false, bottom: false, left: false } });
+// Draw right box with same computed height and render Invoice/Date as wrapped, centered vertically
+const rightHeaderLines = [ `Invoice No : ${params.invoiceNo}`, `Date: ${params.date}` ];
+drawCell(5, 2, addressHeight, rightHeaderLines, { fontSize: 9, valign: 'middle', align: 'left' });
 
-// Draw text inside right box manually
-doc.setFontSize(9);
-doc.text(`Invoice No : ${params.invoiceNo}`, xCoords[5] + 2, y + 5);
-doc.text(`Date: ${params.date}`, xCoords[5] + 2, y + 10);
-
-y += addressHeight;
+y += addressHeight; 
 
 // --- Row 7: CIN ---
 drawCell(0, 5, 6, "CIN NO. : U80200MH2023PTC412420", { valign: 'middle', borders: { top: false } });
@@ -155,24 +278,60 @@ drawCell(5, 2, 6, "", { borders: { top: false, left: false } });
 y += 6;
 
 // --- Row 8: GSTIN & Billing Period ---
+// compute dynamic height for Billing Period so long values wrap correctly
 drawCell(0, 5, 6, "GSTIN : 27AAZCA5609F1ZA", { valign: 'middle' });
-drawCell(5, 2, 6, `Billing Period : ${params.billingPeriod}`, { valign: 'middle' });
-y += 6;
+const bpText = `Billing Period : ${params.billingPeriod}`;
+const rightWidth = xCoords[7] - xCoords[5];
+const bpWrapped = (doc as any).splitTextToSize(bpText, rightWidth - 4);
+const bpFontSize = 9;
+const bpLineHeight = bpFontSize * 0.352777778;
+const bpHeight = Math.max(6, Math.ceil(bpWrapped.length * bpLineHeight) + 4);
+// Draw billing period in its own cell with computed height
+drawCell(5, 2, bpHeight, bpText, { fontSize: bpFontSize, valign: 'middle' });
+
+y += Math.max(6, bpHeight);
 
 // --- Row 9: Headers ---
 drawCell(0, 5, 6, "Name & Add of Party", { fontSize: 8, valign: 'middle' });
-drawCell(5, 2, 6, "Work Order Ref No. :", { fontSize: 8, valign: 'middle' });
+const shouldShowWorkOrder = /facility|facilities/i.test((params.companyName || '').toString());
+if (shouldShowWorkOrder) {
+    drawCell(5, 2, 6, "Work Order Ref No. :", { fontSize: 8, valign: 'middle' });
+} else {
+    drawCell(5, 2, 6, "", { fontSize: 8, valign: 'middle' });
+}
+
 y += 6;
 
 // --- Row 10: Client Name & WO No ---
 drawCell(0, 5, 6, params.site.clientName || "Lokhandwala Minerva CHS LTD (Prop.)", { bold: true, valign: 'middle' });
-drawCell(5, 2, 6, params.workOrderNo, { align: 'center', valign: 'middle' });
+if (shouldShowWorkOrder) {
+    drawCell(5, 2, 6, params.workOrderNo, { align: 'center', valign: 'middle' });
+} else {
+    drawCell(5, 2, 6, "", { align: 'center', valign: 'middle' });
+}
+
 y += 6;
 
 // --- Row 11: Client Addr & WO Period Header ---
-drawCell(0, 5, 6, params.site.location || "J.R. Boricha Marg. Mahalaxmi, Mumbai- 400011.", { fontSize: 8, valign: 'middle' });
-drawCell(5, 2, 6, "Work Order Period : ", { valign: 'middle' });
-y += 6;
+// compute wrapped lines for client address and set height accordingly with fallback
+const clientAddr = params.site.location || "J.R. Boricha Marg. Mahalaxmi, Mumbai- 400011.";
+const clientLeftWidth = xCoords[5] - xCoords[0];
+let clientFontSize = 8;
+let clientLineHeight = clientFontSize * 0.352777778;
+let wrappedClientLinesArr = (doc as any).splitTextToSize(String(clientAddr), clientLeftWidth - 4);
+let clientHeight = Math.max(8, Math.ceil(wrappedClientLinesArr.length * clientLineHeight) + 6);
+const maxClientHeight = 36; // mm, reasonable maximum to avoid layout break
+while (clientHeight > maxClientHeight && clientFontSize > 6) {
+    clientFontSize -= 0.5;
+    clientLineHeight = clientFontSize * 0.352777778;
+    wrappedClientLinesArr = (doc as any).splitTextToSize(String(clientAddr), clientLeftWidth - 4);
+    clientHeight = Math.max(8, Math.ceil(wrappedClientLinesArr.length * clientLineHeight) + 6);
+}
+
+drawCell(0, 5, clientHeight, clientAddr, { fontSize: clientFontSize, valign: 'middle' });
+drawCell(5, 2, clientHeight, "Work Order Period : ", { valign: 'middle' });
+
+y += clientHeight;
 
 // --- Row 12: Client GSTIN & WO Period Value ---
 drawCell(0, 5, 6, `GSTIN : ${params.site.clientGstin || '27AAACL5105AIZ7'}`, { fontSize: 8, valign: 'middle' });
@@ -180,11 +339,12 @@ drawCell(5, 2, 6, params.workOrderPeriod, { valign: 'middle' });
 y += 6;
 
 // --- Row 13: Greeting ---
-drawCell(0, 7, 10, "We thank you very much for valuable interest shown in our organzaion. We would like to submit our bill for providing our services.", { valign: 'top' });
-y += 10;
+// Increased height for greeting so it has breathing room above the items table
+drawCell(0, 7, 14, "We thank you very much for valuable interest shown in our organzaion. We would like to submit our bill for providing our services.", { valign: 'top' });
+y += 14;
 
 // --- Items Header ---
-const headerHeight = 10;
+const headerHeight = 9;
 drawCell(0, 1, headerHeight, "Sr No", { align: 'center', bold: true, valign: 'middle' });
 drawCell(1, 1, headerHeight, "Description of Services", { align: 'center', bold: true, valign: 'middle' });
 drawCell(2, 1, headerHeight, "HSN\nCode", { align: 'center', bold: true, valign: 'middle' });
@@ -195,7 +355,7 @@ drawCell(6, 1, headerHeight, "Amount\n(RS)", { align: 'center', bold: true, vali
 y += headerHeight;
 
 // --- Items ---
-const itemHeight = 6;
+const itemHeight = 5.5;
 let subTotal = 0;
 
 params.items.forEach((item, i) => {
@@ -213,8 +373,8 @@ params.items.forEach((item, i) => {
     y += itemHeight;
 });
 
-// Fill empty rows to push totals down
-    const targetY = 200;
+// Fill empty rows to push totals down — increased space to match requested annotation
+    const targetY = 190;
     while (y + itemHeight < targetY) {
         drawCell(0, 1, itemHeight, "", { borders: { top: false, bottom: false } });
         drawCell(1, 1, itemHeight, "", { borders: { top: false, bottom: false } });
@@ -247,15 +407,16 @@ drawCell(6, 1, 6, mgmtAmt.toFixed(2), { align: 'right', valign: 'middle' });
 y += 6;
 
 // Bank Header
-drawCell(0, 3, 6, "Bank Details", { bold: true, valign: 'middle' });
-drawCell(3, 4, 6, "", { borders: { top: true, bottom: false, left: true, right: true } }); // Empty right block
-y += 6;
+// Added extra vertical space for bank block so it doesn't crowd the item area
+drawCell(0, 3, 9, "Bank Details", { bold: true, valign: 'middle' });
+drawCell(3, 4, 9, "", { borders: { top: true, bottom: false, left: true, right: true } }); // Empty right block
+y += 9;
 
 // Bank Name + Total
-drawCell(0, 3, 6, `Bank Name : ${params.bankDetails?.name || 'Axis bank'}`, { valign: 'middle' });
-drawCell(3, 3, 6, "Total", { bold: true, valign: 'middle' });
-drawCell(6, 1, 6, totalBeforeTax.toFixed(2), { align: 'right', valign: 'middle' });
-y += 6;
+drawCell(0, 3, 9, `Bank Name : ${params.bankDetails?.name || 'Axis bank'}`, { valign: 'middle' });
+drawCell(3, 3, 9, "Total", { bold: true, valign: 'middle' });
+drawCell(6, 1, 9, totalBeforeTax.toFixed(2), { align: 'right', valign: 'middle' });
+y += 9;
 
 // Acc + CGST
 drawCell(0, 3, 6, `Acc no : ${params.bankDetails?.accNo || '924020001871570'}`, { valign: 'middle' });
@@ -270,15 +431,16 @@ drawCell(6, 1, 6, sgstAmt.toFixed(2), { align: 'right', valign: 'middle' });
 y += 6;
 
 // Words Header
-drawCell(0, 3, 6, "Amount Chargeble in words(INR) :", { bold: true, valign: 'middle' });
-drawCell(3, 4, 6, "", { borders: { top: false, bottom: false, left: true, right: true } });
-y += 6;
+// Increase space for amount-in-words and totals area
+drawCell(0, 3, 8, "Amount Chargeble in words(INR) :", { bold: true, valign: 'middle' });
+drawCell(3, 4, 8, "", { borders: { top: false, bottom: false, left: true, right: true } });
+y += 8;
 
 // Words Value + Grand Total
-drawCell(0, 3, 6, numberToWords(grandTotal), { valign: 'middle' });
-drawCell(3, 3, 6, "Total Amount", { bold: true, valign: 'middle' });
-drawCell(6, 1, 6, Math.round(grandTotal).toLocaleString(), { align: 'right', valign: 'middle' });
-y += 6;
+drawCell(0, 3, 10, numberToWords(grandTotal), { valign: 'middle' });
+drawCell(3, 3, 10, "Total Amount", { bold: true, valign: 'middle' });
+drawCell(6, 1, 10, Math.round(grandTotal).toLocaleString(), { align: 'right', valign: 'middle' });
+y += 10;
 
 // Only
 drawCell(0, 3, 6, "Only", { valign: 'middle' });
