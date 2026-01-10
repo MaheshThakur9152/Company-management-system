@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="16dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp"
+    android:backgroundTint="@color/white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="20dp"
+        android:gravity="center_vertical">
+
+        <FrameLayout
+            android:layout_width="48dp"
+            android:layout_height="48dp">
+            <View
+                android:id="@+id/icon_bg"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/circle_orange_bg" />
+            <ImageView
+                android:id="@+id/icon_image"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_file_text"
+                app:tint="@color/orange_600" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="16dp">
+
+            <TextView
+                android:id="@+id/vendor_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Laxmi Hardware"
+                android:textSize="16sp"
+                android:textColor="@color/slate_800"
+                android:fontFamily="sans-serif-black" />
+
+            <TextView
+                android:id="@+id/date_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="20 Dec 2025"
+                android:textSize="11sp"
+                android:textColor="@color/slate_500"
+                android:fontFamily="sans-serif-medium"
+                android:layout_marginTop="4dp" />
+
+            <LinearLayout
+                 android:id="@+id/download_container"
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+                 android:orientation="horizontal"
+                 android:gravity="center_vertical"
+                 android:layout_marginTop="6dp"
+                 android:background="?attr/selectableItemBackground"
+                 android:clickable="true"
+                 android:focusable="true">
+                 
+                 <ImageView
+                     android:layout_width="14dp"
+                     android:layout_height="14dp"
+                     android:src="@drawable/ic_download"
+                     app:tint="@color/orange_500" />
+                 
+                 <TextView
+                     android:layout_width="wrap_content"
+                     android:layout_height="wrap_content"
+                     android:text="Download Invoice"
+                     android:textSize="11sp"
+                     android:textColor="@color/orange_500"
+                     android:fontFamily="sans-serif-medium"
+                     android:layout_marginStart="4dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="end">
+
+            <TextView
+                android:id="@+id/amount_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="₹ 15,400"
+                android:textSize="16sp"
+                android:textColor="@color/slate_800"
+                android:fontFamily="sans-serif-black" />
+
+            <TextView
+                android:id="@+id/status_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Due Today"
+                android:textSize="10sp"
+                android:textColor="@color/orange_600"
+                android:fontFamily="sans-serif-black"
+                android:background="@drawable/rounded_orange_bg"
+                android:padding="6dp"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.cardview.widget.CardView>
