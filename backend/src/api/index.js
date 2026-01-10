@@ -4,6 +4,7 @@ const connectToDatabase = require('../utils/db');
 const http = require('http');
 const { Server } = require('socket.io');
 const app = require('../app');
+const { generateBillExcel } = require('../utils/excelGenerator');
 
 // Local helpers & models used by API routes below
 const upload = require('../middleware/upload');
@@ -444,6 +445,58 @@ const JobRole = require('../models/JobRole');
       try { io.emit('data_update', { type: 'invoices' }); } catch (emitErr) { console.error('Socket emit failed for invoices', emitErr); }
       res.json(invoice);
     } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get('/api/invoices/:id/download', async (req, res) => {
+    try {
+      const invoice = await Invoice.findOne({ id: req.params.id }) || await Invoice.findOne({ invoiceNo: req.params.id });
+      // Fallback search by invoiceNo if id not found, though typically id is passed.
+
+      if (!invoice) return res.status(404).json({ error: "Invoice not found" });
+
+      const site = await Site.findOne({ id: invoice.siteId });
+
+      // Construct params for generator
+      // Use site defaults if invoice doesn't store them (Invoice schema is lean)
+      const params = {
+        site: site ? {
+          name: site.name,
+          location: site.location,
+          clientName: site.clientName,
+          clientGstin: site.clientGstin,
+          id: site.id
+        } : {},
+        invoiceNo: invoice.invoiceNo,
+        date: invoice.generatedDate ? new Date(invoice.generatedDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('en-GB'),
+        billingPeriod: invoice.billingPeriod,
+        workOrderNo: site ? site.workOrderNo : '',
+        workOrderDate: site ? site.workOrderDate : '',
+        workOrderPeriod: site ? `${site.workOrderDate || ''}-${site.workOrderEndDate || ''}` : '',
+        items: invoice.items,
+        managementRate: invoice.managementRate || 5,
+        cgstRate: 9, // Defaults as these aren't in Invoice model explicitly but usually 9
+        sgstRate: 9,
+        amount: invoice.amount,
+        subTotal: invoice.subTotal,
+        // Default bank details if not stored
+        bankDetails: {
+          name: 'Axis bank',
+          accNo: '924020001871570',
+          ifsc: 'UTIB0001572',
+          branch: 'kandivali west,Link Road.'
+        }
+      };
+
+      const buffer = await generateBillExcel(params);
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=${invoice.invoiceNo.replace(/\//g, '-')}.xlsx`);
+      res.send(buffer);
+
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: e.message });
+    }
   });
 
   // Ledger

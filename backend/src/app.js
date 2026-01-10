@@ -133,4 +133,7 @@ app.post('/api/uploads/images', uploadLimiter, upload.array('photos', 100), asyn
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Voice AI Route
+app.use('/api/voice', require('./api/voice'));
+
 module.exports = app;
