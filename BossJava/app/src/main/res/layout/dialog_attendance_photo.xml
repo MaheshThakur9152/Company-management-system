@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="@drawable/bg_modal_gradient">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="20dp">
+
+        <!-- Avatar -->
+        <FrameLayout
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="12dp">
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_avatar_square"/>
+            <TextView
+                android:id="@+id/modal_avatar_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="GA"
+                android:textSize="16sp"
+                android:textColor="#111827"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-black"/>
+        </FrameLayout>
+
+        <!-- Info -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/modal_employee_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Gajarabai"
+                android:textSize="18sp"
+                android:textColor="#111827"
+                android:fontFamily="sans-serif-black"/>
+            <TextView
+                android:id="@+id/modal_date_site"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="10/01/2026 • MARUTI GATE 2"
+                android:textSize="10sp"
+                android:textColor="#6B7280"
+                android:fontFamily="sans-serif-bold"
+                android:textAllCaps="true"
+                android:letterSpacing="0.05"/>
+        </LinearLayout>
+
+        <!-- Close Button -->
+        <ImageButton
+            android:id="@+id/close_modal"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/circle_white_bg"
+            android:backgroundTint="#80FFFFFF"
+            android:src="@drawable/ic_close"
+            app:tint="#6B7280"
+            android:padding="6dp"/>
+    </LinearLayout>
+
+    <!-- Photo Container -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="400dp"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#E5E7EB">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <ImageView
+                android:id="@+id/modal_photo"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"/>
+            
+            <!-- GPS Badge -->
+            <LinearLayout
+                android:id="@+id/gps_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|end"
+                android:layout_margin="16dp"
+                android:background="@drawable/bg_gps_secure"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp">
+                
+                <View
+                    android:layout_width="6dp"
+                    android:layout_height="6dp"
+                    android:background="@drawable/circle_white_bg"
+                    android:backgroundTint="#4ADE80" 
+                    android:layout_marginEnd="6dp"/>
+                    
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="GPS SECURE"
+                    android:textColor="@color/white"
+                    android:textSize="10sp"
+                    android:fontFamily="sans-serif-bold"
+                    android:letterSpacing="0.1"/>
+            </LinearLayout>
+
+            <!-- Verification Text -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|start"
+                android:layout_margin="16dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:alpha="0.7">
+                
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_check" 
+                    app:tint="#111827"
+                    android:background="@drawable/circle_white_bg"
+                    android:backgroundTint="#FFFFFF"
+                    android:padding="2dp"
+                    android:layout_marginEnd="8dp"/>
+                    
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="AMBE BOSS VERIFIED"
+                    android:textColor="#FFFFFF"
+                    android:textSize="10sp"
+                    android:fontFamily="sans-serif-black"
+                    android:letterSpacing="0.1"
+                    android:shadowColor="#000000"
+                    android:shadowDy="1"
+                    android:shadowRadius="2"/>
+            </LinearLayout>
+
+        </FrameLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Footer Actions -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="20dp"
+        android:gravity="center">
+
+        <LinearLayout
+            android:id="@+id/btn_share_download"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_dark_button"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_upload" 
+                android:rotation="180" 
+                app:tint="@color/white"
+                android:layout_marginEnd="8dp"/>
+                <!-- Using rotated upload as download if ic_download behaves oddly or to match style -->
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DOWNLOAD / SHARE"
+                android:textColor="@color/white"
+                android:fontFamily="sans-serif-black"
+                android:textSize="12sp"
+                android:letterSpacing="0.05"/>
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>

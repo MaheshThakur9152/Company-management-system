@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F8FAFC">
+
+    <!-- Header Section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@color/white"
+        android:paddingBottom="20dp"
+        android:elevation="2dp">
+
+        <!-- Top Bar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="20dp">
+
+            <ImageButton
+                android:id="@+id/back_button"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/circle_slate_bg"
+                android:src="@drawable/ic_chevron_left"
+                app:tint="#4B5563" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Attendance Grid"
+                    android:textSize="20sp"
+                    android:textColor="#111827"
+                    android:fontFamily="sans-serif-black" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="2dp">
+                    
+                    <View
+                        android:layout_width="6dp"
+                        android:layout_height="6dp"
+                        android:background="@drawable/circle_green_light_bg"
+                        android:backgroundTint="#22C55E"/>
+                        
+                    <TextView
+                        android:id="@+id/subtitle_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=" SYSTEM ONLINE"
+                        android:textSize="11sp"
+                        android:textColor="#A855F7"
+                        android:fontFamily="sans-serif-black"
+                        android:letterSpacing="0.05"
+                        android:layout_marginStart="4dp"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Month Filter Button -->
+            <LinearLayout
+                android:id="@+id/btn_month_filter"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_dark_button"
+                android:gravity="center"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_calendar_white"
+                    android:layout_marginEnd="8dp"/>
+
+                <TextView
+                    android:id="@+id/header_month_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="JAN 2026"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif-black"
+                    android:textAllCaps="true"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Site Chips -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:clipToPadding="false"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:layout_marginBottom="24dp">
+            
+            <LinearLayout
+                android:id="@+id/site_chips_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <!-- Site Chips added programmatically -->
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <!-- Toggle Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:layout_marginBottom="24dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_gray_light_rounded"
+                android:orientation="horizontal"
+                android:padding="4dp">
+
+                <TextView
+                    android:id="@+id/btn_view_daily"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="DAILY"
+                    android:textSize="12sp"
+                    android:textColor="#111827"
+                    android:fontFamily="sans-serif-black"
+                    android:background="@drawable/rounded_white"/>
+
+                <TextView
+                    android:id="@+id/btn_view_monthly"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="MONTHLY"
+                    android:textSize="12sp"
+                    android:textColor="#6B7280"
+                    android:fontFamily="sans-serif-black"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Date Strip (New Addition) -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:clipToPadding="false">
+            
+            <LinearLayout
+                android:id="@+id/date_strip_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <!-- Dates added programmatically -->
+            </LinearLayout>
+        </HorizontalScrollView>
+
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <!-- Day Header & Status -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="16dp">
+                    
+                    <TextView
+                        android:id="@+id/text_date_display"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="January 10, 2026"
+                        android:textSize="20sp"
+                        android:textColor="#111827"
+                        android:fontFamily="sans-serif-black"/>
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="STATUS: OPERATIONAL"
+                        android:textSize="12sp"
+                        android:textColor="#9CA3AF"
+                        android:fontFamily="sans-serif-black"
+                        android:letterSpacing="0.05"
+                        android:layout_marginTop="4dp"/>
+                </LinearLayout>
+
+                <!-- Stats: Present / Absent -->
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:scrollbars="none"
+                    android:clipToPadding="false">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                    <!-- Total -->
+                    <LinearLayout
+                        android:layout_width="80dp"
+                        android:layout_height="50dp"
+                        android:background="@drawable/bg_gray_light_rounded"
+                        android:backgroundTint="#F0F9FF"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:layout_marginEnd="12dp">
+                        
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="TOTAL"
+                            android:textSize="10sp"
+                            android:textColor="#0EA5E9"
+                            android:fontFamily="sans-serif-black"/>
+                        <TextView
+                            android:id="@+id/stat_total"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="16sp"
+                            android:textColor="#0369A1"
+                            android:fontFamily="sans-serif-black"/>
+                    </LinearLayout>
+
+                    <!-- Present -->
+                    <LinearLayout
+                        android:layout_width="80dp"
+                        android:layout_height="50dp"
+                        android:background="@drawable/bg_status_present"
+                        android:backgroundTint="#ECFDF5"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:layout_marginEnd="12dp">
+                        
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="PRESENT"
+                            android:textSize="10sp"
+                            android:textColor="#34D399"
+                            android:fontFamily="sans-serif-black"/>
+                        <TextView
+                            android:id="@+id/stat_present"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="8"
+                            android:textSize="16sp"
+                            android:textColor="#15803D"
+                            android:fontFamily="sans-serif-black"/>
+                    </LinearLayout>
+
+                    <!-- Absent -->
+                    <LinearLayout
+                        android:layout_width="80dp"
+                        android:layout_height="50dp"
+                        android:background="@drawable/bg_status_absent"
+                        android:backgroundTint="#FEF2F2"
+                        android:orientation="vertical"
+                        android:gravity="center">
+                        
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="ABSENT"
+                            android:textSize="10sp"
+                            android:textColor="#F87171"
+                            android:fontFamily="sans-serif-black"/>
+                        <TextView
+                            android:id="@+id/stat_absent"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="16sp"
+                            android:textColor="#B91C1C"
+                            android:fontFamily="sans-serif-black"/>
+                    </LinearLayout>
+
+                    <!-- No Data -->
+                    <LinearLayout
+                        android:layout_width="80dp"
+                        android:layout_height="50dp"
+                        android:background="@drawable/bg_gray_light_rounded"
+                        android:backgroundTint="#F3F4F6"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:layout_marginStart="12dp">
+                        
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="NO DATA"
+                            android:textSize="10sp"
+                            android:textColor="#9CA3AF"
+                            android:fontFamily="sans-serif-black"/>
+                        <TextView
+                            android:id="@+id/stat_no_data"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="16sp"
+                            android:textColor="#4B5563"
+                            android:fontFamily="sans-serif-black"/>
+                    </LinearLayout>
+                    </LinearLayout>
+                </HorizontalScrollView>
+            </LinearLayout>
+
+            <!-- Recycler View -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/attendance_recycler_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"/>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Floating Action Button -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_add"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal" 
+        android:layout_marginBottom="24dp"
+        android:src="@drawable/ic_mic"
+        app:tint="@color/white"
+        app:backgroundTint="#D946EF" 
+        app:elevation="6dp"
+        app:fabSize="normal" />
+        <!-- Note: Image shows Mic icon in purple circle at bottom center. I'll use mic or plus.
+             Uploaded image 2 shows a centered Mic button. Uploaded image 1 shows "+" button on right.
+             Wait, "uploaded_image_2" (bottom part) shows "+".
+             "uploaded_image_0" shows "+" on right? No, standard bottom nav.
+             Actually the screenshot shows a very styled bottom bar with Mic in middle.
+             "Voice" button.
+             I'll ignore the bottom bar changes as user task usually focuses on Content.
+             But I will add the "+" FAB at bottom right as per "uploaded_image_1".
+        -->
+
+</LinearLayout>
