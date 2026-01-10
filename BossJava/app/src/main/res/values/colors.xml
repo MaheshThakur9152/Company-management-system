@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Background -->
+    <color name="background">#F3F5F9</color>
+    <color name="white">#FFFFFF</color>
+    
+    <!-- Slate Colors -->
+    <color name="slate_50">#F8FAFC</color>
+    <color name="slate_100">#F1F5F9</color>
+    <color name="slate_200">#E2E8F0</color>
+    <color name="slate_300">#CBD5E1</color>
+    <color name="slate_400">#94A3B8</color>
+    <color name="slate_500">#64748B</color>
+    <color name="slate_600">#475569</color>
+    <color name="slate_700">#334155</color>
+    <color name="slate_800">#1E293B</color>
+    <color name="slate_900">#0F172A</color>
+    
+    <!-- Purple Colors -->
+    <color name="purple_50">#FAF5FF</color>
+    <color name="purple_100">#F3E8FF</color>
+    <color name="purple_200">#D8B4FE</color>
+    <color name="purple_300">#C084FC</color>
+    <color name="purple_400">#A855F7</color>
+    <color name="purple_500">#9333EA</color>
+    <color name="purple_600">#9333EA</color>
+    <color name="purple_700">#7E22CE</color>
+    
+    <!-- Pink Colors -->
+    <color name="pink_400">#F472B6</color>
+    <color name="pink_500">#EC4899</color>
+    
+    <!-- Blue Colors -->
+    <color name="blue_50">#EFF6FF</color>
+    <color name="blue_100">#DBEAFE</color>
+    <color name="blue_500">#3B82F6</color>
+    
+    <!-- Green Colors -->
+    <color name="green_50">#F0FDF4</color>
+    <color name="green_100">#DCFCE7</color>
+    <color name="green_400">#4ADE80</color>
+    <color name="green_500">#22C55E</color>
+    
+    <!-- Red Colors -->
+    <color name="red_50">#FEF2F2</color>
+    <color name="red_100">#FEE2E2</color>
+    <color name="red_500">#EF4444</color>
+    
+    <!-- Orange Colors -->
+    <color name="orange_50">#FFF7ED</color>
+    <color name="orange_100">#FFEDD5</color>
+    <color name="orange_500">#F97316</color>
+    <color name="orange_600">#EA580C</color>
+    
+    <!-- Indigo Colors -->
+    <color name="indigo_50">#EEF2FF</color>
+    <color name="indigo_100">#E0E7FF</color>
+    <color name="indigo_500">#6366F1</color>
+    <color name="indigo_600">#4F46E5</color>
+    <color name="indigo_700">#4338CA</color>
+    
+    <!-- Yellow Colors -->
+    <color name="yellow_100">#FEF3C7</color>
+    <color name="yellow_200">#FDE68A</color>
+</resources>
