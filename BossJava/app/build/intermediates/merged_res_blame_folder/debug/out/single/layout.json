@@ -1,0 +1,70 @@
+[
+    {
+        "merged": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-mergeDebugResources-31:/layout/item_attendance_row.xml",
+        "source": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-main-34:/layout/item_attendance_row.xml"
+    },
+    {
+        "merged": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-mergeDebugResources-31:/layout/fragment_attendance.xml",
+        "source": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-main-34:/layout/fragment_attendance.xml"
+    },
+    {
+        "merged": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-mergeDebugResources-31:/layout/fragment_profit_loss.xml",
+        "source": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-main-34:/layout/fragment_profit_loss.xml"
+    },
+    {
+        "merged": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-mergeDebugResources-31:/layout/fragment_advance.xml",
+        "source": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-main-34:/layout/fragment_advance.xml"
+    },
+    {
+        "merged": "com.boss.app-mergeDebugResources-31:/layout/activity_main.xml",
+        "source": "com.boss.app-main-34:/layout/activity_main.xml"
+    },
+    {
+        "merged": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-mergeDebugResources-31:/layout/fragment_live_voice.xml",
+        "source": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-main-34:/layout/fragment_live_voice.xml"
+    },
+    {
+        "merged": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-mergeDebugResources-31:/layout/fragment_bills.xml",
+        "source": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-main-34:/layout/fragment_bills.xml"
+    },
+    {
+        "merged": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-mergeDebugResources-31:/layout/notification_custom.xml",
+        "source": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-main-34:/layout/notification_custom.xml"
+    },
+    {
+        "merged": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-mergeDebugResources-31:/layout/item_attendance.xml",
+        "source": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-main-34:/layout/item_attendance.xml"
+    },
+    {
+        "merged": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-mergeDebugResources-31:/layout/activity_main.xml",
+        "source": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-main-34:/layout/activity_main.xml"
+    },
+    {
+        "merged": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-mergeDebugResources-31:/layout/item_attendance_card.xml",
+        "source": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-main-34:/layout/item_attendance_card.xml"
+    },
+    {
+        "merged": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-mergeDebugResources-31:/layout/dialog_attendance_photo.xml",
+        "source": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-main-34:/layout/dialog_attendance_photo.xml"
+    },
+    {
+        "merged": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-mergeDebugResources-31:/layout/item_advance.xml",
+        "source": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-main-34:/layout/item_advance.xml"
+    },
+    {
+        "merged": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-mergeDebugResources-31:/layout/fragment_dashboard.xml",
+        "source": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-main-34:/layout/fragment_dashboard.xml"
+    },
+    {
+        "merged": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-mergeDebugResources-31:/layout/item_bill.xml",
+        "source": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-main-34:/layout/item_bill.xml"
+    },
+    {
+        "merged": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-mergeDebugResources-31:/layout/dialog_calendar_filter.xml",
+        "source": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-main-34:/layout/dialog_calendar_filter.xml"
+    },
+    {
+        "merged": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-mergeDebugResources-31:/layout/item_site_chip.xml",
+        "source": "/home/mahesh/.gradle/daemon/8.2/com.boss.app-main-34:/layout/item_site_chip.xml"
+    }
+]
