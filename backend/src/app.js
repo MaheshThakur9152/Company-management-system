@@ -31,6 +31,16 @@ const app = express();
 
 app.set('trust proxy', 1); // Trust first proxy (required for express-rate-limit behind proxy)
 
+// Debug middleware: log requests that include X-Forwarded-For so we can see
+// which clients send that header and what the app trust proxy setting is.
+app.use((req, res, next) => {
+  if (req.headers['x-forwarded-for']) {
+    console.warn('X-Forwarded-For header present:', req.headers['x-forwarded-for']);
+    console.warn('app.get("trust proxy") =', req.app.get('trust proxy'), 'req.ip =', req.ip);
+  }
+  next();
+});
+
 app.use(cookieParser());
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '15mb' }));

@@ -1,6 +1,7 @@
 const rateLimit = require('express-rate-limit');
 
 function createLimiter({ windowMs = 60 * 1000, max = 30, message } = {}) {
+  console.log('createLimiter: windowMs=' + windowMs + ', max=' + max + ', validate=false, keyGenerator=explicit');
   return rateLimit({
     windowMs,
     max,
