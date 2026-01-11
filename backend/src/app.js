@@ -29,6 +29,8 @@ cloudinary.config({
 
 const app = express();
 
+app.set('trust proxy', 1); // Trust first proxy (required for express-rate-limit behind proxy)
+
 app.use(cookieParser());
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '15mb' }));
