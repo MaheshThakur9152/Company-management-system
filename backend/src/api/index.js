@@ -79,7 +79,7 @@ const JobRole = require('../models/JobRole');
     }
   }
 
-  const attendanceLimiter = createLimiter({ windowMs: 60 * 1000, max: 60, message: 'Too many attendance syncs, slow down.' });
+  const attendanceLimiter = createLimiter({ windowMs: 60 * 1000, max: 150, message: 'Too many attendance syncs, slow down.' });
   app.post('/api/attendance/sync', attendanceLimiter, async (req, res) => {
     try {
       const records = req.body;
