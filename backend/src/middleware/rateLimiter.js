@@ -7,7 +7,9 @@ function createLimiter({ windowMs = 60 * 1000, max = 30, message } = {}) {
     standardHeaders: true,
     legacyHeaders: false,
     message: message || 'Too many requests, please try again later.',
-    validate: { xForwardedForHeader: false }
+    // Disable internal validations so the middleware doesn't throw on unexpected
+    // X-Forwarded-For headers. The app already sets `trust proxy` in `app.js`.
+    validate: false
   });
 }
 
