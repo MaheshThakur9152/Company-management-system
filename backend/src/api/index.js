@@ -707,40 +707,40 @@ const JobRole = require('../models/JobRole');
   // Compatibility endpoint for the Supervisor Android app which expects
   // `/api/supervisor/login` and sends `username` instead of `email`.
   app.post('/api/supervisor/login', async (req, res) => {
-    const { username, password, deviceId } = req.body;
-    // Normalize to same behaviour as /api/login
-    const email = username;
+    const { username, password, deviceId, deviceName } = req.body;
+
     if (mongoose.connection.readyState !== 1) {
-      if (email === 'ambe' || email === 'admin@ambeservice.com') {
-        return res.json({ userId: 'ambe', name: 'Ambe Admin (Offline)', role: 'admin', token: 'mock-token' });
-      }
       return res.status(503).json({ error: 'Database not connected' });
     }
-    try {
-      const regex = new RegExp(`^${escapeRegex(email.trim())}$`, 'i');
-      let user = await User.findOne({ $or: [{ email: { $regex: regex } }, { userId: { $regex: regex } }] });
-      if (user && user.password === password) {
-        if (deviceId && Array.isArray(user.trustedDevices) && user.trustedDevices.includes(deviceId)) {
-          const token = jwt.sign({ userId: user.userId, role: user.role }, process.env.JWT_SECRET || 'default_secret', { expiresIn: '24h' });
-          const { token: refreshPlain, hash: refreshHash } = generateRefreshToken();
-          await addRefreshTokenForUser(user, refreshHash, deviceId);
-          setAuthCookie(res, token);
-          setRefreshCookie(res, refreshPlain);
-          const safeUser = { ...user.toObject() };
-          delete safeUser.password; delete safeUser.refreshTokens; delete safeUser.otp; delete safeUser.otpExpires;
-          return res.json({ success: true, message: 'Logged in', ...safeUser, token });
-        }
 
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        console.log(`Login OTP for ${user.userId || user.email}: ${otp}`);
-        user.otp = otp;
-        user.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
-        await user.save();
-        await sendOtpEmail(user, otp);
-        return res.json({ requireOtp: true, userId: user.userId });
+    try {
+      const regex = new RegExp(`^${escapeRegex((username || '').trim())}$`, 'i');
+      const site = await Site.findOne({ username: { $regex: regex } });
+      if (!site || String(site.password) !== String(password)) {
+        return res.status(401).json({ error: 'Invalid credentials' });
       }
-      res.status(401).json({ error: 'Invalid credentials' });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+
+      // Optionally bind the device to the site for trusted-device flow
+      if (deviceId) {
+        site.deviceId = deviceId;
+        if (deviceName) site.deviceName = deviceName;
+        try { await site.save(); } catch (err) { console.warn('Failed to save site device binding', err.message); }
+      }
+
+      // Return a lightweight user-like object expected by the Android app
+      const response = {
+        userId: site.id,
+        name: site.name,
+        role: 'supervisor',
+        assignedSites: [site.id],
+        email: site.clientEmail || ''
+      };
+
+      return res.json(response);
+    } catch (e) {
+      console.error('/api/supervisor/login error', e);
+      return res.status(500).json({ error: e.message });
+    }
   });
 
   app.post('/api/login', async (req, res) => {
