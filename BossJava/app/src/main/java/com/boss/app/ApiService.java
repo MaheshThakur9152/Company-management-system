@@ -16,7 +16,12 @@ import java.util.List;
 import java.util.Map;
 
 public class ApiService {
-    private static final String BASE_URL = "http://192.168.1.96:3002/api";
+    private static final String BASE_URL = "https://api.ambeservice.com/api";
+
+    // Expose base URL for other modules (e.g., Live Voice)
+    public static String getBaseApiUrl() {
+        return BASE_URL;
+    }
     private static final String TAG = "ApiService";
 
     public interface ApiCallback<T> {

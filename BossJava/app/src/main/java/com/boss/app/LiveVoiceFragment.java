@@ -45,7 +45,8 @@ public class LiveVoiceFragment extends Fragment {
 
     private static final String TAG = "LiveVoiceFragment";
     private static final int PERMISSION_REQ_CODE = 200;
-    private static final String BACKEND_URL = "http://192.168.1.96:3002/api/voice/process";
+    // Use central ApiService base URL so the voice endpoint works in production
+    private static final String BACKEND_URL = ApiService.getBaseApiUrl() + "/voice/process";
 
     private NavigationListener navigationListener;
     private FloatingActionButton micButton;
