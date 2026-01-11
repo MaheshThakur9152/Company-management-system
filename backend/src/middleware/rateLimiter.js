@@ -6,7 +6,8 @@ function createLimiter({ windowMs = 60 * 1000, max = 30, message } = {}) {
     max,
     standardHeaders: true,
     legacyHeaders: false,
-    message: message || 'Too many requests, please try again later.'
+    message: message || 'Too many requests, please try again later.',
+    validate: { xForwardedForHeader: false }
   });
 }
 
