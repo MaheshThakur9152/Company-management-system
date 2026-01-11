@@ -41,6 +41,23 @@ app.use((req, res, next) => {
   next();
 });
 
+// Temporary fix: sanitize suspicious forwarding headers if `trust proxy` is not set.
+// This prevents express-rate-limit from throwing when a client erroneously sets
+// X-Forwarded-For but the app isn't configured to trust proxies.
+app.use((req, res, next) => {
+  try {
+    if (req.headers['x-forwarded-for'] && req.app.get('trust proxy') === false) {
+      console.warn('Sanitizing X-Forwarded-For and related headers because trust proxy is false');
+      delete req.headers['x-forwarded-for'];
+      delete req.headers['forwarded'];
+      delete req.headers['x-real-ip'];
+    }
+  } catch (err) {
+    console.error('Header sanitization failed', err);
+  }
+  next();
+});
+
 app.use(cookieParser());
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '15mb' }));
