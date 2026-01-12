@@ -1111,6 +1111,18 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
         alert(message);
         if (type === 'Proforma') setActiveTabAndHash('invoices-proforma');
         else setActiveTabAndHash('invoices-tax');
+
+        // If a single site was selected, automatically download the combined workbook
+        if (selectedSiteFilter && selectedSiteFilter !== 'all') {
+            const siteForDownload = sites.find(s => s.id === selectedSiteFilter);
+            if (siteForDownload) {
+                try {
+                    await downloadInvoicesForSite(siteForDownload.id, siteForDownload.name);
+                } catch (e) {
+                    console.error('Auto-download failed:', e);
+                }
+            }
+        }
     } else {
         let message = "No invoices generated.\n";
         if (skippedSites.length > 0) {
@@ -1218,6 +1230,27 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
     } catch (error) {
       console.error("Failed to generate Excel:", error);
       alert("Failed to generate Excel file.");
+    }
+  };
+
+  // --- DOWNLOAD MULTI-INVOICE WORKBOOK ---
+  const downloadInvoicesForSite = async (siteId: string, siteName: string) => {
+    try {
+      setLoadingInvoices(true);
+      const resp = await fetch(`${API_URL}/api/invoices/export?siteId=${encodeURIComponent(siteId)}&month=${selectedMonth}&year=${selectedYear}`, { credentials: 'include' });
+      if (!resp.ok) {
+        const txt = await resp.text();
+        throw new Error(`Export failed: ${resp.status} ${txt}`);
+      }
+      const blob = await resp.blob();
+      const saveAs = await getSaveAs();
+      const fileName = `Invoices_${siteName.replace(/\s+/g, '_')}_${new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'short' })}_${selectedYear}.xlsx`;
+      saveAs(blob, fileName);
+    } catch (e) {
+      console.error('Download invoices failed', e);
+      alert('Failed to download invoices: ' + (e && e.message ? e.message : String(e)));
+    } finally {
+      setLoadingInvoices(false);
     }
   };
 
