@@ -1162,59 +1162,9 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
       const saveAs = await getSaveAs();
       const filename = `${(invoice.invoiceNo || invoice.id).replace(/\//g, '-').replace(/[^a-zA-Z0-9_\-.]/g, '_')}.xlsx`;
       saveAs(blob, filename);
-      return;
     } catch (serverErr) {
-      console.warn('Server download failed, falling back to client-side generation:', serverErr);
-      // Fallback to client-side generator to keep UX smooth (older behaviour)
-    }
-
-    // Fallback: regenerate on client (existing flow)
-    let site = sites.find(s => s.id === invoice.siteId);
-    // If site not found in current state, try to fetch fresh sites
-    if (!site) {
-      const freshSites = await getSites();
-      site = freshSites.find(s => s.id === invoice.siteId);
-      if (site) setSites(freshSites);
-    }
-    if (!site) {
-      alert("Site details not found for this invoice. Please refresh and try again.");
-      return;
-    }
-
-    // Determine Company Name
-    const companyName = site.companyName || ((
-        site.name.toLowerCase().includes('ajmera') || 
-        site.name.toLowerCase().includes('minerva ho') || 
-        site.name.toLowerCase().includes('lift operator')
-    ) ? 'AMBE SERVICE FACILITIES PRIVATE LIMITED' : 'AMBE SERVICE');
-
-    try {
-      await getExcelJS(); // Ensure ExcelJS is loaded
-      await generateBillExcel({
-        site: site,
-        companyName: companyName,
-        invoiceType: invoice.invoiceNo.startsWith('PI') ? 'PROFORMA INVOICE' : 'TAX INVOICE',
-        invoiceNo: invoice.invoiceNo,
-        date: new Date(invoice.generatedDate).toLocaleDateString('en-GB'),
-        billingPeriod: invoice.billingPeriod,
-        workOrderNo: site.workOrderNo || "WO/2024-25/001", 
-        workOrderDate: site.workOrderDate ? new Date(site.workOrderDate).toLocaleDateString('en-GB') : "01/04/2024",
-        workOrderPeriod: site.workOrderEndDate ? `Valid till ${new Date(site.workOrderEndDate).toLocaleDateString('en-GB')}` : "N/A",
-        items: invoice.items.map(i => ({
-          description: i.description,
-          hsn: i.hsn || '9985',
-          rate: i.rate,
-          workingDays: i.days || 0,
-          persons: i.persons || 0,
-          amount: i.amount
-        })),
-        managementRate: invoice.managementRate || 10,
-        cgstRate: 9,
-        sgstRate: 9
-      });
-    } catch (error) {
-      console.error("Failed to generate Excel:", error);
-      alert("Failed to generate Excel file (both server & client generation failed). See console for details.");
+      console.error('Server download failed:', serverErr);
+      alert(`Failed to download invoice from server: ${serverErr instanceof Error ? serverErr.message : String(serverErr)}`);
     }
   };
 
