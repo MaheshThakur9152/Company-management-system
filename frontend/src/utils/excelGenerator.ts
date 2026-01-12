@@ -611,13 +611,16 @@ export const generateBillExcel = async (params: BillParams) => {
     }
 
     // Sanitize site name for filename
-    const sanitizedSiteName = params.site.name
-      ? params.site.name.replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_')
-      : 'Site';
+    // const sanitizedSiteName = params.site.name
+    //   ? params.site.name.replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_')
+    //   : 'Site';
 
     const bufferOut = await workbook.xlsx.writeBuffer();
     const blob = new Blob([bufferOut], { type: 'application/vnd.openxmlformats-officedocument-spreadsheetml.sheet' });
-    saveAs(blob, `${sanitizedSiteName}_Invoice_${params.invoiceNo.replace(/\//g, '-')}.xlsx`);
+    
+    // User requested simpler filename format: PI-2025-12-6.xlsx
+    const filename = `${params.invoiceNo.replace(/\//g, '-')}.xlsx`.replace(/[^a-zA-Z0-9_\-.]/g, '_');
+    saveAs(blob, filename);
     return;
   } catch (e) {
     // If template path doesn't exist or there was an issue, fall back to the original builder.
@@ -708,11 +711,15 @@ export const generateBillExcel = async (params: BillParams) => {
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
   // Sanitize site name for filename
-  const sanitizedSiteName = params.site.name
-    ? params.site.name.replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_')
-    : 'Site';
+  // const sanitizedSiteName = params.site.name
+  //   ? params.site.name.replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_')
+  //   : 'Site';
 
-  saveAs(blob, `${sanitizedSiteName}_Invoice_${params.invoiceNo.replace(/\//g, '-')}.xlsx`);
+  // saveAs(blob, `${sanitizedSiteName}_Invoice_${params.invoiceNo.replace(/\//g, '-')}.xlsx`);
+  
+  // User requested simpler filename format: PI-2025-12-6.xlsx
+  const filename = `${params.invoiceNo.replace(/\//g, '-')}.xlsx`.replace(/[^a-zA-Z0-9_\-.]/g, '_');
+  saveAs(blob, filename);
 };
 
 export interface LedgerTransaction {
