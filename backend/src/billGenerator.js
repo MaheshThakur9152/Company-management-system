@@ -38,11 +38,12 @@ async function createInvoiceWorkbook(inputData, options = {}) {
   let clientAddress = (siteInfo && siteInfo.location) || (inputData.client && inputData.client.address) || inputData.client_address || inputData.site_location || '';
   let clientGstin = (siteInfo && (siteInfo.clientGstin || siteInfo.gstin)) || (inputData.client && (inputData.client.gstin || inputData.client.gst)) || inputData.client_gstin || '';
 
-  // Debug: write resolved client values so we can see why address might be empty
-  try {
-    const fs = require('fs');
-    fs.appendFileSync('/tmp/builder_debug.txt', JSON.stringify({ time: new Date().toISOString(), hasSite: !!siteInfo, siteInfoSummary: { clientName: siteInfo && siteInfo.clientName, location: siteInfo && siteInfo.location, clientGstin: siteInfo && siteInfo.clientGstin }, inputClient: inputData.client || null, clientName, clientAddress, clientGstin }) + '\n');
-  } catch (e) { /* ignore */ }
+  // Debug: write resolved client values to /tmp only when explicitly enabled
+  if (options && options.debug) {
+    try {
+      fs.appendFileSync('/tmp/builder_debug.txt', JSON.stringify({ time: new Date().toISOString(), hasSite: !!siteInfo, siteInfoSummary: { clientName: siteInfo && siteInfo.clientName, location: siteInfo && siteInfo.location, clientGstin: siteInfo && siteInfo.clientGstin }, inputClient: inputData.client || null, clientName, clientAddress, clientGstin }) + '\n');
+    } catch (e) { /* ignore */ }
+  }
 
   // Try to fetch Site by name (best-effort) to prefer canonical fields from Site if available
   if (inputData.siteName) {
@@ -79,11 +80,12 @@ async function createInvoiceWorkbook(inputData, options = {}) {
   worksheet.getCell('F7').value = `Billing Period : ${period || ''}`;
 
   // --- Client Info ---
-  // Log resolved client values for debugging
-  try {
-    const fs = require('fs');
-    fs.appendFileSync('/tmp/builder_debug.log', JSON.stringify({ time: new Date().toISOString(), clientName, clientAddress, clientGstin, period }) + '\n');
-  } catch (e) { /* ignore */ }
+  // Log resolved client values for debugging only when enabled
+  if (options && options.debug) {
+    try {
+      fs.appendFileSync('/tmp/builder_debug.log', JSON.stringify({ time: new Date().toISOString(), clientName, clientAddress, clientGstin, period }) + '\n');
+    } catch (e) { /* ignore */ }
+  }
   // Use resolved clientName/address/gstin computed above
   // Write clientName across merged row (A8..D8) and uppercase to match your example
   const displayName = (clientName || '').toString();
