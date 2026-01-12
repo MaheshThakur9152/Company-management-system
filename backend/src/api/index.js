@@ -4,7 +4,8 @@ const connectToDatabase = require('../utils/db');
 const http = require('http');
 const { Server } = require('socket.io');
 const app = require('../app');
-const { generateBillExcel } = require('../utils/excelGenerator');
+// const { generateBillExcel } = require('../utils/excelGenerator'); // DEPRECATED
+const { createInvoiceWorkbook } = require('../billGenerator');
 
 // Local helpers & models used by API routes below
 const upload = require('../middleware/upload');
@@ -516,7 +517,9 @@ const JobRole = require('../models/JobRole');
         }
       };
 
-      const buffer = await generateBillExcel(params);
+      // const buffer = await generateBillExcel(params);
+      const workbook = await createInvoiceWorkbook(params);
+      const buffer = await workbook.xlsx.writeBuffer();
 
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename=${invoice.invoiceNo.replace(/\//g, '-')}.xlsx`);
@@ -671,9 +674,11 @@ const JobRole = require('../models/JobRole');
 
         // Generate an invoice workbook and copy its sheet into the master workbook
         try {
-          const buf = await generateBillExcel(params);
-          const tmpWb = new ExcelJS.Workbook();
-          await tmpWb.xlsx.load(buf);
+          // const buf = await generateBillExcel(params);
+          // const tmpWb = new ExcelJS.Workbook();
+          // await tmpWb.xlsx.load(buf);
+          const tmpWb = await createInvoiceWorkbook(params);
+          // Assuming the workbook works, use the first sheet
           const src = tmpWb.worksheets[0];
           await copyWorksheet(src, masterWorkbook, invoiceNo);
         } catch (err) {
