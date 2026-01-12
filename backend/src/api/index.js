@@ -458,6 +458,35 @@ const JobRole = require('../models/JobRole');
 
       // Construct params for generator
       // Use site defaults if invoice doesn't store them (Invoice schema is lean)
+      // Normalize/expand billingPeriod: if short form like 'Dec 2025' is present, expand to '1st to <last> <Month> <Year>'
+      let billingPeriodRaw = invoice.billingPeriod || invoice.period || '';
+      let billingPeriodExpanded = billingPeriodRaw;
+      try {
+        if (!billingPeriodRaw || !/\d+\s*to\s*\d+/i.test(billingPeriodRaw)) {
+          // Try to parse 'Month Year' like 'Dec 2025' or 'December 2025'
+          const m = (billingPeriodRaw || '').match(/(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)[\s,]*([0-9]{4})/i);
+          if (m) {
+            const monthName = m[1];
+            const year = Number(m[2]);
+            const monthAbbr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const monthFull = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            // match both abbreviations and full names (case-insensitive)
+            const monthIndex = monthAbbr.findIndex((abbr, idx) => new RegExp('^'+abbr,'i').test(monthName) || new RegExp('^'+monthFull[idx],'i').test(monthName));
+            if (monthIndex >= 0) {
+              const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+              billingPeriodExpanded = `1st to ${daysInMonth} ${monthFull[monthIndex]} ${year}`;
+            }
+          } else if (invoice.generatedDate) {
+            // Fallback: use generatedDate's previous month if no period present
+            const d = new Date(invoice.generatedDate);
+            const prev = new Date(d.getFullYear(), d.getMonth(), 1); // invoice.generatedDate often is same-month, but keep simple
+            const days = new Date(prev.getFullYear(), prev.getMonth() + 1, 0).getDate();
+            const monthFull = prev.toLocaleString('default', { month: 'long' });
+            billingPeriodExpanded = `1st to ${days} ${monthFull} ${prev.getFullYear()}`;
+          }
+        }
+      } catch (err) { /* ignore parse issues; fall back to raw */ }
+
       const params = {
         site: site ? {
           name: site.name,
@@ -468,7 +497,7 @@ const JobRole = require('../models/JobRole');
         } : {},
         invoiceNo: invoice.invoiceNo,
         date: invoice.generatedDate ? new Date(invoice.generatedDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('en-GB'),
-        billingPeriod: invoice.billingPeriod,
+        billingPeriod: billingPeriodExpanded,
         workOrderNo: site ? site.workOrderNo : '',
         workOrderDate: site ? site.workOrderDate : '',
         workOrderPeriod: site ? `${site.workOrderDate || ''}-${site.workOrderEndDate || ''}` : '',
@@ -496,6 +525,196 @@ const JobRole = require('../models/JobRole');
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Export invoices for a site/month as a single XLSX with one sheet per generated invoice
+  app.get('/api/invoices/export', authenticateToken, async (req, res) => {
+    try {
+      // Only admin & superadmin can export bulk invoices
+      if (!req.user || !['admin', 'superadmin'].includes((req.user.role || '').toLowerCase())) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+
+      const month = parseInt(req.query.month, 10);
+      const year = parseInt(req.query.year, 10);
+      const siteId = req.query.siteId || 'all';
+
+      if (!month || !year) return res.status(400).json({ error: 'month and year are required' });
+
+      // Determine sites to process
+      let sitesToProcess = [];
+      if (siteId && siteId !== 'all') {
+        const s = await Site.findOne({ id: siteId });
+        if (!s) return res.status(404).json({ error: 'Site not found' });
+        sitesToProcess = [s];
+      } else {
+        const mStr = `${String(year)}-${String(month).padStart(2, '0')}`;
+        const siteIds = await Attendance.distinct('siteId', { date: { $regex: `^${mStr}` } });
+        if (siteIds && siteIds.length > 0) {
+          sitesToProcess = await Site.find({ id: { $in: siteIds } });
+        } else {
+          // fallback: include all sites
+          sitesToProcess = await Site.find({});
+        }
+      }
+
+      if (!sitesToProcess || sitesToProcess.length === 0) return res.status(404).json({ error: 'No sites to process for the requested period' });
+
+      const ExcelJS = require('exceljs');
+      const masterWorkbook = new ExcelJS.Workbook();
+
+      // Helper: copy worksheet from a source workbook into the master workbook
+      const copyWorksheet = async (srcWs, destWb, destName) => {
+        const safeName = (destName || 'Sheet').toString().substring(0, 31);
+        const destWs = destWb.addWorksheet(safeName);
+
+        // copy columns widths
+        try {
+          destWs.columns = srcWs.columns.map(c => ({ width: c && c.width ? c.width : undefined }));
+        } catch (e) { /* ignore */ }
+
+        // copy merges first (so cell addresses stay valid)
+        try {
+          const merges = srcWs._merges || [];
+          merges.forEach(m => { try { destWs.mergeCells(m); } catch (err) { /* continue */ } });
+        } catch (e) { /* ignore */ }
+
+        // copy rows and cell styles
+        srcWs.eachRow({ includeEmpty: true }, (row, rowNumber) => {
+          const destRow = destWs.getRow(rowNumber);
+          destRow.height = row.height;
+          row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+            const dCell = destRow.getCell(colNumber);
+            dCell.value = cell.value;
+            if (cell.numFmt) dCell.numFmt = cell.numFmt;
+            if (cell.font) dCell.font = cell.font;
+            if (cell.alignment) dCell.alignment = cell.alignment;
+            if (cell.border) dCell.border = cell.border;
+            if (cell.protection) dCell.protection = cell.protection;
+          });
+        });
+      };
+
+      // For each site, compute invoice data, generate single-sheet workbook, then copy that sheet into master
+      for (const site of sitesToProcess) {
+        // Employees of site
+        const employees = await Employee.find({ siteId: site.id, status: { $nin: ['Deleted', 'Stopped'] } });
+        const daysInMonth = new Date(year, month, 0).getDate();
+
+        const roleGroups = {};
+        for (const emp of employees) {
+          const empRecords = await Attendance.find({ employeeId: emp.id, date: { $regex: `^${year}-${String(month).padStart(2, '0')}` } });
+          let paidDays = 0;
+          empRecords.forEach(r => {
+            const st = (r.status || '').toUpperCase();
+            if (['P', 'W/O', 'PH', 'WOE', 'WOP'].includes(st)) paidDays += 1;
+            else if (['HD', 'HDE'].includes(st)) paidDays += 0.5;
+          });
+
+          const baseSalary = emp.salaryDetails && emp.salaryDetails.baseSalary ? emp.salaryDetails.baseSalary : 0;
+          const isDaily = emp.salaryDetails && emp.salaryDetails.isDailyRated;
+          let amount = 0;
+          if (isDaily) amount = baseSalary * paidDays;
+          else amount = daysInMonth > 0 ? (baseSalary / daysInMonth) * paidDays : 0;
+
+          const role = emp.role || 'Staff';
+          if (!roleGroups[role]) roleGroups[role] = { count: 0, days: 0, amount: 0 };
+          roleGroups[role].count += 1;
+          roleGroups[role].days += paidDays;
+          roleGroups[role].amount += amount;
+        }
+
+        const items = [];
+        Object.keys(roleGroups).forEach(role => {
+          const g = roleGroups[role];
+          let rate = 0;
+          let amount = 0;
+          if (site.billingRate && site.billingRate > 0) {
+            rate = site.billingRate;
+            amount = daysInMonth > 0 ? (rate / daysInMonth) * g.days : 0;
+          } else {
+            amount = g.amount;
+            rate = g.days > 0 ? (g.amount * daysInMonth) / g.days : 0;
+          }
+          items.push({ description: `${role} Services`, hsn: '9985', rate: Math.round(rate), days: g.days, persons: g.count, amount: amount });
+        });
+
+        const subTotal = items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+        const managementRate = 10;
+        const managementAmount = Math.round(subTotal * (managementRate / 100));
+        const taxable = subTotal + managementAmount;
+        const cgst = Math.round(taxable * 0.09);
+        const sgst = Math.round(taxable * 0.09);
+        const total = Math.round(taxable + cgst + sgst);
+
+        const invoiceNo = `PI/${year}/${month}/${site.id ? site.id.replace(/^./, '') : 'S'}${Date.now().toString().slice(-4)}`;
+        const monthFull = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+        const billingPeriod = `1st to ${daysInMonth} ${monthFull} ${year}`;
+
+        // Build params for XLSX generation (reuse server-side generator for consistent format)
+        const params = {
+          site: site,
+          companyName: site.companyName || 'AMBE SERVICE',
+          invoiceType: 'PROFORMA INVOICE',
+          invoiceNo: invoiceNo,
+          date: new Date().toLocaleDateString('en-GB'),
+          billingPeriod: billingPeriod,
+          workOrderNo: site.workOrderNo || '',
+          workOrderDate: site.workOrderDate || '',
+          workOrderPeriod: site.workOrderEndDate ? `Valid till ${site.workOrderEndDate}` : '',
+          items: items.map(i => ({ description: i.description, hsn: i.hsn, rate: i.rate, workingDays: i.days, persons: i.persons, amount: i.amount })),
+          managementRate: managementRate,
+          cgstRate: 9,
+          sgstRate: 9
+        };
+
+        // Generate an invoice workbook and copy its sheet into the master workbook
+        try {
+          const buf = await generateBillExcel(params);
+          const tmpWb = new ExcelJS.Workbook();
+          await tmpWb.xlsx.load(buf);
+          const src = tmpWb.worksheets[0];
+          await copyWorksheet(src, masterWorkbook, invoiceNo);
+        } catch (err) {
+          console.error('Failed to generate excel for site', site.name, err);
+        }
+
+        // Persist invoice doc (Proforma)
+        try {
+          const invDoc = new Invoice({
+            id: Date.now().toString() + Math.random(),
+            invoiceNo,
+            siteId: site.id,
+            siteName: site.name,
+            billingPeriod,
+            items,
+            subTotal,
+            managementRate,
+            managementAmount,
+            taxableAmount: taxable,
+            cgst,
+            sgst,
+            amount: total,
+            status: 'Unpaid',
+            dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            generatedDate: new Date().toISOString().split('T')[0]
+          });
+          await invDoc.save();
+        } catch (err) {
+          console.error('Failed to save proforma invoice for site', site.name, err);
+        }
+      }
+
+      const bufferOut = await masterWorkbook.xlsx.writeBuffer();
+      const fileName = `Invoices_${siteId && siteId !== 'all' ? siteId : 'ALL'}_${new Date(year, month - 1).toLocaleString('default', { month: 'short' })}_${year}.xlsx`;
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+      res.send(bufferOut);
+
+    } catch (err) {
+      console.error('Export error', err);
+      res.status(500).json({ error: err && err.message ? err.message : String(err) });
     }
   });
 

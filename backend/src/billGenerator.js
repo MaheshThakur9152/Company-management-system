@@ -38,12 +38,11 @@ async function createInvoiceWorkbook(inputData, options = {}) {
   let clientAddress = (siteInfo && siteInfo.location) || (inputData.client && inputData.client.address) || inputData.client_address || inputData.site_location || '';
   let clientGstin = (siteInfo && (siteInfo.clientGstin || siteInfo.gstin)) || (inputData.client && (inputData.client.gstin || inputData.client.gst)) || inputData.client_gstin || '';
 
-  // Debug: write resolved client values to /tmp only when explicitly enabled
-  if (options && options.debug) {
-    try {
-      fs.appendFileSync('/tmp/builder_debug.txt', JSON.stringify({ time: new Date().toISOString(), hasSite: !!siteInfo, siteInfoSummary: { clientName: siteInfo && siteInfo.clientName, location: siteInfo && siteInfo.location, clientGstin: siteInfo && siteInfo.clientGstin }, inputClient: inputData.client || null, clientName, clientAddress, clientGstin }) + '\n');
-    } catch (e) { /* ignore */ }
-  }
+  // Debug: write resolved client values so we can see why address might be empty
+  try {
+    const fs = require('fs');
+    fs.appendFileSync('/tmp/builder_debug.txt', JSON.stringify({ time: new Date().toISOString(), hasSite: !!siteInfo, siteInfoSummary: { clientName: siteInfo && siteInfo.clientName, location: siteInfo && siteInfo.location, clientGstin: siteInfo && siteInfo.clientGstin }, inputClient: inputData.client || null, clientName, clientAddress, clientGstin }) + '\n');
+  } catch (e) { /* ignore */ }
 
   // Try to fetch Site by name (best-effort) to prefer canonical fields from Site if available
   if (inputData.siteName) {
@@ -80,40 +79,23 @@ async function createInvoiceWorkbook(inputData, options = {}) {
   worksheet.getCell('F7').value = `Billing Period : ${period || ''}`;
 
   // --- Client Info ---
-  // Log resolved client values for debugging only when enabled
-  if (options && options.debug) {
-    try {
-      fs.appendFileSync('/tmp/builder_debug.log', JSON.stringify({ time: new Date().toISOString(), clientName, clientAddress, clientGstin, period }) + '\n');
-    } catch (e) { /* ignore */ }
-  }
-  // Use resolved clientName/address/gstin computed above
-  // Write clientName into merged A8:E8 to preserve template merge and avoid duplicate repeated cells
-  const displayName = (clientName || '').toString();
+  // Log resolved client values for debugging
   try {
-    worksheet.mergeCells('A8:E8');
-  } catch (e) { /* ignore if already merged */ }
-  const a8 = worksheet.getCell('A8');
-  a8.value = displayName;
-  a8.font = { ...a8.font, bold: true };
-  a8.alignment = { horizontal: 'left', indent: 1 };
-  // Clear duplicate cells inside merged area to avoid repeated values
-  ['B','C','D','E'].forEach(col => { try { worksheet.getCell(`${col}8`).value = undefined; } catch (e) {} });
-
-  const displayAddress = (clientAddress || '').toString();
-  // Fill address into merged A9:E9 and enable wrapping so long addresses fit
-  try {
-    worksheet.mergeCells('A9:E9');
-  } catch (e) { /* ignore if already merged */ }
-  const a9 = worksheet.getCell('A9');
-  a9.value = displayAddress;
-  a9.alignment = { wrapText: true, vertical: 'top', horizontal: 'left', indent: 1 };
-  if (displayAddress.length > 60) worksheet.getRow(9).height = 30;
-  ['B','C','D','E'].forEach(col => { try { worksheet.getCell(`${col}9`).value = undefined; } catch (e) {} });
-
-  // GSTIN cell (A11 in some templates)
-  try {
-    worksheet.mergeCells('A11:E11');
+    const fs = require('fs');
+    fs.appendFileSync('/tmp/builder_debug.log', JSON.stringify({ time: new Date().toISOString(), clientName, clientAddress, clientGstin, period }) + '\n');
   } catch (e) { /* ignore */ }
+  // Use resolved clientName/address/gstin computed above
+  // Write clientName across merged row (A8..D8) and uppercase to match your example
+  const displayName = (clientName || '').toString();
+  ['A8','B8','C8','D8'].forEach(cellAddr => { worksheet.getCell(cellAddr).value = displayName; });
+  const displayAddress = (clientAddress || '').toString();
+  // Fill address across A9..D9 and enable wrapping so long addresses fit
+  ['A9','B9','C9','D9'].forEach(cellAddr => { 
+    const cell = worksheet.getCell(cellAddr);
+    cell.value = displayAddress;
+    cell.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
+  });
+  if (displayAddress.length > 60) worksheet.getRow(9).height = 30;
   worksheet.getCell('A11').value = clientGstin ? `GSTIN : ${clientGstin}` : '';
 
   // --- Line Items ---

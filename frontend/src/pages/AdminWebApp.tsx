@@ -869,8 +869,6 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
   };
 
   const handleAutoGenerateInvoices = async (type: 'Tax' | 'Proforma' = 'Tax') => {
-    const targetBillingPeriod = `${new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'short' })} ${selectedYear}`;
-    
     // Determine which sites to process
     const sitesToProcess = selectedSiteFilter === 'all' 
         ? sites 
@@ -881,9 +879,14 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
         return;
     }
 
+    // Compute expanded billing period early so the confirmation dialog shows exact range
+    const daysInMonthPreview = new Date(selectedYear, selectedMonth, 0).getDate();
+    const monthFullPreview = new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long' });
+    const targetBillingPeriodPreview = `1st to ${daysInMonthPreview} ${monthFullPreview} ${selectedYear}`;
+
     const confirmMessage = selectedSiteFilter === 'all'
-        ? `Are you sure you want to generate ${type} invoices for ALL sites for ${targetBillingPeriod}?`
-        : `Are you sure you want to generate a ${type} invoice for ${sitesToProcess[0].name} for ${targetBillingPeriod}?`;
+        ? `Are you sure you want to generate ${type} invoices for ALL sites for ${targetBillingPeriodPreview}?`
+        : `Are you sure you want to generate a ${type} invoice for ${sitesToProcess[0].name} for ${targetBillingPeriodPreview}?`;
 
     if (!confirm(confirmMessage)) return;
 
@@ -903,14 +906,13 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
     const skippedSites: string[] = [];
     const noAttendanceSites: string[] = [];
     const failedSites: { site: string; error: string }[] = [];
-    const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
     const invoicePrefix = type === 'Proforma' ? 'PI' : 'INV';
 
     for (const site of sitesToProcess) {
       // Check if invoice of SAME TYPE already exists for this site and period
       const existingInvoice = currentInvoices.find(inv => 
           inv.siteId === site.id && 
-          inv.billingPeriod === targetBillingPeriod &&
+          (inv.billingPeriod === targetBillingPeriod || inv.billingPeriod === targetBillingPeriodShort) &&
           inv.invoiceNo.startsWith(invoicePrefix)
       );
 
@@ -1040,7 +1042,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
         invoiceNo: `${prefix}/${selectedYear}/${selectedMonth}/${site.id.substring(1)}`,
         siteId: site.id,
         siteName: site.name,
-        billingPeriod: `${new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'short' })} ${selectedYear}`,
+        billingPeriod: targetBillingPeriod,
         items: items,
         subTotal: subTotal,
         managementRate: managementRate,
@@ -1264,6 +1266,10 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
       const saveAs = await getSaveAs();
       const fileName = `Invoices_${siteName.replace(/\s+/g, '_')}_${new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'short' })}_${selectedYear}.xlsx`;
       saveAs(blob, fileName);
+      // Refresh invoices list so Proforma tab reflects newly generated entries
+      try {
+        setInvoices(await getInvoices());
+      } catch (e) { console.warn('Failed to refresh invoices list after export', e); }
     } catch (e) {
       console.error('Download invoices failed', e);
       alert('Failed to download invoices: ' + (e && e.message ? e.message : String(e)));
