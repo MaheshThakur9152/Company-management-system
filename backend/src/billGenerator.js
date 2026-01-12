@@ -96,6 +96,8 @@ async function createInvoiceWorkbook(inputData, options = {}) {
   a8.value = displayName;
   a8.font = { ...a8.font, bold: true };
   a8.alignment = { horizontal: 'left', indent: 1 };
+  // Clear duplicate cells inside merged area to avoid repeated values
+  ['B','C','D','E'].forEach(col => { try { worksheet.getCell(`${col}8`).value = null; } catch (e) {} });
 
   const displayAddress = (clientAddress || '').toString();
   // Fill address into merged A9:E9 and enable wrapping so long addresses fit
@@ -106,6 +108,7 @@ async function createInvoiceWorkbook(inputData, options = {}) {
   a9.value = displayAddress;
   a9.alignment = { wrapText: true, vertical: 'top', horizontal: 'left', indent: 1 };
   if (displayAddress.length > 60) worksheet.getRow(9).height = 30;
+  ['B','C','D','E'].forEach(col => { try { worksheet.getCell(`${col}9`).value = null; } catch (e) {} });
 
   // GSTIN cell (A11 in some templates)
   try {
