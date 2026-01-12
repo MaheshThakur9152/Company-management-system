@@ -87,17 +87,30 @@ async function createInvoiceWorkbook(inputData, options = {}) {
     } catch (e) { /* ignore */ }
   }
   // Use resolved clientName/address/gstin computed above
-  // Write clientName across merged row (A8..D8) and uppercase to match your example
+  // Write clientName into merged A8:E8 to preserve template merge and avoid duplicate repeated cells
   const displayName = (clientName || '').toString();
-  ['A8','B8','C8','D8'].forEach(cellAddr => { worksheet.getCell(cellAddr).value = displayName; });
+  try {
+    worksheet.mergeCells('A8:E8');
+  } catch (e) { /* ignore if already merged */ }
+  const a8 = worksheet.getCell('A8');
+  a8.value = displayName;
+  a8.font = { ...a8.font, bold: true };
+  a8.alignment = { horizontal: 'left', indent: 1 };
+
   const displayAddress = (clientAddress || '').toString();
-  // Fill address across A9..D9 and enable wrapping so long addresses fit
-  ['A9','B9','C9','D9'].forEach(cellAddr => { 
-    const cell = worksheet.getCell(cellAddr);
-    cell.value = displayAddress;
-    cell.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
-  });
+  // Fill address into merged A9:E9 and enable wrapping so long addresses fit
+  try {
+    worksheet.mergeCells('A9:E9');
+  } catch (e) { /* ignore if already merged */ }
+  const a9 = worksheet.getCell('A9');
+  a9.value = displayAddress;
+  a9.alignment = { wrapText: true, vertical: 'top', horizontal: 'left', indent: 1 };
   if (displayAddress.length > 60) worksheet.getRow(9).height = 30;
+
+  // GSTIN cell (A11 in some templates)
+  try {
+    worksheet.mergeCells('A11:E11');
+  } catch (e) { /* ignore */ }
   worksheet.getCell('A11').value = clientGstin ? `GSTIN : ${clientGstin}` : '';
 
   // --- Line Items ---
