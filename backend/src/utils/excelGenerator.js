@@ -108,6 +108,30 @@ const generateBillExcel = async (params) => {
     cellA2.border = borderThin;
     worksheet.getRow(2).height = 22;
 
+    // Small sanitization pass: collapse repeated identical header cells across A..E for top rows
+    // Some templates have repeated values per column; normalize to single left cell to keep output tidy.
+    const headerRowsToSanitize = [1,2,3,4,5,6,7,8,9,10,11,12];
+    headerRowsToSanitize.forEach(rn => {
+      try {
+        const row = worksheet.getRow(rn);
+        let lastVal = null;
+        for (let c = 1; c <= 7; c++) {
+          const cell = row.getCell(c);
+          const val = (cell && cell.value) ? (typeof cell.value === 'string' ? cell.value.trim() : JSON.stringify(cell.value)) : null;
+          if (val && lastVal === null) {
+            lastVal = val;
+          } else if (val && lastVal !== null && val === lastVal) {
+            // clear duplicate
+            cell.value = undefined;
+          } else if (!val) {
+            // keep searching
+          } else {
+            lastVal = val;
+          }
+        }
+      } catch (e) { /* ignore sanitization errors */ }
+    });
+
     safeMerge('F2:G2');
     worksheet.getCell('F2').border = borderThin;
 
