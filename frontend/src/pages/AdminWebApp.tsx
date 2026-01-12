@@ -1180,17 +1180,31 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
 
   // --- EXCEL GENERATION FOR SINGLE INVOICE ---
   const downloadInvoiceExcel = async (invoice: Invoice) => {
+    // Prefer server-backed, template-preserving download to avoid malformed files
+    try {
+      const resp = await fetch(`${API_URL}/invoices/${encodeURIComponent(invoice.id)}/download`, { credentials: 'include' });
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(`Server download failed: ${resp.status} ${text}`);
+      }
+      const blob = await resp.blob();
+      const saveAs = await getSaveAs();
+      const filename = `${(invoice.invoiceNo || invoice.id).replace(/\//g, '-').replace(/[^a-zA-Z0-9_\-.]/g, '_')}.xlsx`;
+      saveAs(blob, filename);
+      return;
+    } catch (serverErr) {
+      console.warn('Server download failed, falling back to client-side generation:', serverErr);
+      // Fallback to client-side generator to keep UX smooth (older behaviour)
+    }
+
+    // Fallback: regenerate on client (existing flow)
     let site = sites.find(s => s.id === invoice.siteId);
-    
     // If site not found in current state, try to fetch fresh sites
     if (!site) {
       const freshSites = await getSites();
       site = freshSites.find(s => s.id === invoice.siteId);
-      if (site) {
-        setSites(freshSites);
-      }
+      if (site) setSites(freshSites);
     }
-    
     if (!site) {
       alert("Site details not found for this invoice. Please refresh and try again.");
       return;
@@ -1229,7 +1243,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
       });
     } catch (error) {
       console.error("Failed to generate Excel:", error);
-      alert("Failed to generate Excel file.");
+      alert("Failed to generate Excel file (both server & client generation failed). See console for details.");
     }
   };
 
