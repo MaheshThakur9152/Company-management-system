@@ -2,6 +2,7 @@ const path = require('path');
 const mongoose = require('mongoose');
 const Invoice = require('../models/Invoice');
 const { createInvoiceWorkbook } = require('../billGenerator');
+const { generateBillExcel } = require('../utils/excelGenerator');
 
 // Create a workbook and stream it to the response
 async function generateExcelStream(invoiceData, res) {
@@ -69,14 +70,45 @@ exports.downloadBill = async (req, res) => {
     }
 
     try {
-      const fs = require('fs');
-      fs.writeFileSync('/tmp/invoice_debug.json', JSON.stringify({ time: new Date().toISOString(), client: invoiceData.client, site: invoiceData.site || null }, null, 2));
-    } catch (e) { /* noop */ }
-    await generateExcelStream(invoiceData, res);
-  } catch (error) {
-    console.error('Error generating invoice stream:', error);
-    if (!res.headersSent) res.status(500).send('Server Error generating bill');
-  }
+      // Prefer the programmatic generator that produces a consistent, template-like layout
+      const params = {
+        companyName: invoiceData.companyName || (invoiceData.site && invoiceData.site.companyName) || 'AMBE SERVICE',
+        site: invoiceData.site || {},
+        invoiceType: invoiceData.invoiceType || (invoiceData.invoiceNo && invoiceData.invoiceNo.startsWith('PI') ? 'PROFORMA INVOICE' : 'TAX INVOICE'),
+        invoiceNo: invoiceData.invoiceNo || invoiceData.invoice_no || invoiceData.id,
+        date: invoiceData.generatedDate ? new Date(invoiceData.generatedDate).toLocaleDateString('en-GB') : (invoiceData.date || new Date().toLocaleDateString('en-GB')),
+        billingPeriod: invoiceData.billingPeriod || invoiceData.period || '',
+        workOrderNo: (invoiceData.site && invoiceData.site.workOrderNo) || invoiceData.workOrderNo || '',
+        workOrderDate: (invoiceData.site && invoiceData.site.workOrderDate) || invoiceData.workOrderDate || '',
+        workOrderPeriod: invoiceData.workOrderPeriod || '',
+        items: (invoiceData.items || []).map(i => ({ description: i.description, hsn: i.hsn, rate: i.rate, working_days: i.days || i.workingDays || i.working_days, persons: i.persons || 1, amount: i.amount })),
+        managementRate: invoiceData.managementRate || invoiceData.management_rate || 10,
+        cgstRate: invoiceData.cgstRate || 9,
+        sgstRate: invoiceData.sgstRate || 9,
+        bankDetails: invoiceData.bankDetails || invoiceData.bank_details || {}
+      };
+
+      try {
+        const buffer = await generateBillExcel(params);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        const invNo = (params.invoiceNo || 'invoice').toString().replace(/\//g,'-').replace(/[^a-zA-Z0-9_\-.]/g,'_');
+        res.setHeader('Content-Disposition', `attachment; filename="Invoice_${invNo}.xlsx"`);
+        return res.send(buffer);
+      } catch (genErr) {
+        console.warn('generateBillExcel failed, falling back to template-based stream:', genErr.message);
+        try {
+          await generateExcelStream(invoiceData, res);
+          return;
+        } catch (streamErr) {
+          console.error('Fallback template stream failed:', streamErr);
+          if (!res.headersSent) res.status(500).send('Server Error generating bill');
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Error generating invoice stream:', error);
+      if (!res.headersSent) res.status(500).send('Server Error generating bill');
+    }
 };
 
 // Demo endpoint (no DB); useful for quick testing
