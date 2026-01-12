@@ -1237,9 +1237,13 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
   const downloadInvoicesForSite = async (siteId: string, siteName: string) => {
     try {
       setLoadingInvoices(true);
-      const resp = await fetch(`${API_URL}/api/invoices/export?siteId=${encodeURIComponent(siteId)}&month=${selectedMonth}&year=${selectedYear}`, { credentials: 'include' });
+      const resp = await fetch(`${API_URL}/invoices/export?siteId=${encodeURIComponent(siteId)}&month=${selectedMonth}&year=${selectedYear}`, { credentials: 'include' });
       if (!resp.ok) {
-        const txt = await resp.text();
+        let txt = await resp.text();
+        try {
+          const parsed = JSON.parse(txt);
+          txt = parsed.msg || parsed.error || JSON.stringify(parsed);
+        } catch (e) { /* not JSON, keep text */ }
         throw new Error(`Export failed: ${resp.status} ${txt}`);
       }
       const blob = await resp.blob();
