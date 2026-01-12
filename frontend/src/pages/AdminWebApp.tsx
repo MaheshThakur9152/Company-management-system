@@ -884,6 +884,12 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
     const monthFullPreview = new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long' });
     const targetBillingPeriodPreview = `1st to ${daysInMonthPreview} ${monthFullPreview} ${selectedYear}`;
 
+    // Fix: Define missing variables used in generation loop
+    const daysInMonth = daysInMonthPreview;
+    const targetBillingPeriod = targetBillingPeriodPreview;
+    const shortMonth = new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'short' });
+    const targetBillingPeriodShort = `1st to ${daysInMonth} ${shortMonth} ${selectedYear}`;
+
     const confirmMessage = selectedSiteFilter === 'all'
         ? `Are you sure you want to generate ${type} invoices for ALL sites for ${targetBillingPeriodPreview}?`
         : `Are you sure you want to generate a ${type} invoice for ${sitesToProcess[0].name} for ${targetBillingPeriodPreview}?`;
@@ -1063,35 +1069,6 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
           site.name.toLowerCase().includes('lift operator')
       ) ? 'AMBE SERVICE FACILITIES PRIVATE LIMITED' : 'AMBE SERVICE');
 
-      // Generate Excel File
-      try {
-        await getExcelJS(); // Ensure ExcelJS is loaded
-        await generateBillExcel({
-            site: site,
-            companyName: companyName,
-            invoiceType: type === 'Proforma' ? 'PROFORMA INVOICE' : 'TAX INVOICE',
-            invoiceNo: newInvoice.invoiceNo,
-            date: new Date(newInvoice.generatedDate).toLocaleDateString('en-GB'),
-            billingPeriod: newInvoice.billingPeriod,
-            workOrderNo: site.workOrderNo || "WO/2024-25/001", 
-            workOrderDate: site.workOrderDate ? new Date(site.workOrderDate).toLocaleDateString('en-GB') : "01/04/2024",
-            workOrderPeriod: site.workOrderEndDate ? `Valid till ${new Date(site.workOrderEndDate).toLocaleDateString('en-GB')}` : "N/A",
-            items: items.map(i => ({
-                description: i.description,
-                hsn: i.hsn,
-                rate: i.rate,
-                workingDays: i.days,
-                persons: i.persons,
-                amount: i.amount
-            })),
-            managementRate: managementRate,
-            cgstRate: 9,
-            sgstRate: 9
-        });
-      } catch (error) {
-        console.error("Failed to generate Excel for " + site.name, error);
-      }
-
       // Persist invoice and handle failures
       try {
         await addInvoice(newInvoice);
@@ -1105,26 +1082,18 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
 
     if (generatedCount > 0 || failedSites.length > 0) {
         setInvoices(await getInvoices());
+        
+        // Show success message and redirect
         let message = '';
-        if (generatedCount > 0) message += `Successfully generated ${generatedCount} invoices for:\n${generatedSites.join('\n')}`;
+        if (generatedCount > 0) message += `Successfully generated ${generatedCount} invoices. Please check the ${type === 'Proforma' ? 'Proforma' : 'Tax'} Invoices tab.`;
         if (failedSites.length > 0) {
             message += `\n\nFailed to persist for:\n${failedSites.map(f => `${f.site} - ${f.error}`).join('\n')}`;
         }
+        
         alert(message);
+        
         if (type === 'Proforma') setActiveTabAndHash('invoices-proforma');
         else setActiveTabAndHash('invoices-tax');
-
-        // If a single site was selected, automatically download the combined workbook
-        if (selectedSiteFilter && selectedSiteFilter !== 'all') {
-            const siteForDownload = sites.find(s => s.id === selectedSiteFilter);
-            if (siteForDownload) {
-                try {
-                    await downloadInvoicesForSite(siteForDownload.id, siteForDownload.name);
-                } catch (e) {
-                    console.error('Auto-download failed:', e);
-                }
-            }
-        }
     } else {
         let message = "No invoices generated.\n";
         if (skippedSites.length > 0) {
