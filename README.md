@@ -119,6 +119,9 @@ Android:
 ## 7) Scripts & utilities 🔧
 - `src/scripts/seedData.js` — seeds initial data
 - `create_user_mahesh.js`, `reset_admin.js`, etc. — admin utilities
+
+> Note: ad-hoc debug/inspection scripts have been archived to `src/scripts/archived-tests/` to keep the main scripts folder clean.
+
 - `cloudinaryHelper.js` — Cloudinary upload helper
 - `db.js` — MongoDB connection and retry logic
 
