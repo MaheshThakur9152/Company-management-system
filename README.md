@@ -119,18 +119,8 @@ Android:
 ## 7) Scripts & utilities 🔧
 - `src/scripts/seedData.js` — seeds initial data
 - `create_user_mahesh.js`, `reset_admin.js`, etc. — admin utilities
-
-> Note: ad-hoc debug/inspection scripts have been archived to `src/scripts/archived-tests/` to keep the main scripts folder clean.
-
 - `cloudinaryHelper.js` — Cloudinary upload helper
 - `db.js` — MongoDB connection and retry logic
-
-
-API endpoints of interest:
-- `GET /api/invoices/export?siteId=<siteId|siteName>&month=<m>&year=<yyyy>` — build a single `.xlsx` workbook with one worksheet per invoice matching the filters and stream it to the client. Useful for "Download All" from the Attendance grid.
-  - Limits: max 120 invoices per request to avoid memory/CPU spikes.
-  - If month/year are omitted, returns all invoices for the site (subject to server limit).
-
 
 ---
 

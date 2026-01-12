@@ -27,7 +27,7 @@ import PayrollTab from '@components/PayrollTab';
 import LedgerTab from '@components/LedgerTab';
 import QuickDeductionsModal from '@components/QuickDeductionsModal';
 import AttendanceLogs from '@components/AttendanceLogs';
-import { generateBillExcel, ensureExcelJSLoaded } from '@utils/excelGenerator';
+import { ensureExcelJSLoaded } from '@utils/excelGenerator';
 import '@utils/excelExportBrowser.js'; // Import for side effects (window.generateAttendanceExcelBrowser)
 import { loadScript } from '@utils/scriptLoader';
 import { isEmployeeActiveForMonth } from '@utils/employeeUtils';
