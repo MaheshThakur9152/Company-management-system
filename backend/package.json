@@ -7,7 +7,8 @@
     "start": "node src/api/index.js",
     "dev": "nodemon src/api/index.js",
     "test": "jest --runInBand --detectOpenHandles",
-    "generate-bill": "node src/billGenerator.js"
+    "generate-bill": "node src/billGenerator.js",
+    "clean:public-invoices": "rm -f ../frontend/public/Invoice_*.xlsx ../frontend/public/*PI-*.xlsx ../frontend/public/babli.xlsx ../frontend/public/mahesh.xlsx ../frontend/public/.~lock.go.xlsx# || true"
   },
   "dependencies": {
     "@deepgram/sdk": "^4.11.3",
