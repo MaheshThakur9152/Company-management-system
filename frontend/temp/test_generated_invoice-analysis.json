@@ -1,0 +1,719 @@
+{
+  "file": "test_generated_invoice.xlsx",
+  "sheets": [
+    {
+      "name": "SHREEYA",
+      "rowCount": 39,
+      "columnCount": 20,
+      "sampleRows": [
+        {
+          "r": 1,
+          "height": 22.05,
+          "vals": [
+            "AMBE SERVICE",
+            "AMBE SERVICE",
+            "AMBE SERVICE",
+            "AMBE SERVICE",
+            "AMBE SERVICE",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 2,
+          "height": 14.25,
+          "vals": [
+            "Shop No - 49 A, Ground Floor, Pooja Enclave CHS Ltd, ",
+            "Shop No - 49 A, Ground Floor, Pooja Enclave CHS Ltd, ",
+            "Shop No - 49 A, Ground Floor, Pooja Enclave CHS Ltd, ",
+            "Shop No - 49 A, Ground Floor, Pooja Enclave CHS Ltd, ",
+            "Shop No - 49 A, Ground Floor, Pooja Enclave CHS Ltd, ",
+            "Invoice No :  AS/25-26/137",
+            "Invoice No :  AS/25-26/137",
+            "Invoice No :  AS/25-26/137",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 3,
+          "height": 14.25,
+          "vals": [
+            "Ganesh Nagar, Kandivali (West), Mumbai 400 067.",
+            "Ganesh Nagar, Kandivali (West), Mumbai 400 067.",
+            "Ganesh Nagar, Kandivali (West), Mumbai 400 067.",
+            "Ganesh Nagar, Kandivali (West), Mumbai 400 067.",
+            "Ganesh Nagar, Kandivali (West), Mumbai 400 067.",
+            "Date:  04 December 2025",
+            "Date:  04 December 2025",
+            "Date:  04 December 2025",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 4,
+          "height": 14.25,
+          "vals": [
+            "Contact No: 022 45066566 / 9619607537",
+            "Contact No: 022 45066566 / 9619607537",
+            "Contact No: 022 45066566 / 9619607537",
+            "Contact No: 022 45066566 / 9619607537",
+            "Contact No: 022 45066566 / 9619607537",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 5,
+          "height": 14.25,
+          "vals": [
+            "Email : ambeservices.office@gmail.com",
+            "Email : ambeservices.office@gmail.com",
+            "Email : ambeservices.office@gmail.com",
+            "Email : ambeservices.office@gmail.com",
+            "Email : ambeservices.office@gmail.com",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 6,
+          "height": 14.25,
+          "vals": [
+            "GSTIN : 27AKEPT3780G1ZU",
+            "GSTIN : 27AKEPT3780G1ZU",
+            "GSTIN : 27AKEPT3780G1ZU",
+            "GSTIN : 27AKEPT3780G1ZU",
+            "GSTIN : 27AKEPT3780G1ZU",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 7,
+          "height": 14.25,
+          "vals": [
+            "Name & Add of Party",
+            "Name & Add of Party",
+            "Name & Add of Party",
+            "Name & Add of Party",
+            "Name & Add of Party",
+            "Billing Period :1st to 31st November  2025",
+            "Billing Period :1st to 31st November  2025",
+            "Billing Period :1st to 31st November  2025",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 8,
+          "height": 14.25,
+          "vals": [
+            "Shrreeya Developers",
+            "Shrreeya Developers",
+            "Shrreeya Developers",
+            "Shrreeya Developers",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 9,
+          "height": 14.25,
+          "vals": [
+            "Ganesh nagar, charkop, Kandivali west, Mumbai 400067. ",
+            "Ganesh nagar, charkop, Kandivali west, Mumbai 400067. ",
+            "Ganesh nagar, charkop, Kandivali west, Mumbai 400067. ",
+            "Ganesh nagar, charkop, Kandivali west, Mumbai 400067. ",
+            "Ganesh nagar, charkop, Kandivali west, Mumbai 400067. ",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 10,
+          "height": 14.25,
+          "vals": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 11,
+          "height": 14.25,
+          "vals": [
+            "GSTIN : 27ACDFS6750N1ZJ",
+            "GSTIN : 27ACDFS6750N1ZJ",
+            "GSTIN : 27ACDFS6750N1ZJ",
+            "GSTIN : 27ACDFS6750N1ZJ",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 12,
+          "height": 14.25,
+          "vals": [
+            "We thank you very much for valuable interest shown in our organzaion. We would like to submit  our bill for providing our services.",
+            "We thank you very much for valuable interest shown in our organzaion. We would like to submit  our bill for providing our services.",
+            "We thank you very much for valuable interest shown in our organzaion. We would like to submit  our bill for providing our services.",
+            "We thank you very much for valuable interest shown in our organzaion. We would like to submit  our bill for providing our services.",
+            "We thank you very much for valuable interest shown in our organzaion. We would like to submit  our bill for providing our services.",
+            "We thank you very much for valuable interest shown in our organzaion. We would like to submit  our bill for providing our services.",
+            "We thank you very much for valuable interest shown in our organzaion. We would like to submit  our bill for providing our services.",
+            "We thank you very much for valuable interest shown in our organzaion. We would like to submit  our bill for providing our services.",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 13,
+          "height": 14.25,
+          "vals": [
+            "We thank you very much for valuable interest shown in our organzaion. We would like to submit  our bill for providing our services.",
+            "We thank you very much for valuable interest shown in our organzaion. We would like to submit  our bill for providing our services.",
+            "We thank you very much for valuable interest shown in our organzaion. We would like to submit  our bill for providing our services.",
+            "We thank you very much for valuable interest shown in our organzaion. We would like to submit  our bill for providing our services.",
+            "We thank you very much for valuable interest shown in our organzaion. We would like to submit  our bill for providing our services.",
+            "We thank you very much for valuable interest shown in our organzaion. We would like to submit  our bill for providing our services.",
+            "We thank you very much for valuable interest shown in our organzaion. We would like to submit  our bill for providing our services.",
+            "We thank you very much for valuable interest shown in our organzaion. We would like to submit  our bill for providing our services.",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 14,
+          "height": 14.25,
+          "vals": [
+            "Sr No",
+            "Description of Services",
+            "HSN Code",
+            "Rate",
+            "Working Days",
+            "Working Days",
+            "Persons",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 15,
+          "height": 14.25,
+          "vals": [
+            "Sr No",
+            "Description of Services",
+            "HSN Code",
+            "Rate",
+            "",
+            "",
+            "Persons",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 16,
+          "height": 14.25,
+          "vals": [
+            "1",
+            "Janitor Services",
+            "9985",
+            "17500",
+            "26",
+            "",
+            "1",
+            "14677",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 17,
+          "height": 14.25,
+          "vals": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 18,
+          "height": 14.25,
+          "vals": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 19,
+          "height": 14.25,
+          "vals": [
+            "",
+            "",
+            "",
+            "",
+            " ",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 20,
+          "height": 14.25,
+          "vals": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 21,
+          "height": 14.25,
+          "vals": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 22,
+          "height": 14.25,
+          "vals": [
+            "",
+            "",
+            "",
+            "Material Charges",
+            "Material Charges",
+            "Material Charges",
+            "Material Charges",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 23,
+          "height": 14.25,
+          "vals": [
+            "",
+            "",
+            "",
+            "Sub Total",
+            "Sub Total",
+            "Sub Total",
+            "Sub Total",
+            "14677",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 24,
+          "height": 14.25,
+          "vals": [
+            "",
+            "",
+            "",
+            "Management charges @ 15%",
+            "Management charges @ 15%",
+            "Management charges @ 15%",
+            "Management charges @ 15%",
+            "2202",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 25,
+          "height": 14.25,
+          "vals": [
+            "Bank Details",
+            "Bank Details",
+            "Bank Details",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 26,
+          "height": 14.25,
+          "vals": [
+            "",
+            "",
+            "",
+            "Total",
+            "Total",
+            "Total",
+            "Total",
+            "16879",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 27,
+          "height": 14.25,
+          "vals": [
+            "Acc no : 510101006571089 ",
+            "Acc no : 510101006571089 ",
+            "Acc no : 510101006571089 ",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 28,
+          "height": 14.25,
+          "vals": [
+            "",
+            "",
+            "",
+            "Add CGST @ 9%",
+            "Add CGST @ 9%",
+            "Add CGST @ 9%",
+            "Add CGST @ 9%",
+            "1519",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 29,
+          "height": 13.5,
+          "vals": [
+            "Amount Chargeble in words(INR) :",
+            "Amount Chargeble in words(INR) :",
+            "Amount Chargeble in words(INR) :",
+            "Add SGST @ 9%",
+            "Add SGST @ 9%",
+            "Add SGST @ 9%",
+            "Add SGST @ 9%",
+            "1519",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 30,
+          "height": 10.5,
+          "vals": [
+            "Amount Chargeble in words(INR) :",
+            "Amount Chargeble in words(INR) :",
+            "Amount Chargeble in words(INR) :",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 31,
+          "height": 14.25,
+          "vals": [
+            "Nineteen Thousand Nine Hundred and Seventeen Only",
+            "Nineteen Thousand Nine Hundred and Seventeen Only",
+            "Nineteen Thousand Nine Hundred and Seventeen Only",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 32,
+          "height": 14.25,
+          "vals": [
+            "",
+            "",
+            "",
+            "Total ",
+            "Total ",
+            "Total ",
+            "Total ",
+            "19917",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 33,
+          "height": 15,
+          "vals": [
+            "Udyam Reg. No : UDYAM-MH-18-0108068",
+            "Udyam Reg. No : UDYAM-MH-18-0108068",
+            "Udyam Reg. No : UDYAM-MH-18-0108068",
+            "Round off (+-)",
+            "Round off (+-)",
+            "Round off (+-)",
+            "Round off (+-)",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 34,
+          "height": 14.25,
+          "vals": [
+            "",
+            "",
+            "",
+            "Total Amount",
+            "Total Amount",
+            "Total Amount",
+            "Total Amount",
+            "19917",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 35,
+          "height": 14.25,
+          "vals": [
+            "Terms & condition : \n  Payment should not be done in Cash\n",
+            "Terms & condition : \n  Payment should not be done in Cash\n",
+            "Terms & condition : \n  Payment should not be done in Cash\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 36,
+          "height": 14.25,
+          "vals": [
+            "Terms & condition : \n  Payment should not be done in Cash\n",
+            "Terms & condition : \n  Payment should not be done in Cash\n",
+            "Terms & condition : \n  Payment should not be done in Cash\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 37,
+          "height": 14.25,
+          "vals": [
+            "Terms & condition : \n  Payment should not be done in Cash\n",
+            "Terms & condition : \n  Payment should not be done in Cash\n",
+            "Terms & condition : \n  Payment should not be done in Cash\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 38,
+          "height": 14.25,
+          "vals": [
+            "Terms & condition : \n  Payment should not be done in Cash\n",
+            "Terms & condition : \n  Payment should not be done in Cash\n",
+            "Terms & condition : \n  Payment should not be done in Cash\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "",
+            ""
+          ]
+        },
+        {
+          "r": 39,
+          "height": 14.25,
+          "vals": [
+            "Terms & condition : \n  Payment should not be done in Cash\n",
+            "Terms & condition : \n  Payment should not be done in Cash\n",
+            "Terms & condition : \n  Payment should not be done in Cash\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "For Ambe Service  \n\n\n\nAuthorized signatory\n",
+            "",
+            ""
+          ]
+        }
+      ],
+      "merges": [
+        "A1:E1",
+        "F1:H1",
+        "A2:E2",
+        "F2:H2",
+        "A3:E3",
+        "F3:H3",
+        "A4:E4",
+        "F4:H4",
+        "A5:E5",
+        "F5:H5",
+        "A6:E6",
+        "A7:E7",
+        "F7:H7",
+        "A8:D8",
+        "A9:E9",
+        "A11:D11",
+        "A12:H13",
+        "E14:F14",
+        "A14:A15",
+        "B14:B15",
+        "C14:C15",
+        "D14:D15",
+        "G14:G15",
+        "E17:F17",
+        "A18:A19",
+        "B18:B19",
+        "C18:C19",
+        "D22:G22",
+        "D23:G23",
+        "D24:G24",
+        "A25:C25",
+        "D25:G25",
+        "A26:C26",
+        "D26:G26",
+        "A27:C27",
+        "D27:G27",
+        "A28:C28",
+        "D28:G28",
+        "A29:C30",
+        "D29:G29",
+        "A31:C31",
+        "D31:G31",
+        "A32:C32",
+        "D32:G32",
+        "A33:C33",
+        "D33:G33",
+        "D34:G34",
+        "A35:C39",
+        "D35:H39"
+      ]
+    },
+    {
+      "name": "GEN_DEBUG",
+      "rowCount": 3,
+      "columnCount": 2,
+      "sampleRows": [
+        {
+          "r": 1,
+          "height": null,
+          "vals": [
+            "Template",
+            "/home/mahesh/Company-management-system/frontend/public/Template_bill_ambeservice.xlsx"
+          ]
+        },
+        {
+          "r": 2,
+          "height": null,
+          "vals": [
+            "SelectedSheet",
+            "SHREEYA"
+          ]
+        },
+        {
+          "r": 3,
+          "height": null,
+          "vals": [
+            "InsertionRow",
+            "16"
+          ]
+        }
+      ],
+      "merges": []
+    }
+  ]
+}

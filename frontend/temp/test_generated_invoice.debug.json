@@ -1,0 +1,149 @@
+{
+  "template": "/home/mahesh/Company-management-system/frontend/public/Template_bill_ambeservice.xlsx",
+  "sheet": "SHREEYA",
+  "insertionRow": 16,
+  "headerRow": 14,
+  "headerMap": {
+    "sr_no": 1,
+    "description": 2,
+    "hsn": 3,
+    "rate": 4,
+    "working_days": 5,
+    "persons": 7,
+    "amount": 8
+  },
+  "sampleRow": {
+    "index": 16,
+    "height": 14.25
+  },
+  "placeholders": {
+    "{{SUBTOTAL}}": null,
+    "{{MANAGEMENT}}": null,
+    "{{TOTAL_BEFORE_TAX}}": null,
+    "{{CGST}}": null,
+    "{{SGST}}": null,
+    "{{TOTAL}}": null,
+    "{{AMOUNT_IN_WORDS}}": null
+  },
+  "pageSetup": {
+    "fitToPage": false,
+    "margins": {
+      "left": 0.7875,
+      "right": 0.7875,
+      "top": 1.05277777777778,
+      "bottom": 1.05277777777778,
+      "header": 0.7875,
+      "footer": 0.7875
+    },
+    "paperSize": 9,
+    "orientation": "portrait",
+    "horizontalDpi": 300,
+    "verticalDpi": 300,
+    "pageOrder": "downThenOver",
+    "blackAndWhite": false,
+    "draft": false,
+    "cellComments": "None",
+    "errors": "displayed",
+    "scale": 100,
+    "fitToWidth": 1,
+    "fitToHeight": 1,
+    "firstPageNumber": 1,
+    "useFirstPageNumber": true,
+    "usePrinterDefaults": false,
+    "copies": 1
+  },
+  "columns": [
+    {
+      "index": 1,
+      "width": 5.33
+    },
+    {
+      "index": 2,
+      "width": 25.44
+    },
+    {
+      "index": 3,
+      "width": 10.11
+    },
+    {
+      "index": 4,
+      "width": 8.34
+    },
+    {
+      "index": 5,
+      "width": null
+    },
+    {
+      "index": 6,
+      "width": 8.11
+    },
+    {
+      "index": 7,
+      "width": 11
+    },
+    {
+      "index": 8,
+      "width": 12.44
+    },
+    {
+      "index": 9,
+      "width": null
+    },
+    {
+      "index": 10,
+      "width": null
+    }
+  ],
+  "merges": [
+    "A1",
+    "F1",
+    "A2",
+    "F2",
+    "A3",
+    "F3",
+    "A4",
+    "F4",
+    "A5",
+    "F5",
+    "A6",
+    "A7",
+    "F7",
+    "A8",
+    "A9",
+    "A11",
+    "A12",
+    "E14",
+    "A14",
+    "B14",
+    "C14",
+    "D14",
+    "G14",
+    "E16",
+    "E17",
+    "A18",
+    "B18",
+    "C18",
+    "D22",
+    "D23",
+    "D24",
+    "A25",
+    "D25",
+    "A26",
+    "D26",
+    "A27",
+    "D27",
+    "A28",
+    "D28",
+    "A29",
+    "D29",
+    "A31",
+    "D31",
+    "A32",
+    "D32",
+    "A33",
+    "D33",
+    "D34",
+    "A35",
+    "D35"
+  ]
+}

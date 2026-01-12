@@ -6,13 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "cd frontend && npm install && npm run build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
     "compression": "^1.8.1",
     "docx": "^9.5.1",
     "exceljs": "^4.4.0",
+    "expo": "^54.0.31",
     "express-rate-limit": "^8.2.1",
     "file-saver": "^2.0.5",
     "helmet": "^8.1.0",
@@ -20,8 +23,9 @@
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.554.0",
     "morgan": "^1.10.1",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-native": "0.81.5",
     "recharts": "^3.5.0",
     "socket.io": "^4.8.1",
     "xlsx": "^0.18.5"
@@ -30,11 +34,12 @@
     "@tailwindcss/postcss": "^4.1.17",
     "@types/file-saver": "^2.0.7",
     "@types/node": "^22.14.0",
+    "@types/react": "~19.1.10",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.22",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",
-    "typescript": "~5.8.2",
+    "typescript": "~5.9.2",
     "vite": "^6.2.0"
   }
 }

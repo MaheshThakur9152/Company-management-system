@@ -165,4 +165,7 @@ app.post('/api/uploads/images', uploadLimiter, upload.array('photos', 100), asyn
 // Voice AI Route
 app.use('/api/voice', require('./api/voice'));
 
+// Invoice download routes (Excel streaming)
+app.use('/api/invoices', require('./api/invoices'));
+
 module.exports = app;
