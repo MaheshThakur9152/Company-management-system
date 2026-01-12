@@ -31,3 +31,14 @@ supervisor-android/.gradle/
 supervisor-android/build/
 supervisor-android/app/build/
 *.apk
+
+# Invoice templates / generated files (keep templates, ignore generated invoices)
+/frontend/public/Invoice_*.xlsx
+/frontend/public/*PI-*.xlsx
+/frontend/public/babli.xlsx
+/frontend/public/mahesh.xlsx
+/frontend/public/go.xlsx
+/frontend/public/.~lock*.xlsx#
+
+# Archived ad-hoc scripts (they are kept in history but should not be modified/committed)
+/backend/src/scripts/archived-tests/
