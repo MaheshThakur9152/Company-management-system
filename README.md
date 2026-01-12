@@ -1,169 +1,200 @@
-# Company Management System — Ambe Service 
+# Company Management System
 
-A full-stack application for managing company operations — employee management, attendance tracking, payroll & invoices, ledgers, site management, and supervisor mobile app integration.
+> Consolidated repository containing four active projects: **frontend**, **backend**, **BossJava**, and **supervisor-android**. Unnecessary temporary files, sample templates, generated artifacts, and large cruft were removed to keep the repo minimal and focused.
 
 ---
 
 ## Table of contents
-1. Project overview
-2. Key features
-3. Architecture & repo layout
-4. Setup & environment
-5. Development & running
-6. Testing
-7. Scripts & utilities
-8. Data models & functionality
-9. Deployment notes
-10. Contributing & license
+- [Overview](#overview)
+- [Kept Projects](#kept-projects)
+  - [frontend](#frontend)
+  - [backend](#backend)
+  - [BossJava](#bossjava)
+  - [supervisor-android](#supervisor-android)
+- [Common tasks](#common-tasks)
+  - [Prerequisites](#prerequisites)
+  - [Install dependencies](#install-dependencies)
+  - [Run locally (dev)](#run-locally-dev)
+  - [Build for production](#build-for-production)
+  - [Clean caches / free space](#clean-caches--free-space)
+- [Templates & public assets](#templates--public-assets)
+- [Repository history & Git](#repository-history--git)
+- [What was removed](#what-was-removed)
+- [Advanced / optional steps](#advanced--optional-steps)
+- [Contact / Next steps](#contact--next-steps)
 
 ---
 
-## 1) Project overview 🔧
-This repository contains the Ambe Service facility management system with three main parts:
+## Overview
+This repository now contains only the projects you requested to keep:
+- `frontend` — web UI (Vite + React + TypeScript)
+- `backend` — Node.js backend APIs & scripts
+- `BossJava` — Android/Java app project
+- `supervisor-android` — Android project for supervisor app
 
-- `backend/` — Node.js/Express API and business logic (MongoDB models, email, file uploads, scripts).
-- `frontend/` — React + Vite admin console (TypeScript, TailwindCSS) for admins and office users.
-- `supervisor-android/` — Android supervisor app (native Gradle project) used for on-site check-ins.
-
-The system records employee attendance (including site-based attendance), computes payroll, generates invoices and ledger entries, and provides admin controls via a web UI.
-
----
-
-## 2) Key features ✅
-- Employee CRUD and role management
-- Attendance logging (check-in/out, site & device info)
-- Payroll generation and `SalaryRecord` persistence
-- Invoice creation & editing, PDF export
-- Ledger & manual ledger entries for accounting
-- File uploads via Cloudinary
-- Email notifications via Brevo/SMTP
-- JWT-based authentication and role enforcement
-- Utility scripts for data migration, seeding and admin utilities
+All other top-level folders and large temporary/generated files were removed. `.git` is preserved so commit history remains intact locally.
 
 ---
 
-## 3) Architecture & repo layout 📁
-Root contains workspace configs (`package.json`, `vite.config.ts`, `README.md`).
+## Kept Projects
 
-Backend (`/backend`):
-- `src/app.js` — Express app bootstrap and middleware
-- `src/api/index.js` — routes and API endpoints
-- `src/middleware/` — `rateLimiter.js`, `upload.js`
-- `src/models/` — Mongoose models (`User.js`, `Employee.js`, `Attendance.js`, `SalaryRecord.js`, `Invoice.js`, `LedgerEntry.js`, `ManualLedgerEntry.js`, `LocationLog.js`, `Site.js`, `JobRole.js`, etc.)
-- `src/utils/` — `db.js`, `cloudinaryHelper.js`, and other helpers
-- `src/scripts/` — maintenance scripts (seed, migrations, reset admin)
-- `tests/` — Jest tests (e.g., `uploads.test.js`)
+### frontend
+- Location: `./frontend`
+- Stack: TypeScript, React, Vite, Tailwind
 
-Frontend (`/frontend`):
-- `src/` — `App.tsx`, `index.tsx`, `components/`, `pages/`, `services/mockData.ts`, `utils/`
-- `public/` — static assets including `metadata.json`
-
-Supervisor Android (`/supervisor-android`):
-- Native Gradle project with app source under `app/src/main` for activities, layouts, resources.
-
----
-
-## 4) Setup & environment ⚙️
-**Important:** Never commit `.env` files with secrets. Use `.env.example` for the required keys and set real values in local or CI environment variables.
-
-Backend environment variables (examples):
-- `MONGODB_URI` — MongoDB connection string
-- `PORT` — server port (default: 3002)
-- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
-- `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_SECURE`
-- `JWT_SECRET`
-- `EMAIL_FROM`, `TEST_EMAIL_RECIPIENT`, `BREVO_API_KEY`
-
-Frontend: set `VITE_API_URL` if the API is hosted on a non-default host.
-
-Android: ensure `local.properties` has correct SDK paths before building.
-
----
-
-## 5) Development & running ▶️
-Backend:
-```bash
-cd backend
-npm install
-cp .env.example .env  # fill in credentials
-npm run dev
-```
-Key backend scripts (check `backend/package.json`):
-- `npm run dev` — development server (nodemon)
-- `npm test` — runs Jest tests
-- seed and migration scripts in `src/scripts/`
-
-Frontend:
+Typical commands:
 ```bash
 cd frontend
 npm install
-npm run dev
-# open http://localhost:5173
+npm run dev       # start dev server
+npm run build     # produce production-ready files in dist
+npm run preview   # preview built dist
 ```
-Build & preview:
-- `npm run build`
-- `npm run preview`
+Notes:
+- Public templates used by the app live in `frontend/public/` (e.g. `Template_bill_ambeservice.xlsx`, `Bills_real.xlsx`, `elara.xlsx`).
+- Temporary and analysis files previously in `frontend/temp` and `frontend/tmp` were removed.
 
-Android:
-- Open `supervisor-android/` in Android Studio and run or use Gradle: `./gradlew assembleDebug`
+### backend
+- Location: `./backend`
+- Stack: Node.js (Express-style APIs), scripts for invoicing and template generation
 
----
+Typical commands:
+```bash
+cd backend
+npm install
+npm run dev       # run development server (if defined)
+npm start         # run production server (if defined)
+```
+Notes:
+- Backend references `frontend/public/Bills_real.xlsx` as a default template for bill generation.
+- Generated invoice artifacts (example: `backend/Invoice_*.xlsx`) were removed when identified as temporary outputs.
 
-## 6) Testing ✅
-- Backend tests: `cd backend && npm test` (Jest)
-- Frontend: run any unit/integration tests and use `services/mockData.ts` for UI checks
-- Use `TEST_EMAIL_RECIPIENT` for email transport tests (local only)
+### BossJava
+- Location: `./BossJava`
+- Classic Android/Java project. Open with Android Studio.
 
----
+Build/run:
+```bash
+cd BossJava
+# from Android Studio: import the project and run
+# or run gradle commands:
+./gradlew assembleDebug
+./gradlew installDebug
+```
 
-## 7) Scripts & utilities 🔧
-- `src/scripts/seedData.js` — seeds initial data
-- `create_user_mahesh.js`, `reset_admin.js`, etc. — admin utilities
-- `cloudinaryHelper.js` — Cloudinary upload helper
-- `db.js` — MongoDB connection and retry logic
+### supervisor-android
+- Location: `./supervisor-android`
+- Android project used by the supervisor app
 
----
-
-## 8) Data models & functionality 📊
-- Attendance — check-in/out with site/device info and location logs
-- SalaryRecord — payroll entries per period
-- LedgerEntry / ManualLedgerEntry — accounting entries
-- Invoice — creation, editing and exports
-- LocationLog — geo/audit logging
-- Role-based `User` model for auth and permissions
-
----
-
-## 9) Deployment notes 🚀
-- Backend: deploy with secure environment variable storage (Heroku, Vercel serverless functions, Docker on cloud VM)
-- Frontend: deploy to Vercel/Netlify or any static host; set `VITE_API_URL` for production
-- Android: produce signed APK/AAB for Play Store per standard procedures
-
----
-
-## 10) Cleanup & maintenance
-A `CLEANUP_PROPOSAL.md` exists proposing removal of generated Android build artifacts and checked-in APKs. Recommended workflow:
-1. Create a backup branch: `git checkout -b cleanup/backup-YYYYMMDD` ✅
-2. Remove build artifacts and add appropriate `.gitignore` entries
-3. Run local builds and CI to validate nothing breaks
-
----
-
-## Contributing & contact 🤝
-- Fork → branch → PR with tests for new features
-- Open issues for bugs or feature requests
-- Do not commit secrets or `.env` files
-
-**I can also:**
-- Add a `backend/.env.example` with required keys (no values)
-- Create a `README` section that documents the most important scripts and examples of common maintenance tasks
+Build/run:
+```bash
+cd supervisor-android
+# from Android Studio or via Gradle:
+./gradlew assembleDebug
+./gradlew installDebug
+```
+Notes:
+- Keep `app/src/main/res/drawable/app_logo.png` (used in manifest and notifications).
 
 ---
 
-> **Note:** If you'd like me to also create the `backend/.env.example` and/or add a `CLEANUP_PROPOSAL` change branch, tell me and I will proceed.
+## Common tasks
+
+### Prerequisites
+- Node.js (LTS) & npm
+- Java JDK (for Android projects)
+- Android SDK & Android Studio (for `BossJava` and `supervisor-android`)
+
+### Install dependencies
+Run per-project:
+```bash
+cd frontend && npm install
+cd backend && npm install
+```
+
+### Run locally (dev)
+1. Backend (API):
+```bash
+cd backend
+npm run dev
+```
+2. Frontend:
+```bash
+cd frontend
+npm run dev
+```
+
+### Build for production
+- Frontend: `cd frontend && npm run build`
+- Android: `cd <android-project> && ./gradlew assembleRelease`
+- Backend: build process depends on deployment flow (Docker, host, etc.)
+
+### Clean caches / free space
+Remove per-project build artifacts when you want to reclaim disk space:
+```bash
+# remove Node modules and dist/build
+find . -type d -name "node_modules" -exec rm -rf {} +
+find . -type d -name "dist" -exec rm -rf {} +
+# remove Android build outputs
+find . -type d -name "build" -exec rm -rf {} +
+# remove Gradle caches for projects
+find . -type d -name ".gradle" -exec rm -rf {} +
+# recommended: run git maintenance
+git gc --aggressive --prune=now
+```
 
 ---
 
-*Last updated: 2026-01-03*
+## Templates & public assets
+Templates are located in `frontend/public/`:
+- `Template_bill_ambeservice.xlsx` — default frontend template
+- `Bills_real.xlsx` — referenced by backend default generation
+- `elara.xlsx` — used by some backend scripts
 
+If you prefer a tidier structure, move templates into `frontend/public/templates/` and update code references (search for `/Template_bill_ambeservice.xlsx` or `/Bills_real.xlsx`). I can do this refactor if you like.
 
+---
+
+## Repository history & Git
+- I kept `.git` to preserve full history.
+- If you want the repository to only contain the four folders at the Git-history level (reduce size while keeping filtered history), I can prepare and run `git filter-repo` commands to rewrite history.
+- If you prefer to drop history entirely (start fresh), deleting `.git` will remove all local history:
+```bash
+rm -rf .git
+git init
+git add .
+git commit -m "Initial commit: keep only frontend, backend, BossJava, supervisor-android"
+```
+Note: Deleting or rewriting history is irreversible locally — ensure any required history exists on a remote or backup first.
+
+---
+
+## What was removed
+During cleanup I removed:
+- Top-level folders not requested (`ambe-boss`, `android` (others), `Boss` (duplicates), `assets`, etc.)
+- Generated APKs and invoices (e.g., `supervisor-android/app/1234.apk`, `backend/Invoice_*.xlsx`)
+- `frontend/temp/`, `frontend/tmp/` analysis outputs and `.~lock.*` files
+- Build caches and common artifacts when found: `node_modules`, `build`, `.gradle`, `dist`
+- If you need any specific removed file restored, they can be retrieved from the remote if pushed there.
+
+---
+
+## Advanced / optional steps
+- Shrink Git history to only the kept folders using `git filter-repo` (I can prepare commands and run them).
+- Add CI, CODEOWNERS, CONTRIBUTING, or an operation runbook for deployments.
+- Move templates into a `templates/` subfolder and update references.
+
+---
+
+## Contact / Next steps
+If you'd like any of these follow-ups done I can:
+- Remove `.git` and re-init to make a fresh repository
+- Run `git filter-repo` to keep only certain folders in history
+- Move `public/` templates into a `frontend/public/templates/` folder and update references
+- Add CI / build scripts
+
+Please tell me which of the optional steps you want me to take next and I will proceed.
+
+---
+
+_This README was generated by GitHub Copilot (Raptor mini (Preview))._

@@ -448,6 +448,89 @@ const JobRole = require('../models/JobRole');
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
+  app.get('/api/invoices/:id/download', async (req, res) => {
+    try {
+      const invoice = await Invoice.findOne({ id: req.params.id }) || await Invoice.findOne({ invoiceNo: req.params.id });
+      // Fallback search by invoiceNo if id not found, though typically id is passed.
+
+      if (!invoice) return res.status(404).json({ error: "Invoice not found" });
+
+      const site = await Site.findOne({ id: invoice.siteId });
+
+      // Construct params for generator
+      // Use site defaults if invoice doesn't store them (Invoice schema is lean)
+      // Normalize/expand billingPeriod: if short form like 'Dec 2025' is present, expand to '1st to <last> <Month> <Year>'
+      let billingPeriodRaw = invoice.billingPeriod || invoice.period || '';
+      let billingPeriodExpanded = billingPeriodRaw;
+      try {
+        if (!billingPeriodRaw || !/\d+\s*to\s*\d+/i.test(billingPeriodRaw)) {
+          // Try to parse 'Month Year' like 'Dec 2025' or 'December 2025'
+          const m = (billingPeriodRaw || '').match(/(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)[\s,]*([0-9]{4})/i);
+          if (m) {
+            const monthName = m[1];
+            const year = Number(m[2]);
+            const monthAbbr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const monthFull = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            // match both abbreviations and full names (case-insensitive)
+            const monthIndex = monthAbbr.findIndex((abbr, idx) => new RegExp('^'+abbr,'i').test(monthName) || new RegExp('^'+monthFull[idx],'i').test(monthName));
+            if (monthIndex >= 0) {
+              const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+              billingPeriodExpanded = `1st to ${daysInMonth} ${monthFull[monthIndex]} ${year}`;
+            }
+          } else if (invoice.generatedDate) {
+            // Fallback: use generatedDate's previous month if no period present
+            const d = new Date(invoice.generatedDate);
+            const prev = new Date(d.getFullYear(), d.getMonth(), 1); // invoice.generatedDate often is same-month, but keep simple
+            const days = new Date(prev.getFullYear(), prev.getMonth() + 1, 0).getDate();
+            const monthFull = prev.toLocaleString('default', { month: 'long' });
+            billingPeriodExpanded = `1st to ${days} ${monthFull} ${prev.getFullYear()}`;
+          }
+        }
+      } catch (err) { /* ignore parse issues; fall back to raw */ }
+
+      const params = {
+        site: site ? {
+          name: site.name,
+          location: site.location,
+          clientName: site.clientName,
+          clientGstin: site.clientGstin,
+          id: site.id
+        } : {},
+        invoiceNo: invoice.invoiceNo,
+        date: invoice.generatedDate ? new Date(invoice.generatedDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('en-GB'),
+        billingPeriod: billingPeriodExpanded,
+        workOrderNo: site ? site.workOrderNo : '',
+        workOrderDate: site ? site.workOrderDate : '',
+        workOrderPeriod: site ? `${site.workOrderDate || ''}-${site.workOrderEndDate || ''}` : '',
+        items: invoice.items,
+        managementRate: invoice.managementRate || 5,
+        cgstRate: 9, // Defaults as these aren't in Invoice model explicitly but usually 9
+        sgstRate: 9,
+        amount: invoice.amount,
+        subTotal: invoice.subTotal,
+        // Default bank details if not stored
+        bankDetails: {
+          name: 'Axis bank',
+          accNo: '924020001871570',
+          ifsc: 'UTIB0001572',
+          branch: 'kandivali west,Link Road.'
+        }
+      };
+
+      // const buffer = await generateBillExcel(params);
+      const workbook = await createInvoiceWorkbook(params);
+      const buffer = await workbook.xlsx.writeBuffer();
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=${invoice.invoiceNo.replace(/\//g, '-')}.xlsx`);
+      res.send(buffer);
+
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // Export invoices for a site/month as a single XLSX with one sheet per generated invoice
   app.get('/api/invoices/export', authenticateToken, async (req, res) => {
     try {

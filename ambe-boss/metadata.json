@@ -1,8 +1,0 @@
-{
-  "name": "Ambe Boss",
-  "description": "Personal AI Assistant for Hari Sir with voice, chat, and vision capabilities.",
-  "requestFramePermissions": [
-    "microphone",
-    "camera"
-  ]
-}

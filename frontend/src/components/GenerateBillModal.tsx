@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Download, FileText, Plus, Trash2, Calendar } from 'lucide-react';
 import { Employee, AttendanceRecord, Site, Invoice } from '@types';
-import { ensureFileSaverLoaded } from '@utils/excelGenerator';
+import { generateBillExcel } from '@utils/excelGenerator';
 import { computeWorkingDaysForEmployee, getDaysInMonth } from '@utils/employeeUtils';
-import { API_URL } from '@services/mockData';
 
 interface GenerateBillModalProps {
     isOpen: boolean;
@@ -191,71 +190,77 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
         const site = sites.find(s => s.id === selectedSiteId);
         if (!site) return;
 
-        // Construct Invoice Object explicitly
-        const subTotal = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-        const managementAmount = subTotal * (managementRate / 100);
-        const taxable = subTotal + managementAmount;
-        const cgst = taxable * (cgstRate / 100);
-        const sgst = taxable * (sgstRate / 100);
-        const total = taxable + cgst + sgst;
-
-        const newInvoice: Invoice = {
-            id: Date.now().toString() + Math.random(),
-            invoiceNo: invoiceNo,
-            siteId: site.id,
-            siteName: site.name,
-            billingPeriod: billingPeriod,
-            generatedDate: new Date().toISOString().split('T')[0],
-            dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            items: items.map(i => ({
-                id: Date.now().toString() + Math.random(),
-                description: i.description,
-                hsn: i.hsn,
-                rate: i.rate,
-                days: i.workingDays,
-                persons: i.persons,
-                amount: i.amount
-            })),
-            subTotal: subTotal,
-            managementRate: managementRate,
-            managementAmount: managementAmount,
-            taxableAmount: taxable,
-            cgst: cgst,
-            sgst: sgst,
-            amount: Math.round(total),
-            status: invoiceType === 'PROFORMA INVOICE' ? 'Pending Approval' : 'Unpaid',
-            materialCharges: 0,
-            // Include client details in the invoice object so backend can use them
-            client: {
-                name: (companyName === 'AMBE SERVICE FACILITIES PRIVATE LIMITED' ? site.clientName : site.companyName) || site.clientName,
-                address: site.location, 
-                gstin: site.clientGstin
-            }
+        const params = {
+            site,
+            companyName,
+            invoiceType,
+            invoiceNo,
+            date,
+            billingPeriod,
+            workOrderNo,
+            workOrderDate,
+            workOrderPeriod,
+            items,
+            managementRate,
+            cgstRate,
+            sgstRate,
+            bankDetails: {
+                name: bankName,
+                accNo,
+                ifsc,
+                branch
+            },
+            terms,
+            signatory,
+            // Pass days info to downstream generators if needed
+            daysInMonth: getDaysInMonth(selectedMonth, selectedYear)
         };
 
         try {
-            // 1. Save to Backend First
-            if (onSave) {
-                await onSave(newInvoice);
-                
-                // 2. Download from Server using the ID
-                const saveAs = await ensureFileSaverLoaded();
-                const resp = await fetch(`${API_URL}/invoices/${newInvoice.id}/download`, { credentials: 'include' });
-                
-                if (!resp.ok) {
-                    const txt = await resp.text();
-                    throw new Error(`Server download failed: ${txt}`);
-                }
-                
-                const blob = await resp.blob();
-                const filename = `${newInvoice.invoiceNo.replace(/\//g, '-')}.xlsx`;
-                saveAs(blob, filename);
-            }
+            await generateBillExcel(params);
 
+            if (onSave) {
+                // Calculate totals for Invoice object
+                const subTotal = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+                const managementAmount = subTotal * (managementRate / 100);
+                const taxable = subTotal + managementAmount;
+                const cgst = taxable * (cgstRate / 100);
+                const sgst = taxable * (sgstRate / 100);
+                const total = taxable + cgst + sgst;
+
+                const newInvoice: Invoice = {
+                    id: Date.now().toString() + Math.random(),
+                    invoiceNo: invoiceNo,
+                    siteId: site.id,
+                    siteName: site.name,
+                    billingPeriod: billingPeriod,
+                    generatedDate: new Date().toISOString().split('T')[0],
+                    dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    items: items.map(i => ({
+                        id: Date.now().toString() + Math.random(),
+                        description: i.description,
+                        hsn: i.hsn,
+                        rate: i.rate,
+                        days: i.workingDays,
+                        persons: i.persons,
+                        amount: i.amount
+                    })),
+                    subTotal: subTotal,
+                    managementRate: managementRate,
+                    managementAmount: managementAmount,
+                    taxableAmount: taxable,
+                    cgst: cgst,
+                    sgst: sgst,
+                    amount: Math.round(total),
+                    status: invoiceType === 'PROFORMA INVOICE' ? 'Pending Approval' : 'Unpaid',
+                    materialCharges: 0
+                };
+                onSave(newInvoice);
+            }
             onClose();
         } catch (error) {
             console.error("Failed to generate bill:", error);
-            alert(`Failed to generate bill: ${error instanceof Error ? error.message : String(error)}`);
+            alert("Failed to generate bill. Please try again.");
         }
     };
 

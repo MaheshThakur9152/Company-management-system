@@ -32,86 +32,47 @@ exports.downloadBill = async (req, res) => {
       invoice = await Invoice.findById(invoiceId);
     }
     if (!invoice) {
-        // Try strict invoiceNo match first, then id
       invoice = await Invoice.findOne({ id: invoiceId }) || await Invoice.findOne({ invoiceNo: invoiceId });
     }
     if (!invoice) return res.status(404).json({ msg: 'Invoice not found' });
 
-    // Ensure we have a plain object
-    let invoiceData = invoice.toObject ? invoice.toObject() : { ...invoice };
+    let invoiceData = invoice.toObject ? invoice.toObject() : invoice;
 
-    // Fetch Site Details
-    let site = null;
-    const Site = require('../models/Site');
-    if (invoiceData.siteId) {
-        site = await Site.findOne({ id: invoiceData.siteId });
-    }
-    if (!site && invoiceData.siteName) {
+    // If this invoice references a site, fetch site details and merge them (without overwriting existing invoice fields)
+    try {
+      const Site = require('../models/Site');
+      let site = null;
+      if (invoiceData.siteId) site = await Site.findOne({ id: invoiceData.siteId });
+      // If site not found using siteId, try to find by siteName (case-insensitive exact)
+      if (!site && invoiceData.siteName) {
         const safeName = invoiceData.siteName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         site = await Site.findOne({ name: new RegExp(`^${safeName}$`, 'i') });
+      }
+
+      if (site) {
+        const s = site.toObject ? site.toObject() : site;
+        invoiceData.site = s;
+        // Explicitly override invoice client fields with site canonical fields when available
+        invoiceData.client = invoiceData.client || {};
+        if (s.clientName) invoiceData.client.name = s.clientName;
+        else if (s.companyName) invoiceData.client.name = s.companyName;
+        else invoiceData.client.name = invoiceData.client.name || s.name || invoiceData.siteName;
+
+        if (s.location) invoiceData.client.address = s.location;
+        else invoiceData.client.address = invoiceData.client.address || invoiceData.client_address || invoiceData.site_location || '';
+
+        if (s.clientGstin) invoiceData.client.gstin = s.clientGstin;
+        else invoiceData.client.gstin = invoiceData.client.gstin || invoiceData.client_gstin || '';
+      }
+    } catch (mergeErr) {
+      console.warn('Failed to merge site info into invoiceData:', mergeErr.message);
     }
 
-    // Construct the input strictly for billGenerator (like api/index.js was doing)
-    // This ensures consistency between manual and API generation
-    let billingPeriodRaw = invoiceData.billingPeriod || invoiceData.period || '';
-    let billingPeriodExpanded = billingPeriodRaw;
-    
-    // Attempt to expand simplified periods like "Dec 2025"
-    if (billingPeriodRaw && !/\d+\s*to\s*\d+/i.test(billingPeriodRaw)) {
-        try {
-             // Try to parse 'Month Year' like 'Dec 2025' or 'December 2025'
-             const m = billingPeriodRaw.match(/(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)[\s,]*([0-9]{4})/i);
-             if (m) {
-               const monthName = m[1];
-               const year = Number(m[2]);
-               const monthAbbr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-               const monthFull = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-               // match both abbreviations and full names (case-insensitive)
-               const monthIndex = monthAbbr.findIndex((abbr, idx) => new RegExp('^'+abbr,'i').test(monthName) || new RegExp('^'+monthFull[idx],'i').test(monthName));
-               if (monthIndex >= 0) {
-                 const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-                 billingPeriodExpanded = `1st to ${daysInMonth} ${monthFull[monthIndex]} ${year}`;
-               }
-            } else if (invoice.generatedDate) {
-              const d = new Date(invoice.generatedDate);
-              const prev = new Date(d.getFullYear(), d.getMonth(), 1); 
-              const days = new Date(prev.getFullYear(), prev.getMonth() + 1, 0).getDate();
-              const monthFull = prev.toLocaleString('default', { month: 'long' });
-              billingPeriodExpanded = `1st to ${days} ${monthFull} ${prev.getFullYear()}`;
-            }
-        } catch (e) { console.warn('Period expansion failed', e); }
-    }
-
-    const params = {
-        invoiceNo: invoiceData.invoiceNo,
-        date: invoiceData.generatedDate || new Date().toISOString(),
-        billingPeriod: billingPeriodExpanded,
-        site: site ? {
-            name: site.name,
-            location: site.location,
-            clientName: site.clientName,
-            clientGstin: site.clientGstin,
-            companyName: site.companyName,
-            workOrderNo: site.workOrderNo,
-            workOrderDate: site.workOrderDate,
-            workOrderEndDate: site.workOrderEndDate,
-            id: site.id
-        } : {},
-        // Fallback or override client details
-        client: {
-             name: (invoiceData.client && invoiceData.client.name) || (site && (site.clientName || site.companyName)) || invoiceData.siteName,
-             address: (invoiceData.client && invoiceData.client.address) || (site && site.location),
-             gstin: (invoiceData.client && invoiceData.client.gstin) || (site && site.clientGstin)
-        },
-        items: invoiceData.items || [],
-        amount: invoiceData.amount,
-        subTotal: invoiceData.subTotal
-    };
-
-    // Logging debug info (optional, remove in prod if strict)
-    console.log(`Generating bill [${params.invoiceNo}] for site [${site ? site.name : 'Unknown'}]`);
-
-    await generateExcelStream(params, res);
+    try {
+      const fs = require('fs');
+      fs.writeFileSync('/tmp/invoice_debug.json', JSON.stringify({ time: new Date().toISOString(), client: invoiceData.client, site: invoiceData.site || null }, null, 2));
+    } catch (e) { /* noop */ }
+    await generateExcelStream(invoiceData, res);
   } catch (error) {
     console.error('Error generating invoice stream:', error);
     if (!res.headersSent) res.status(500).send('Server Error generating bill');
