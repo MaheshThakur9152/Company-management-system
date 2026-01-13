@@ -4,22 +4,22 @@ const connectToDatabase = require('../utils/db');
 require('dotenv').config({ path: '../.env' });
 
 const SITE_CREDENTIALS = {
-    's1': { username: 'minerva9', pass: 'minerva123' },
-    's2': { username: 'minervaho', pass: 'minerva123' },
-    's3': { username: 'royal', pass: 'royal123' },
-    's4': { username: 'ceejay', pass: 'ceejay123' },
-    's5': { username: 'sanjay', pass: 'sanjay123' },
-    's6': { username: 'elara', pass: 'elara123' },
-    's7': { username: 'ajmera', pass: 'ajmera123' },
-    's8': { username: 'acme', pass: 'acme123' },
-    's9': { username: 'shreeya', pass: 'shreeya123' },
-    's10': { username: 'ambeoffice', pass: 'ambe123' },
-    's11': { username: 'washroom', pass: 'washroom123' },
-    's12': { username: 'minlo', pass: 'minlo123' },
-    's13': { username: 'palacio', pass: 'palacio123' },
-    's14': { username: 'bpinfra', pass: 'bpinfra123' },
-    's15': { username: 'minsales', pass: 'minsales123' },
-    's16': { username: 'rounder', pass: 'rounder123' }
+    's1': { username: 'minerva9', pass: '' },
+    's2': { username: 'minervaho', pass: '' },
+    's3': { username: 'royal', pass: '' },
+    's4': { username: 'ceejay', pass: '' },
+    's5': { username: 'sanjay', pass: '' },
+    's6': { username: 'elara', pass: '' },
+    's7': { username: 'ajmera', pass: '' },
+    's8': { username: 'acme', pass: '' },
+    's9': { username: 'shreeya', pass: '' },
+    's10': { username: 'ambeoffice', pass: '' },
+    's11': { username: 'washroom', pass: '' },
+    's12': { username: 'minlo', pass: '' },
+    's13': { username: 'palacio', pass: '' },
+    's14': { username: 'bpinfra', pass: '' },
+    's15': { username: 'minsales', pass: '' },
+    's16': { username: 'rounder', pass: '' }
 };
 
 async function migrate() {
@@ -33,14 +33,15 @@ async function migrate() {
         const creds = SITE_CREDENTIALS[site.id];
         if (creds) {
             site.username = creds.username;
-            site.password = creds.pass;
+            // Do not set default passwords in bulk; leave empty so admin can set a secure password
+            site.password = '';
             await site.save();
             console.log(`Updated ${site.name} (${site.id}) with username: ${creds.username}`);
         } else {
             // Generate default for others
             if (!site.username) {
                 site.username = site.name.toLowerCase().replace(/\s+/g, '').substring(0, 10);
-                site.password = 'ambe123';
+                site.password = '';
                 await site.save();
                 console.log(`Generated defaults for ${site.name}: ${site.username}`);
             }

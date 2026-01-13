@@ -243,8 +243,8 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
   const [loadingUsers, setLoadingUsers] = useState(false);
 
   // Login State
-  const [loginEmail, setLoginEmail] = useState('admin@ambeservice.com');
-  const [loginPassword, setLoginPassword] = useState('password');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [otpRequired, setOtpRequired] = useState(false);
   const [otp, setOtp] = useState('');
   const [tempUserId, setTempUserId] = useState('');
@@ -553,7 +553,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
           userId: form.userId.value,
           name: form.name.value,
           email: form.email.value,
-          password: form.password.value || 'ambe123',
+          password: form.password.value || '',
           role: 'admin',
           photoUrl: photoUrl
       };
@@ -561,7 +561,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
       await addUser(newUser);
       setUsers(await getUsers());
       setShowAddUserModal(false);
-      alert("Admin added successfully. Default password is 'ambe123' if not specified.");
+      alert('Admin added successfully. Please ensure a secure password is set for the account.');
   };
 
   const handleRevokeTrust = async (userId: string) => {
@@ -2478,8 +2478,8 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                            <input name="password" type="text" defaultValue="ambe123" placeholder="Default: ambe123" className="w-full border rounded-lg px-3 py-2 bg-gray-50" />
-                            <p className="text-xs text-gray-500 mt-1">Default password is 'ambe123' if left blank.</p>
+                            <input name="password" type="text" defaultValue="" placeholder="Enter a secure password" className="w-full border rounded-lg px-3 py-2 bg-gray-50" />
+                            <p className="text-xs text-gray-500 mt-1">Please set a secure password for the account.</p>
                         </div>
                         <div className="pt-4 flex gap-3">
                             <button type="button" onClick={() => setShowAddUserModal(false)} className="flex-1 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>

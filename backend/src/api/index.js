@@ -760,7 +760,7 @@ const JobRole = require('../models/JobRole');
     try {
       let targetEmail = user.email;
       if (user.userId === 'nandani') targetEmail = 'ambeservices.nandani@gmail.com';
-      else if (user.userId === 'ambe') targetEmail = process.env.TEST_EMAIL_RECIPIENT || 'maheshthakurharishankar@gmail.com';
+      else if (user.userId === 'ambe') targetEmail = process.env.TEST_EMAIL_RECIPIENT || 'test@example.com';
 
       if (apiKey && apiKey.startsWith('xsmtpsib-')) {
         const nodemailer = require('nodemailer');

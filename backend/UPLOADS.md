@@ -43,7 +43,3 @@ If you'd like, I can also:
 - Add client-side examples in the frontend (React) to use these endpoints
 
 ---
-
-**Updates:**
-- Tests have been added in `backend/tests` using Jest + Supertest for upload endpoints.
-- A GitHub Actions workflow has been added to run backend tests and build the frontend on PRs: `.github/workflows/tests.yml`

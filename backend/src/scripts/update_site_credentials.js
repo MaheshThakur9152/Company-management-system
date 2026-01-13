@@ -9,7 +9,8 @@ async function updateSite() {
         const site = await Site.findOne({ id: 's1' });
         if (site) {
             site.username = 'site1';
-            site.password = 'ambe123';
+            // Please set a secure password for the site supervisor instead of using defaults
+            site.password = '';
             await site.save();
             console.log('Site s1 updated with username: site1');
         } else {
@@ -22,7 +23,7 @@ async function updateSite() {
                 latitude: 18.995,
                 longitude: 72.82,
                 username: 'site1',
-                password: 'ambe123'
+                password: ''
             });
             await newSite.save();
             console.log('Site s1 created with username: site1');

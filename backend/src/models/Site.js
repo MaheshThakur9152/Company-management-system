@@ -19,7 +19,7 @@ const SiteSchema = new mongoose.Schema({
   billingRate: Number,
   companyName: String,
   username: { type: String, unique: true, sparse: true }, // Username for supervisor login
-  password: { type: String, default: 'ambe123' }, // Password for supervisor login
+  password: { type: String }, // Password for supervisor login (no default)
   deviceId: { type: String, default: null }, // Bound device ID for supervisor
   deviceName: { type: String, default: null }, // Bound device Name (Model)
   status: { type: String, enum: ['Active', 'Pending', 'Deleted'], default: 'Active' }

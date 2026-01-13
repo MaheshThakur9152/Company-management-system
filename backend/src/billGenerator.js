@@ -24,6 +24,37 @@ async function createInvoiceWorkbook(inputData, options = {}) {
   const worksheet = workbook.getWorksheet('SHREEYA') || workbook.worksheets[0];
   if (!worksheet) throw new Error('No worksheet found in template');
 
+  // Ensure header/footer are set as desired:
+  // - Centered header should read "PROFORMA INVOICE"
+  // - Clear footers so page numbers like "Page 1" do not appear when printing
+  try {
+    if (!worksheet.headerFooter) worksheet.headerFooter = {};
+    worksheet.headerFooter.oddHeader = '&CPROFORMA INVOICE';
+    worksheet.headerFooter.evenHeader = '&CPROFORMA INVOICE';
+    worksheet.headerFooter.firstHeader = '&CPROFORMA INVOICE';
+    worksheet.headerFooter.oddFooter = '';
+    worksheet.headerFooter.evenFooter = '';
+    worksheet.headerFooter.firstFooter = '';
+  } catch (e) {
+    // ignore if headerFooter is not supported by the template/library version
+  }
+
+  // Also replace any visible 'SHREEYA' text in the top rows (if template included it as a cell)
+  try {
+    for (let r = 1; r <= 6; r++) {
+      const row = worksheet.getRow(r);
+      for (let c = 1; c <= 8; c++) {
+        const cell = row.getCell(c);
+        if (typeof cell.value === 'string' && cell.value.trim().toUpperCase() === 'SHREEYA') {
+          cell.value = 'PROFORMA INVOICE';
+          cell.alignment = Object.assign({}, cell.alignment, { horizontal: 'center', vertical: 'top' });
+        }
+      }
+    }
+  } catch (e) {
+    // ignore any issues iterating the sheet
+  }
+
   // Normalize input fields (support both snake_case and camelCase)
   const invNo = inputData.invoiceNo || inputData.invoice_no || inputData.invoice_no;
   const dateVal = inputData.date || inputData.generatedDate || '';
@@ -38,12 +69,7 @@ async function createInvoiceWorkbook(inputData, options = {}) {
   let clientAddress = (siteInfo && siteInfo.location) || (inputData.client && inputData.client.address) || inputData.client_address || inputData.site_location || '';
   let clientGstin = (siteInfo && (siteInfo.clientGstin || siteInfo.gstin)) || (inputData.client && (inputData.client.gstin || inputData.client.gst)) || inputData.client_gstin || '';
 
-  // Debug: write resolved client values so we can see why address might be empty
-  try {
-    const fs = require('fs');
-    fs.appendFileSync('/tmp/builder_debug.txt', JSON.stringify({ time: new Date().toISOString(), hasSite: !!siteInfo, siteInfoSummary: { clientName: siteInfo && siteInfo.clientName, location: siteInfo && siteInfo.location, clientGstin: siteInfo && siteInfo.clientGstin }, inputClient: inputData.client || null, clientName, clientAddress, clientGstin }) + '\n');
-  } catch (e) { /* ignore */ }
-
+  // Debug logging removed (previously wrote to /tmp)
   // Try to fetch Site by name (best-effort) to prefer canonical fields from Site if available
   if (inputData.siteName) {
     try {
@@ -79,12 +105,7 @@ async function createInvoiceWorkbook(inputData, options = {}) {
   worksheet.getCell('F7').value = `Billing Period : ${period || ''}`;
 
   // --- Client Info ---
-  // Log resolved client values for debugging
-  try {
-    const fs = require('fs');
-    fs.appendFileSync('/tmp/builder_debug.log', JSON.stringify({ time: new Date().toISOString(), clientName, clientAddress, clientGstin, period }) + '\n');
-  } catch (e) { /* ignore */ }
-  // Use resolved clientName/address/gstin computed above
+  // Debug logging removed (previously wrote to /tmp)  // Use resolved clientName/address/gstin computed above
   // Write clientName across merged row (A8..D8) and uppercase to match your example
   const displayName = (clientName || '').toString();
   ['A8','B8','C8','D8'].forEach(cellAddr => { worksheet.getCell(cellAddr).value = displayName; });

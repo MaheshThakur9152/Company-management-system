@@ -24,7 +24,37 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+.~lock*
 
 # Temporary files
 *.tmp
 *.temp
+
+# Generated files & artifacts
+*.xlsx
+*.xls
+*.pdf
+*.docx
+*.pptx
+*.tgz
+*.zip
+
+# Uploads and user files
+uploads/
+uploads/**
+/uploads/
+
+# Android / Java
+local.properties
+.gradle/
+
+# Test, coverage and related
+coverage/
+.nyc_output/
+.vitest/
+
+# Misc
+.env.local
+.env.development
+.env.production
+.env.test

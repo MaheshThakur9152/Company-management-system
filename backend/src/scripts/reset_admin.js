@@ -11,7 +11,7 @@ async function resetAdmin() {
         userId: 'admin',
         name: 'Admin',
         email: 'admin@ambeservice.com',
-        password: 'ambe123', // Default password
+        password: '', // No default password; set a secure password after creation
         role: 'admin',
         trustedDevices: []
     };
@@ -19,14 +19,14 @@ async function resetAdmin() {
     try {
         let user = await User.findOne({ userId: 'admin' });
         if (user) {
-            user.password = 'ambe123';
+            user.password = '';
             user.email = 'admin@ambeservice.com';
             await user.save();
-            console.log('Admin user updated. Password set to: ambe123');
+            console.log('Admin user updated. Please set a secure password for the admin user.');
         } else {
             user = new User(adminUser);
             await user.save();
-            console.log('Admin user created. Password set to: ambe123');
+            console.log('Admin user created. Please set a secure password for the admin user.');
         }
     } catch (error) {
         console.error('Error resetting admin:', error);

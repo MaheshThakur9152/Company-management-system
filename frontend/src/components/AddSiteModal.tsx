@@ -134,7 +134,7 @@ const AddSiteModal: React.FC<AddSiteModalProps> = ({ isOpen, site, onClose, onSa
         clientEmail: '',
         clientContact: '',
         username: '', // Will be auto-generated if empty
-        password: 'ambe123'
+        password: ''
       });
     }
   }, [site, isOpen]);
@@ -237,7 +237,7 @@ const AddSiteModal: React.FC<AddSiteModalProps> = ({ isOpen, site, onClose, onSa
                             value={formData.password || ''}
                             onChange={(e) => handleChange('password', e.target.value)}
                             className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 focus:ring-2 focus:ring-primary outline-none font-mono text-sm"
-                            placeholder="ambe123"
+                            placeholder="Auto-generated or enter a secure password"
                         />
                     </div>
                  </div>
