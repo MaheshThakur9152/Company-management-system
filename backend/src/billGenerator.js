@@ -11,17 +11,33 @@ const numWords = require('num-words'); // Optional: convert numbers to words
  */
 async function createInvoiceWorkbook(inputData, options = {}) {
   // Return a populated Workbook instance (does not write to disk)
-  const defaultTemplate = path.resolve(__dirname, '..', '..', 'frontend', 'public', 'Bills_real.xlsx');
-  const templatePath = options.templatePath || defaultTemplate;
+  // Try several reasonable locations for the template so runtime (local, CI, Docker, Vercel, etc.) works reliably
+  const candidates = [];
+  // Default historically used in this repo
+  candidates.push(path.resolve(__dirname, '..', '..', 'frontend', 'public', 'Bills_real.xlsx'));
+  // Project-root locations (after build we copy frontend/dist to root/dist)
+  candidates.push(path.resolve(process.cwd(), 'frontend', 'public', 'Bills_real.xlsx'));
+  candidates.push(path.resolve(process.cwd(), 'dist', 'Bills_real.xlsx'));
+  candidates.push(path.resolve(process.cwd(), 'public', 'Bills_real.xlsx'));
+  // A backend-specific public folder (if you later move templates into backend/public)
+  candidates.push(path.resolve(__dirname, '..', 'public', 'Bills_real.xlsx'));
+  // Any explicit path supplied by caller takes precedence
+  if (options.templatePath) candidates.unshift(path.resolve(options.templatePath));
 
-  if (!fs.existsSync(templatePath)) {
-    throw new Error(`Template not found: ${templatePath}`);
+  const found = candidates.find(p => fs.existsSync(p));
+  if (!found) {
+    console.error('Template lookup failed. Tried the following paths:\n' + candidates.join('\n'));
+    throw new Error('Template not found. Looked in ' + candidates.join(', '));
   }
 
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(templatePath);
+  await workbook.xlsx.readFile(found);
 
-  const worksheet = workbook.getWorksheet('SHREEYA') || workbook.worksheets[0];
+  // Prefer the worksheet named (case-insensitive) 'SHREEYA' but fall back to the first sheet
+  let worksheet = workbook.getWorksheet('SHREEYA');
+  if (!worksheet) {
+    worksheet = workbook.worksheets.find(ws => (ws.name || '').toUpperCase() === 'SHREEYA') || workbook.worksheets[0];
+  }
   if (!worksheet) throw new Error('No worksheet found in template');
 
   // Ensure header/footer are set as desired:
