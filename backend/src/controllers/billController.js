@@ -68,7 +68,8 @@ exports.downloadBill = async (req, res) => {
       console.warn('Failed to merge site info into invoiceData:', mergeErr.message);
     }
 
-    // Debug dump removed (previously wrote invoice debug to /tmp)    await generateExcelStream(invoiceData, res);
+    // Debug dump removed (previously wrote invoice debug to /tmp)
+    await generateExcelStream(invoiceData, res);
   } catch (error) {
     console.error('Error generating invoice stream:', error);
     if (!res.headersSent) res.status(500).send('Server Error generating bill');
