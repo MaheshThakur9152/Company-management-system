@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Employee, AttendanceRecord, Site, SalaryRecord } from '@types';
 import { Download, Filter, Edit2, DollarSign, CheckCircle, XCircle, AlertTriangle, CheckSquare, Square } from 'lucide-react';
 import EditPayrollModal from './EditPayrollModal';
+import ManageDeductionModal from './ManageDeductionModal';
 import { updateEmployee, getEmployees, getSalaryRecords, updateSalaryRecord } from '@services/mockData';
 import { computeWorkingDaysForEmployee, getDaysInMonth } from '@utils/employeeUtils';
 import { isEmployeeActiveForMonth } from '@utils/employeeUtils';
@@ -30,6 +31,11 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
   const [selectedSiteFilter, setSelectedSiteFilter] = useState<string>('all');
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+
+  // Deduction Modal State
+  const [deductionEmployee, setDeductionEmployee] = useState<Employee | null>(null);
+  const [showDeductionModal, setShowDeductionModal] = useState(false);
+
   const [localEmployees, setLocalEmployees] = useState<Employee[]>(employees);
   const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>([]);
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
@@ -85,7 +91,7 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
       dailyRate = dailyRateOverride;
     } else {
       const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
-      dailyRate = baseSalary / daysInMonth;
+      dailyRate = Math.floor(baseSalary / daysInMonth);
     }
     const hourlyRate = dailyRate / 9;
 
@@ -102,7 +108,7 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
 
     return {
       dailyRate,
-      totalPaidDays,
+      totalPaidDays: workingDays,
       grossSalary,
       totalDeductions,
       finalNet,
@@ -114,9 +120,9 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
   };
 
   const getSalaryStatus = (empId: string) => {
-    const record = salaryRecords.find(r => 
-      r.employeeId === empId && 
-      r.month === selectedMonth && 
+    const record = salaryRecords.find(r =>
+      r.employeeId === empId &&
+      r.month === selectedMonth &&
       r.year === selectedYear
     );
     return {
@@ -126,27 +132,97 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
     };
   };
 
-  const toggleSalaryStatus = async (empId: string) => {
-    const emp = localEmployees.find(e => e.id === empId);
-    if (!emp) return;
-    
+  const handleDeductionSave = async (deductionBreakdown: any) => {
+    if (!deductionEmployee) return;
+
+    const empId = deductionEmployee.id;
     const current = getSalaryStatus(empId);
-    const newStatus = current.status === 'Paid' ? 'Unpaid' : 'Paid';
-    
-    // If we have a record, use its values, otherwise calculate
+
+    const totalDeductions = Object.values(deductionBreakdown).reduce((a: any, b: any) => a + b, 0) as number;
+
     let stats;
     if (current.record && current.record.breakdown) {
-        stats = {
-            finalNet: current.record.netSalary,
-            grossSalary: current.record.grossSalary || 0,
-            totalDeductions: current.record.totalDeductions || 0,
-            breakdown: current.record.breakdown
-        };
+      const gross = current.record.grossSalary || 0;
+      const allowancesObj = current.record.breakdown.allowances || {};
+      const totalAllowances = (allowancesObj.travelling || 0) + (allowancesObj.others || 0);
+
+      stats = {
+        grossSalary: gross,
+        totalDeductions: totalDeductions,
+        finalNet: gross - totalDeductions + totalAllowances,
+        breakdown: {
+          ...current.record.breakdown,
+          deductions: deductionBreakdown
+        }
+      };
     } else {
-        stats = calculatePayroll(emp);
+      const calc = calculatePayroll(deductionEmployee);
+      const allowancesObj = calc.breakdown.allowances || {};
+      const totalAllowances = (allowancesObj.travelling || 0) + (allowancesObj.others || 0);
+
+      stats = {
+        grossSalary: calc.grossSalary,
+        totalDeductions: totalDeductions,
+        finalNet: calc.grossSalary - totalDeductions + totalAllowances,
+        breakdown: {
+          deductions: deductionBreakdown,
+          allowances: allowancesObj
+        }
+      };
     }
 
     const recordId = `${empId}_${selectedMonth}_${selectedYear}`;
+    const record: SalaryRecord = {
+      id: recordId,
+      employeeId: empId,
+      month: selectedMonth,
+      year: selectedYear,
+      netSalary: stats.finalNet,
+      grossSalary: stats.grossSalary,
+      totalDeductions: stats.totalDeductions,
+      breakdown: stats.breakdown,
+      status: current.status as any,
+      complianceStatus: current.compliance,
+      paymentDate: current.record?.paymentDate
+    };
+
+    await updateSalaryRecord(record);
+
+    const allRecords = await getSalaryRecords();
+    setSalaryRecords(allRecords);
+    setShowDeductionModal(false);
+    setDeductionEmployee(null);
+  };
+
+  const toggleSalaryStatus = async (empId: string) => {
+    const emp = localEmployees.find(e => e.id === empId);
+    if (!emp) return;
+
+    const current = getSalaryStatus(empId);
+    const newStatus = current.status === 'Paid' ? 'Unpaid' : 'Paid';
+
+    let stats;
+    // We determine what values to save based on whether a record exists (custom/saved) or default
+    if (current.record && current.record.breakdown) {
+      stats = {
+        id: current.record.id,
+        finalNet: current.record.netSalary,
+        grossSalary: current.record.grossSalary || 0,
+        totalDeductions: current.record.totalDeductions || 0,
+        breakdown: current.record.breakdown
+      };
+    } else {
+      const calc = calculatePayroll(emp);
+      stats = {
+        id: `${empId}_${selectedMonth}_${selectedYear}`,
+        finalNet: calc.finalNet,
+        grossSalary: calc.grossSalary,
+        totalDeductions: calc.totalDeductions,
+        breakdown: calc.breakdown
+      };
+    }
+
+    const recordId = stats.id || `${empId}_${selectedMonth}_${selectedYear}`;
     const record: SalaryRecord = {
       id: recordId,
       employeeId: empId,
@@ -163,21 +239,38 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
 
     await updateSalaryRecord(record);
 
-    // If marking as Paid, clear one-time deductions (Advance) from Employee profile
-    if (newStatus === 'Paid' && emp.salaryDetails?.deductionBreakdown?.advance) {
+    // --- HANDLE ADVANCE BALANCE UPDATE ---
+    if (newStatus === 'Paid') {
+      const appliedAdvance = stats.breakdown?.deductions?.advance || 0;
+      if (appliedAdvance > 0) {
         const updatedEmp = { ...emp };
+        const currentProfileAdvance = updatedEmp.salaryDetails?.deductionBreakdown?.advance || 0;
+        const newProfileAdvance = Math.max(0, currentProfileAdvance - appliedAdvance);
+
         if (!updatedEmp.salaryDetails) updatedEmp.salaryDetails = {};
         if (!updatedEmp.salaryDetails.deductionBreakdown) updatedEmp.salaryDetails.deductionBreakdown = {};
-        
-        // Clear Advance
-        updatedEmp.salaryDetails.deductionBreakdown.advance = 0;
-        
+
+        updatedEmp.salaryDetails.deductionBreakdown.advance = newProfileAdvance;
         await updateEmployee(updatedEmp);
-        
-        // Update local state
-        const updatedList = localEmployees.map(e => e.id === updatedEmp.id ? updatedEmp : e);
-        setLocalEmployees(updatedList);
+      }
+    } else {
+      // Reverting to Unpaid -> Refund the advance back
+      const appliedAdvance = stats.breakdown?.deductions?.advance || 0;
+      if (appliedAdvance > 0) {
+        const updatedEmp = { ...emp };
+        const currentProfileAdvance = updatedEmp.salaryDetails?.deductionBreakdown?.advance || 0;
+
+        if (!updatedEmp.salaryDetails) updatedEmp.salaryDetails = {};
+        if (!updatedEmp.salaryDetails.deductionBreakdown) updatedEmp.salaryDetails.deductionBreakdown = {};
+
+        updatedEmp.salaryDetails.deductionBreakdown.advance = currentProfileAdvance + appliedAdvance;
+        await updateEmployee(updatedEmp);
+      }
     }
+
+    // Refresh employee list to reflect advance changes
+    const allEmps = await getEmployees();
+    setLocalEmployees(allEmps);
 
     const allRecords = await getSalaryRecords();
     setSalaryRecords(allRecords);
@@ -203,7 +296,7 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
 
   const handleBulkStatusUpdate = async (status: 'Paid' | 'Unpaid') => {
     if (!confirm(`Mark ${selectedEmployeeIds.length} employees as ${status}?`)) return;
-    
+
     for (const empId of selectedEmployeeIds) {
       const current = getSalaryStatus(empId);
       // Skip if already in desired status
@@ -211,21 +304,21 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
 
       const emp = localEmployees.find(e => e.id === empId);
       if (!emp) continue;
-      
+
       let stats;
       if (current.record && current.record.breakdown) {
-          stats = {
-              finalNet: current.record.netSalary,
-              grossSalary: current.record.grossSalary || 0,
-              totalDeductions: current.record.totalDeductions || 0,
-              breakdown: current.record.breakdown
-          };
+        stats = {
+          finalNet: current.record.netSalary,
+          grossSalary: current.record.grossSalary || 0,
+          totalDeductions: current.record.totalDeductions || 0,
+          breakdown: current.record.breakdown
+        };
       } else {
-          stats = calculatePayroll(emp);
+        stats = calculatePayroll(emp);
       }
 
       const recordId = `${empId}_${selectedMonth}_${selectedYear}`;
-      
+
       const record: SalaryRecord = {
         id: recordId,
         employeeId: empId,
@@ -239,25 +332,25 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
         complianceStatus: current.compliance,
         paymentDate: status === 'Paid' ? new Date().toISOString() : undefined
       };
-      
+
       await updateSalaryRecord(record);
 
       // If marking as Paid, clear one-time deductions (Advance) from Employee profile
       if (status === 'Paid' && emp.salaryDetails?.deductionBreakdown?.advance) {
-          const updatedEmp = { ...emp };
-          if (!updatedEmp.salaryDetails) updatedEmp.salaryDetails = {};
-          if (!updatedEmp.salaryDetails.deductionBreakdown) updatedEmp.salaryDetails.deductionBreakdown = {};
-          
-          // Clear Advance
-          updatedEmp.salaryDetails.deductionBreakdown.advance = 0;
-          
-          await updateEmployee(updatedEmp);
-          
-          // Update local state (Note: inside loop, this might be inefficient but safe)
-          // Actually, we should batch update local state or just re-fetch at end
+        const updatedEmp = { ...emp };
+        if (!updatedEmp.salaryDetails) updatedEmp.salaryDetails = {};
+        if (!updatedEmp.salaryDetails.deductionBreakdown) updatedEmp.salaryDetails.deductionBreakdown = {};
+
+        // Clear Advance
+        updatedEmp.salaryDetails.deductionBreakdown.advance = 0;
+
+        await updateEmployee(updatedEmp);
+
+        // Update local state (Note: inside loop, this might be inefficient but safe)
+        // Actually, we should batch update local state or just re-fetch at end
       }
     }
-    
+
     // Refresh everything
     const allRecords = await getSalaryRecords();
     setSalaryRecords(allRecords);
@@ -272,47 +365,47 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
         <h2 className="text-2xl font-bold flex items-center gap-2">
           <DollarSign className="text-primary" /> Payroll Management
         </h2>
-        
+
         <div className="flex gap-3 items-center">
           {/* Month Filter */}
           <div className="flex items-center bg-white border rounded-lg px-3 py-2 shadow-sm">
-             <select 
-                value={selectedMonth}
-                onChange={(e) => onMonthChange(parseInt(e.target.value))}
-                className="bg-transparent text-sm outline-none font-medium text-gray-700 cursor-pointer mr-2"
-             >
-                {Array.from({length: 12}, (_, i) => i + 1).map(m => (
-                    <option key={m} value={m}>{new Date(2000, m-1, 1).toLocaleString('default', { month: 'short' })}</option>
-                ))}
-             </select>
-             <select 
-                value={selectedYear}
-                onChange={(e) => onYearChange(parseInt(e.target.value))}
-                className="bg-transparent text-sm outline-none font-medium text-gray-700 cursor-pointer border-l pl-2"
-             >
-                {[2024, 2025, 2026, 2027].map(year => (
-                    <option key={year} value={year}>{year}</option>
-                ))}
-             </select>
+            <select
+              value={selectedMonth}
+              onChange={(e) => onMonthChange(parseInt(e.target.value))}
+              className="bg-transparent text-sm outline-none font-medium text-gray-700 cursor-pointer mr-2"
+            >
+              {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                <option key={m} value={m}>{new Date(2000, m - 1, 1).toLocaleString('default', { month: 'short' })}</option>
+              ))}
+            </select>
+            <select
+              value={selectedYear}
+              onChange={(e) => onYearChange(parseInt(e.target.value))}
+              className="bg-transparent text-sm outline-none font-medium text-gray-700 cursor-pointer border-l pl-2"
+            >
+              {[2024, 2025, 2026, 2027].map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
           </div>
 
           {/* Site Filter */}
           <div className="flex items-center bg-white border rounded-lg px-3 py-2 shadow-sm">
-             <Filter size={16} className="text-gray-400 mr-2" />
-             <select 
-                value={selectedSiteFilter}
-                onChange={(e) => setSelectedSiteFilter(e.target.value)}
-                className="bg-transparent text-sm outline-none font-medium text-gray-700 cursor-pointer"
-             >
-                <option value="all">All Sites</option>
-                {sites.map(site => (
-                    <option key={site.id} value={site.id}>{site.name}</option>
-                ))}
-             </select>
+            <Filter size={16} className="text-gray-400 mr-2" />
+            <select
+              value={selectedSiteFilter}
+              onChange={(e) => setSelectedSiteFilter(e.target.value)}
+              className="bg-transparent text-sm outline-none font-medium text-gray-700 cursor-pointer"
+            >
+              <option value="all">All Sites</option>
+              {sites.map(site => (
+                <option key={site.id} value={site.id}>{site.name}</option>
+              ))}
+            </select>
           </div>
 
           <button onClick={() => onExport(selectedSiteFilter)} className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm hover:bg-green-700 transition-colors">
-             <Download size={18} /> Export Payroll
+            <Download size={18} /> Export Payroll
           </button>
         </div>
       </div>
@@ -324,19 +417,19 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
             <span>{selectedEmployeeIds.length} employees selected</span>
           </div>
           <div className="flex gap-2">
-            <button 
+            <button
               onClick={() => handleBulkStatusUpdate('Paid')}
               className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors shadow-sm"
             >
               Mark as Paid
             </button>
-            <button 
+            <button
               onClick={() => handleBulkStatusUpdate('Unpaid')}
               className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors shadow-sm"
             >
               Mark as Unpaid
             </button>
-            <button 
+            <button
               onClick={() => setSelectedEmployeeIds([])}
               className="text-gray-500 hover:text-gray-700 px-3 py-1.5 text-sm font-medium"
             >
@@ -370,18 +463,18 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
               {filteredEmployees.map(emp => {
                 const status = getSalaryStatus(emp.id);
                 let stats;
-                
+
                 // If we have a historical record with breakdown, use it for financial values
                 if (status.record && status.record.breakdown) {
-                    const currentCalc = calculatePayroll(emp); // Get days/rates from current data
-                    stats = {
-                        ...currentCalc,
-                        grossSalary: status.record.grossSalary || currentCalc.grossSalary,
-                        totalDeductions: status.record.totalDeductions || currentCalc.totalDeductions,
-                        finalNet: status.record.netSalary
-                    };
+                  const currentCalc = calculatePayroll(emp); // Get days/rates from current data
+                  stats = {
+                    ...currentCalc,
+                    grossSalary: status.record.grossSalary || currentCalc.grossSalary,
+                    totalDeductions: status.record.totalDeductions || currentCalc.totalDeductions,
+                    finalNet: status.record.netSalary
+                  };
                 } else {
-                    stats = calculatePayroll(emp);
+                  stats = calculatePayroll(emp);
                 }
 
                 const isSelected = selectedEmployeeIds.includes(emp.id);
@@ -399,8 +492,8 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
                     </td>
                     <td className="p-4 text-right">
                       <div className="font-mono text-gray-700">
-                        {emp.salaryDetails?.isDailyRated 
-                          ? `₹${(stats.dailyRate || 0).toFixed(2)}/day` 
+                        {emp.salaryDetails?.isDailyRated
+                          ? `₹${(stats.dailyRate || 0).toFixed(2)}/day`
                           : `₹${(emp.salaryDetails?.baseSalary || 0).toLocaleString()}/mo`}
                       </div>
                       {!emp.salaryDetails?.isDailyRated && (
@@ -413,26 +506,31 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
                     <td className="p-4 text-right font-bold text-gray-800">
                       ₹{Math.round(stats.grossSalary || 0).toLocaleString()}
                     </td>
-                    <td className="p-4 text-right text-red-600 font-medium">
-                      -₹{(stats.totalDeductions || 0).toLocaleString()}
+                    <td className="p-4 text-right">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDeductionEmployee(emp); setShowDeductionModal(true); }}
+                        className="text-red-600 font-medium hover:underline hover:text-red-800 decoration-dotted underline-offset-4"
+                        title="Click to Manage Deductions"
+                      >
+                        -₹{(stats.totalDeductions || 0).toLocaleString()}
+                      </button>
                     </td>
                     <td className="p-4 text-right font-bold text-green-700 text-base">
                       ₹{Math.round(stats.finalNet || 0).toLocaleString()}
                     </td>
                     <td className="p-4 text-center">
-                      <button 
+                      <button
                         onClick={() => toggleSalaryStatus(emp.id)}
-                        className={`px-3 py-1 rounded-full text-xs font-medium border ${
-                          status.status === 'Paid' 
-                            ? 'bg-green-100 text-green-700 border-green-200' 
-                            : 'bg-red-100 text-red-700 border-red-200'
-                        }`}
+                        className={`px-3 py-1 rounded-full text-xs font-medium border ${status.status === 'Paid'
+                          ? 'bg-green-100 text-green-700 border-green-200'
+                          : 'bg-red-100 text-red-700 border-red-200'
+                          }`}
                       >
                         {status.status}
                       </button>
                     </td>
                     <td className="p-4 text-center">
-                      <button 
+                      <button
                         onClick={() => { setEditingEmployee(emp); setShowEditModal(true); }}
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Edit Payroll Details"
@@ -455,11 +553,21 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
         </div>
       </div>
 
-      <EditPayrollModal 
-        isOpen={showEditModal} 
-        employee={editingEmployee} 
-        onClose={() => setShowEditModal(false)} 
-        onSave={handleSaveEmployee} 
+      <EditPayrollModal
+        isOpen={showEditModal}
+        employee={editingEmployee}
+        onClose={() => setShowEditModal(false)}
+        onSave={handleSaveEmployee}
+      />
+
+      {/* MANAGE DEDUCTION MODAL */}
+      <ManageDeductionModal
+        isOpen={showDeductionModal}
+        employee={deductionEmployee}
+        currentSalaryRecord={deductionEmployee ? getSalaryStatus(deductionEmployee.id).record : undefined}
+        calculatedDeductions={deductionEmployee ? calculatePayroll(deductionEmployee).breakdown.deductions : {}}
+        onClose={() => { setShowDeductionModal(false); setDeductionEmployee(null); }}
+        onSave={handleDeductionSave}
       />
     </div>
   );
