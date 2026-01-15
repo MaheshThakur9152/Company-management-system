@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Download, FileText, Plus, Trash2, Calendar } from 'lucide-react';
 import { Employee, AttendanceRecord, Site, Invoice } from '@types';
 import { generateBillExcel } from '@utils/excelGenerator';
@@ -17,7 +17,7 @@ interface GenerateBillModalProps {
 
 const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, employees, attendanceData, sites, selectedMonth, selectedYear, onSave }) => {
     const [selectedSiteId, setSelectedSiteId] = useState<string>('');
-    const [companyName, setCompanyName] = useState('AMBE SERVICE FACILITIES PRIVATE LIMITED');
+    const [companyName, setCompanyName] = useState('AMBE SERVICE');
     const [invoiceType, setInvoiceType] = useState('TAX INVOICE');
     const [invoiceNo, setInvoiceNo] = useState('ASF/P/25-26/023');
     const [date, setDate] = useState(new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }));
@@ -40,11 +40,58 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
     const [signatory, setSignatory] = useState('For Ambe Service Facilities Pvt Ltd  \n\n\n\n\nAuthorized signatory\n');
     const [showAdvanced, setShowAdvanced] = useState(false);
 
+    // Auto-update bank details based on selected vendor company
     useEffect(() => {
-        if (isOpen && sites.length > 0 && !selectedSiteId) {
-            setSelectedSiteId(sites[0].id);
+        const normalized = (companyName || '').trim().toUpperCase();
+        if (normalized === 'AMBE SERVICE FACILITIES PRIVATE LIMITED') {
+            setBankName('Axis bank');
+            setAccNo('924020001871570');
+            setIfsc('UTIB0001572');
+            setBranch('kandivali west,Link Road.');
+            setTerms('Terms & condition : \nPayment can only be done in cheque/DD, NEFT, RTGS');
+            setSignatory('For Ambe Service Facilities Pvt Ltd  \n\n\n\n\nAuthorized signatory\n');
+        } else {
+            setBankName('Union Bank of India');
+            setAccNo('510101006571089');
+            setIfsc('UBIN0903302');
+            setBranch('kandivali west');
+            setTerms('Terms & condition : \nPayment should not be done in Cash');
+            setSignatory('For Ambe Service  \n\n\n\n\nAuthorized signatory\n');
         }
-        
+    }, [companyName]);
+
+    const lastLoadedSignature = useRef<string>('');
+
+    // Reset signature on close to ensure fresh load on open
+    useEffect(() => {
+        if (!isOpen) lastLoadedSignature.current = '';
+    }, [isOpen]);
+
+    // Sync company name from site data
+    useEffect(() => {
+        if (isOpen && sites.length > 0) {
+            const currentSiteId = selectedSiteId || sites[0].id;
+            if (!selectedSiteId) {
+                setSelectedSiteId(currentSiteId);
+            }
+
+            const site = sites.find(s => s.id === currentSiteId);
+            // Create a signature that represents the source of truth for this site
+            const currentSignature = site ? `${site.id}|${site.companyName || ''}` : `${currentSiteId}|DEFAULT`;
+
+            // Only update if the source has changed (site switch, site edit, or fresh open)
+            if (currentSignature !== lastLoadedSignature.current) {
+                lastLoadedSignature.current = currentSignature;
+                if (site && site.companyName) {
+                    setCompanyName(site.companyName);
+                } else {
+                    setCompanyName('AMBE SERVICE');
+                }
+            }
+        }
+    }, [isOpen, selectedSiteId, sites]);
+
+    useEffect(() => {
         if (isOpen) {
             const startDate = new Date(selectedYear, selectedMonth - 1, 1);
             const endDate = new Date(selectedYear, selectedMonth, 0);
@@ -56,17 +103,17 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
                 return n + (s[(v - 20) % 10] || s[v] || s[0]);
             };
             setBillingPeriod(`1st to ${getOrdinal(endDay)} ${monthName} ${selectedYear}`);
-            
+
             // Update invoice number year based on financial year
             const fyStart = selectedMonth >= 4 ? selectedYear : selectedYear - 1;
             const fyEnd = fyStart + 1;
             const fyStr = `${fyStart.toString().slice(-2)}-${fyEnd.toString().slice(-2)}`;
             setInvoiceNo(`ASF/P/${fyStr}/001`);
-            
+
             // Update work order period if it's default
             setWorkOrderPeriod(`01/04/${fyStart}-31/03/${fyEnd}`);
         }
-    }, [isOpen, sites, selectedMonth, selectedYear]);
+    }, [isOpen, selectedMonth, selectedYear]);
 
     useEffect(() => {
         if (selectedSiteId) {
@@ -86,10 +133,10 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
         const [year, month] = e.target.value.split('-').map(Number);
         const startDate = new Date(year, month - 1, 1);
         const endDate = new Date(year, month, 0);
-        
+
         const monthName = startDate.toLocaleDateString('en-GB', { month: 'long' });
         const endDay = endDate.getDate();
-        
+
         const getOrdinal = (n: number) => {
             const s = ["th", "st", "nd", "rd"];
             const v = n % 100;
@@ -213,10 +260,14 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
             terms,
             signatory,
             // Pass days info to downstream generators if needed
-            daysInMonth: getDaysInMonth(selectedMonth, selectedYear)
+            daysInMonth: getDaysInMonth(selectedMonth, selectedYear),
+            // Enable detailed debug information when running in dev mode
+            // (consumed by the generator to add a debug worksheet and extra logs)
+            debug: import.meta.env.DEV
         };
 
         try {
+            console.debug('[GenerateBillModal] Generating with params:', JSON.parse(JSON.stringify(params)));
             await generateBillExcel(params);
 
             if (onSave) {
@@ -284,8 +335,8 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
                                 onChange={e => setCompanyName(e.target.value)}
                                 className="w-full p-2 border rounded-lg text-sm"
                             >
+                                <option value="AMBE SERVICE">AMBE SERVICE</option>
                                 <option value="AMBE SERVICE FACILITIES PRIVATE LIMITED">AMBE SERVICE FACILITIES PRIVATE LIMITED</option>
-                                <option value="AMBE SERVICES">AMBE SERVICES</option>
                             </select>
                         </div>
                         <div>
@@ -330,8 +381,8 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
                             <div className="relative">
                                 <input value={date} onChange={e => setDate(e.target.value)} className="w-full p-2 border rounded-lg text-sm pr-10" />
                                 <div className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6">
-                                    <input 
-                                        type="date" 
+                                    <input
+                                        type="date"
                                         onChange={handleDateSelect}
                                         className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
                                     />
@@ -344,8 +395,8 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
                             <div className="relative">
                                 <input value={billingPeriod} onChange={e => setBillingPeriod(e.target.value)} className="w-full p-2 border rounded-lg text-sm pr-10" />
                                 <div className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6">
-                                    <input 
-                                        type="month" 
+                                    <input
+                                        type="month"
                                         onChange={handleMonthSelect}
                                         className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
                                     />
@@ -426,7 +477,7 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
 
                     {/* Advanced Details Toggle */}
                     <div>
-                        <button 
+                        <button
                             onClick={() => setShowAdvanced(!showAdvanced)}
                             className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
                         >
@@ -457,17 +508,17 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
                             </div>
                             <div>
                                 <label className="block text-xs font-medium text-gray-500 mb-1">Terms & Conditions</label>
-                                <textarea 
-                                    value={terms} 
-                                    onChange={e => setTerms(e.target.value)} 
+                                <textarea
+                                    value={terms}
+                                    onChange={e => setTerms(e.target.value)}
                                     className="w-full p-2 border rounded-lg text-sm h-20"
                                 />
                             </div>
                             <div>
                                 <label className="block text-xs font-medium text-gray-500 mb-1">Signatory Text</label>
-                                <textarea 
-                                    value={signatory} 
-                                    onChange={e => setSignatory(e.target.value)} 
+                                <textarea
+                                    value={signatory}
+                                    onChange={e => setSignatory(e.target.value)}
                                     className="w-full p-2 border rounded-lg text-sm h-20"
                                 />
                             </div>

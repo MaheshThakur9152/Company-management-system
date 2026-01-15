@@ -94,6 +94,9 @@ export const generateBillExcel = async (params: BillParams) => {
   const ExcelJS = await ensureExcelJSLoaded();
   const saveAs = await ensureFileSaverLoaded();
 
+  console.log('[GenerateBillExcel] Params received:', JSON.stringify(params, null, 2));
+
+
   // Helper: convert numbers to words (kept from previous implementation)
   function numberToWords(num: number): string {
     const a = [
@@ -164,6 +167,59 @@ export const generateBillExcel = async (params: BillParams) => {
     const worksheet = selectBestSheet();
     console.debug('[Invoice] Template loaded from', templateUrl, 'selectedSheet=', worksheet.name, 'rowCount=', worksheet.rowCount);
 
+    // --- Workbook-wide sanitization helpers ---
+    const sheetSafeWrite = (sheet: any, row: number, col: number, value: string, font?: any) => {
+      try {
+        let cell = sheet.getRow(row).getCell(col);
+        if (cell.isMerged && cell.master) {
+          cell = sheet.getCell(cell.master.address);
+        }
+        cell.value = value;
+        if (font) cell.font = font;
+        return cell;
+      } catch (e) { return null; }
+    };
+
+    // Replace occurrences across ALL worksheets (useful when header/bank info is not on the primary sheet)
+    const substituteAcrossWorkbook = (needle: string, replacer: string, font?: any, debugName?: string) => {
+      const found: any[] = [];
+      const loweredNeedle = (needle || '').toString().toLowerCase();
+      for (const ws of workbook.worksheets) {
+        for (let r = 1; r <= ws.rowCount; r++) {
+          const row = ws.getRow(r);
+          for (let c = 1; c <= Math.max(ws.columnCount || 10, row.cellCount); c++) {
+            try {
+              const cv = row.getCell(c).value;
+              const val = (cv && typeof cv === 'object' && (cv as any).richText)
+                ? (cv as any).richText.map((t: any) => t.text).join('')
+                : String(cv || '');
+              if (val && val.toLowerCase().includes(loweredNeedle)) {
+                const cell = row.getCell(c);
+                // write into merged master if present
+                if (cell.master && cell.master.address) {
+                  const masterCell = ws.getCell(cell.master.address);
+                  const mr = (masterCell as any).row || r;
+                  const mc = (masterCell as any).col || c;
+                  sheetSafeWrite(ws, mr, mc, replacer, font);
+                  found.push({ sheet: ws.name, addr: masterCell.address, original: val });
+                } else {
+                  sheetSafeWrite(ws, r, c, replacer, font);
+                  found.push({ sheet: ws.name, addr: `${r},${c}`, original: val });
+                }
+              }
+            } catch (e) { /* ignore cell read errors */ }
+          }
+        }
+      }
+      if ((params as any).debug && found.length) console.debug('[Invoice] ' + (debugName || needle) + ' replacements across workbook:', found);
+      return found;
+    };
+
+    // Try a workbook-wide substitution for the company name (covers cases where title is on a different sheet)
+    const wbAmbeReplacements = substituteAcrossWorkbook('AMBE', companyName, companyFont, 'Company Name');
+
+
+
     // Helper: find a cell containing a substring (case-insensitive)
     const findCellContaining = (needle: string): { r: number; c: number; val: string } | null => {
       const lowered = needle.toString().toLowerCase();
@@ -216,6 +272,190 @@ export const generateBillExcel = async (params: BillParams) => {
     const startRow = placeholderRow > 0 ? placeholderRow : (headerRow > 0 ? headerRow + 2 : 17);
 
     console.debug('[Invoice] Insertion startRow=', startRow, 'placeholderRow=', placeholderRow, 'headerRow=', headerRow);
+
+    // --- Update Vendor Info and Bank Details ---
+
+    // Helper to safely write to a cell (handling merges)
+    const safeWrite = (row: number, col: number, value: string, font?: any) => {
+      let cell = worksheet.getRow(row).getCell(col);
+      if (cell.isMerged && cell.master) {
+        cell = worksheet.getCell(cell.master.address);
+      }
+      cell.value = value;
+      if (font) cell.font = font;
+      return cell;
+    };
+
+    // 1. Force update Cell A1 - standard place for Company Name
+    // Check A1 first
+    const companyName = params.companyName || 'AMBE SERVICE';
+    const isPrivateLtd = (companyName || '').toUpperCase().includes('FACILITIES PRIVATE LIMITED');
+    const companyFont = isPrivateLtd
+      ? { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFF0000' } } // Red for Private Ltd
+      : { name: 'Calibri', size: 14, bold: true };
+
+    safeWrite(1, 1, companyName, companyFont);
+
+    // 2. Scan top rows just in case it's not A1 (e.g. merged or moved) or explicitly look for "AMBE"
+    // We keep track of cells we've already written to avoid overwriting or duplicates
+    const writtenCells = new Set<string>();
+    // Safely register A1 master (if any)
+    try {
+      const a1 = worksheet.getRow(1).getCell(1);
+      const a1Master = a1.master || a1;
+      if (a1Master && a1Master.address) writtenCells.add(a1Master.address);
+    } catch (e) { /* ignore */ }
+
+    // Replace occurrences of 'AMBE' in top rows (1..6) and in merged master cells
+    worksheet.eachRow((row, r) => {
+      if (r <= 6) {
+        row.eachCell((cell, c) => {
+          const master = cell.master || cell;
+          if (master && master.address && writtenCells.has(master.address)) return;
+
+          const val = (cell.value && typeof cell.value === 'object' && (cell.value as any).richText)
+            ? (cell.value as any).richText.map((t: any) => t.text).join('')
+            : (cell.value ? cell.value.toString() : '');
+
+          if (val && val.toUpperCase().includes('AMBE') && val.length < 200) {
+            // If merged, write into the master (top-left) cell, else write to current
+            let writeRow = r;
+            let writeCol = c;
+            try {
+              if (master && master.address) {
+                const masterCell = worksheet.getCell(master.address);
+                writeRow = (masterCell as any).row || writeRow;
+                writeCol = (masterCell as any).col || writeCol;
+              }
+            } catch (e) { /* ignore */ }
+
+            safeWrite(writeRow, writeCol, companyName, companyFont);
+            if (master && master.address) writtenCells.add(master.address);
+            else writtenCells.add(worksheet.getRow(r).getCell(c).address);
+
+            if ((params as any).debug) console.debug('[Invoice] Replaced company name at', master && master.address ? master.address : `${r},${c}`, '->', companyName);
+          }
+        });
+      }
+    });
+
+    // Additionally scan merged ranges to catch titles placed in large merged cells (not captured above)
+    try {
+      const mergedRangesNow: string[] = (worksheet as any)._merges ? Array.from((worksheet as any)._merges.keys()) : [];
+      for (const mr of mergedRangesNow) {
+        try {
+          const topLeft = mr.split(':')[0];
+          const masterCell = worksheet.getCell(topLeft);
+          const val = (masterCell.value && typeof masterCell.value === 'object' && (masterCell.value as any).richText)
+            ? (masterCell.value as any).richText.map((t: any) => t.text).join('')
+            : (masterCell.value ? masterCell.value.toString() : '');
+          if (val && val.toUpperCase().includes('AMBE') && !writtenCells.has(masterCell.address)) {
+            const writeRow = (masterCell as any).row;
+            const writeCol = (masterCell as any).col;
+            safeWrite(writeRow, writeCol, companyName, companyFont);
+            writtenCells.add(masterCell.address);
+            if ((params as any).debug) console.debug('[Invoice] Replaced company name in merged master', masterCell.address, '->', companyName);
+          }
+        } catch (e) { /* ignore per-range */ }
+      }
+    } catch (e) { /* ignore */ }
+
+    // Bank Details: Anchor to "Bank Details" and write relative rows
+    // CRITICAL FIX: Aggressively clear old "Union Bank" details first
+    const knownOldValues = ['Union Bank', 'Axis Bank', 'UBIN', 'UTIB', 'Axis bank'];
+    // Scan footer area (arbitrarily start from row 10 to be safe, or startRow)
+    const footerScanStart = Math.min(startRow, 20);
+    worksheet.eachRow((row, r) => {
+      if (r > footerScanStart) {
+        row.eachCell((cell, c) => {
+          const val = (cell.value ? cell.value.toString() : '');
+          if (val && knownOldValues.some(v => val.includes(v))) {
+            // Clear this cell and its master
+            const master = cell.master || cell;
+            master.value = null;
+            // also clear next cell just in case
+            try { row.getCell(c + 1).value = null; } catch (e) { }
+          }
+        });
+      }
+    });
+
+    if (params.bankDetails) {
+      const db = params.bankDetails;
+      const bankFont = { name: 'Aptos Narrow', size: 10 };
+      const bankLabel = findCellContaining('Bank Details') || findCellContaining('BANK DETAILS');
+
+      if (bankLabel) {
+        const r = bankLabel.r;
+        const c = bankLabel.c;
+
+        // Row 1: Bank Name
+        safeWrite(r + 1, c, `Bank Name :  ${db.name}`, bankFont);
+
+        // Row 2: Account
+        safeWrite(r + 2, c, `Acc no : ${db.accNo}`, bankFont);
+
+        // Row 3: IFSC
+        safeWrite(r + 3, c, `IFSC Code: ${db.ifsc}   Branch: ${db.branch}`, bankFont);
+
+        // Clear adjacent cells (c+1 to c+3) for these rows to ensure no spillover overlap
+        for (let i = 1; i <= 3; i++) {
+          for (let j = 1; j <= 3; j++) {
+            try { worksheet.getRow(r + i).getCell(c + j).value = null; } catch (e) { }
+          }
+        }
+
+      } else {
+        console.warn('Bank Details header not found, falling back to label search');
+
+        // Attempt to find known old bank occurrences and replace them directly
+        const foundOld = findAllCellsContaining('union bank').concat(findAllCellsContaining('axis bank'));
+        let fallbackPlaced = false;
+        if (foundOld.length) {
+          const loc = foundOld[0];
+          const r = loc.r, c = loc.c;
+          safeWrite(r, c, `Bank Name :  ${db.name}`, bankFont);
+          safeWrite(r + 1, c, `Acc no : ${db.accNo}`, bankFont);
+          safeWrite(r + 2, c, `IFSC Code: ${db.ifsc}   Branch: ${db.branch}`, bankFont);
+          // Clear surrounding cells
+          for (let i = 0; i <= 2; i++) for (let j = 0; j <= 3; j++) { try { worksheet.getRow(r + i).getCell(c + j).value = null; } catch (e) { } }
+          fallbackPlaced = true;
+          if ((params as any).debug) console.debug('[Invoice] Bank details replaced at found old bank location', loc);
+        }
+
+        // As a last resort, write bank details near the bottom of the used area
+        if (!fallbackPlaced) {
+          const r = Math.max(worksheet.rowCount - 6, startRow + Math.max(10, itemsToInsert.length + 3));
+          const c = 1;
+          safeWrite(r, c, `Bank Name :  ${db.name}`, bankFont);
+          safeWrite(r + 1, c, `Acc no : ${db.accNo}`, bankFont);
+          safeWrite(r + 2, c, `IFSC Code: ${db.ifsc}   Branch: ${db.branch}`, bankFont);
+          if ((params as any).debug) console.debug('[Invoice] Bank details written to fallback area', r, c);
+        }
+      }
+    }
+
+    // Terms & Conditions
+    if (params.terms) {
+      const termsLabel = findCellContaining('Terms & condition') || findCellContaining('Terms and condition');
+      if (termsLabel) {
+        const cell = worksheet.getRow(termsLabel.r + 1).getCell(termsLabel.c);
+        cell.value = params.terms;
+        cell.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
+      }
+    }
+
+    // Signatory
+    if (params.signatory) {
+      const sigLabel = findCellContaining('Authorized signatory') || findCellContaining('For Ambe');
+      if (sigLabel) {
+        // Signatory usually spans multiple rows at the bottom right
+        const cell = worksheet.getRow(sigLabel.r - 4).getCell(6); // Go up to find the "For Ambe..." line
+        cell.value = params.signatory;
+        cell.alignment = { wrapText: true, vertical: 'top', horizontal: 'right' };
+      }
+    }
+
 
     // Collect merged ranges and prepare to adjust them after insertion
     const mergedRanges: string[] = (worksheet as any)._merges ? Array.from((worksheet as any)._merges.keys()) : [];
@@ -271,8 +511,8 @@ export const generateBillExcel = async (params: BillParams) => {
     headerMap['hsn'] = headerMap['hsn'] || 3;
     headerMap['rate'] = headerMap['rate'] || 4;
     headerMap['working_days'] = headerMap['working_days'] || 5;
-    headerMap['persons'] = headerMap['persons'] || 7;
-    headerMap['amount'] = headerMap['amount'] || 8;
+    headerMap['persons'] = headerMap['persons'] || 6;
+    headerMap['amount'] = headerMap['amount'] || 7;
 
     console.debug('[Invoice] Header map:', headerMap);
 
@@ -328,13 +568,22 @@ export const generateBillExcel = async (params: BillParams) => {
     if (itemsToInsert.length) {
       // insert blank rows (replace placeholder row if present)
       const blankRows = itemsToInsert.map(() => Array(worksheet.columnCount || 8).fill(''));
-      if (placeholderRow > 0) {
-        worksheet.spliceRows(startRow, 1, ...blankRows as any);
-      } else {
-        worksheet.spliceRows(startRow, 0, ...blankRows as any);
-      }
-
       lastInsertedRow = startRow + Math.max(0, itemsToInsert.length - 1);
+
+      // CRITICAL: Clear all cells in the Amount column from startRow to footerRowIndex
+      // to avoid summing leftover values from the template in the SUM() formula.
+      const amountColLetterForClear = String.fromCharCode(64 + (headerMap['amount'] || 7));
+      const scanEndRow = Math.max(lastInsertedRow + 10, worksheet.rowCount);
+      for (let rCr = startRow; rCr <= scanEndRow; rCr++) {
+        const rowObj = worksheet.getRow(rCr);
+        // If we hit a footer label, stop clearing
+        const firstCellVal = (rowObj.getCell(1).value || '').toString().toLowerCase();
+        if (firstCellVal.includes('sub total') || firstCellVal.includes('material charges')) break;
+
+        rowObj.getCell(headerMap['sr_no'] || 1).value = null;
+        rowObj.getCell(headerMap['description'] || 2).value = null;
+        rowObj.getCell(headerMap['amount'] || 7).value = null;
+      }
 
       // copy styles and row heights; then write cell values using header mapping
       for (let idx = 0; idx < itemsToInsert.length; idx++) {
@@ -358,8 +607,13 @@ export const generateBillExcel = async (params: BillParams) => {
         // Write values into precise columns using header map
         const item = itemsToInsert[idx];
         const rowNum = r;
+        const rateColLetter = String.fromCharCode(64 + (headerMap['rate'] || 4));
+        const daysColLetter = String.fromCharCode(64 + (headerMap['working_days'] || 5));
+        const amountColLetter = String.fromCharCode(64 + (headerMap['amount'] || 7));
+        const daysInMonth = params.daysInMonth || 31; // Fallback to 31 if unknown
+
         const setCell = (headerKey: string, value: any, numFmt?: string, align?: any) => {
-          const colIndex = (headerMap[headerKey] || 8); // default to 8 (H) for amount if header missing
+          const colIndex = (headerMap[headerKey] || 7);
           const colLetter = String.fromCharCode(64 + colIndex);
           const cell = worksheet.getCell(`${colLetter}${rowNum}`);
           cell.value = value;
@@ -373,7 +627,15 @@ export const generateBillExcel = async (params: BillParams) => {
         setCell('rate', item.rate ?? null, '#,##0', { horizontal: 'right' });
         setCell('working_days', item.workingDays ?? null, undefined, { horizontal: 'center' });
         setCell('persons', item.persons ?? null, undefined, { horizontal: 'center' });
-        setCell('amount', item.amount ?? 0, '#,##0', { horizontal: 'right' });
+
+        // Write Dynamic Formula for Amount
+        const amountCell = worksheet.getCell(`${amountColLetter}${rowNum}`);
+        amountCell.value = {
+          formula: `ROUND((${rateColLetter}${rowNum}/${daysInMonth})*${daysColLetter}${rowNum}, 0)`,
+          result: item.amount || 0
+        };
+        amountCell.numFmt = '#,##0';
+        amountCell.alignment = { horizontal: 'right', indent: 1 };
       }
 
       // Clone sample-row merges for each inserted row so the item rows have the same merged columns
@@ -458,63 +720,85 @@ export const generateBillExcel = async (params: BillParams) => {
       { key: '{{TOTAL}}', value: foot.grandTotal }
     ];
 
+    // Find all rows that look like "Total" to handle multiple occurrences (Row 26, 32, 34)
+    const totalRowsList: number[] = [];
+    for (let r = 1; r <= Math.min(worksheet.rowCount, 100); r++) {
+      const txt = (worksheet.getRow(r).getCell(1).value || '').toString().toLowerCase() || (worksheet.getRow(r).getCell(4).value || '').toString().toLowerCase();
+      if (txt && (txt.startsWith('total') || txt.includes('total amount'))) {
+        totalRowsList.push(r);
+      }
+    }
+
+    // Distinguish between Total Before Tax and Grand Totals
+    const mgmtRow = findCellContaining('management')?.r || 0;
+    const cgstRow = findCellContaining('cgst')?.r || 0;
+    const rowTotalBefore = totalRowsList.find(r => mgmtRow && r > mgmtRow && (!cgstRow || r < cgstRow));
+    const grandTotalRows = totalRowsList.filter(r => (cgstRow && r > cgstRow) || r > (rowTotalBefore || 999));
+
     // First try placeholders. If not present, fallback to label search.
     const written: Array<{ key: string; addr: string | null }> = [];
     const amountColIndex = headerMap['amount'] || 7; // Use detected amount column
+
+    const amountColLetter = String.fromCharCode(64 + amountColIndex);
+    const tableRange = `${amountColLetter}${startRow}:${amountColLetter}${lastInsertedRow}`;
 
     for (const p of placeholderMap) {
       const loc = findExactPlaceholder(p.key);
       if (loc) {
         const row = loc.r;
-        // Write to placeholder cell
         const colLetter = String.fromCharCode(64 + loc.c);
         const cell = worksheet.getCell(`${colLetter}${row}`);
-        cell.value = Number(Math.round((p.value + Number.EPSILON) * 100) / 100);
-        cell.numFmt = '0.00';
+
+        const subTotalRow = findCellContaining('sub total')?.r || startRow - 1;
+        const beforeTaxRow = rowTotalBefore || subTotalRow;
+
+        if (p.key === '{{SUBTOTAL}}') cell.value = { formula: `SUM(${tableRange})`, result: subtotal };
+        else if (p.key === '{{MANAGEMENT}}') cell.value = { formula: `ROUND(${amountColLetter}${subTotalRow}*0.15, 0)`, result: foot.management };
+        else if (p.key === '{{TOTAL_BEFORE_TAX}}') cell.value = { formula: `${amountColLetter}${subTotalRow}+${amountColLetter}${mgmtRow}`, result: foot.totalBeforeTax };
+        else if (p.key === '{{CGST}}' || p.key === '{{SGST}}') cell.value = { formula: `ROUND(${amountColLetter}${beforeTaxRow}*0.09, 0)`, result: foot.cgst };
+        else if (p.key === '{{TOTAL}}' || p.key === '{{GROSS_TOTAL}}') {
+          // Update ALL detected grand total rows
+          grandTotalRows.forEach(gr => {
+            const gCell = worksheet.getCell(`${amountColLetter}${gr}`);
+            gCell.value = { formula: `${amountColLetter}${beforeTaxRow}+${amountColLetter}${cgstRow}+${amountColLetter}${cgstRow + 1}`, result: foot.grandTotal };
+            gCell.numFmt = '#,##0';
+          });
+          cell.value = { formula: `${amountColLetter}${beforeTaxRow}+${amountColLetter}${cgstRow}+${amountColLetter}${cgstRow + 1}`, result: foot.grandTotal };
+        }
+        else cell.value = Number(Math.round((p.value + Number.EPSILON) * 100) / 100);
+
+        cell.numFmt = '#,##0';
         cell.alignment = { horizontal: 'right', indent: 1 };
-
-        // Also write to the explicit Amount column if it's different and reasonable
-        if (loc.c !== amountColIndex && amountColIndex > 0) {
-          const amtLetter = String.fromCharCode(64 + amountColIndex);
-          const amtCell = worksheet.getCell(`${amtLetter}${row}`);
-          amtCell.value = cell.value;
-          amtCell.numFmt = '0.00';
-          amtCell.alignment = { horizontal: 'right', indent: 1 };
-        }
-
-        // clear other D..H cells in same row to avoid duplicates (except where we just wrote)
-        for (let cc = 4; cc <= Math.max(7, amountColIndex); cc++) {
-          if (cc === loc.c || cc === amountColIndex) continue;
-          try { worksheet.getCell(String.fromCharCode(64 + cc) + row).value = ''; } catch (e) { /* ignore */ }
-        }
         written.push({ key: p.key, addr: `${colLetter}${loc.r}` });
         continue;
       }
-      // Fallback to label-based find: look for the label row, then search that row for a placeholder cell or default to column G
+
       const lbl = p.key.replace(/\{\{|\}\}/g, '').replace(/_/g, ' ');
       const found = findCellContaining(lbl);
       if (found) {
-        // try to detect an existing placeholder in the same row
+        // Fallback for label-based find (e.g. Row 26/32 if they don't have {{TOTAL}} placeholders)
         let targetCol = null;
         for (let c = 1; c <= Math.max(worksheet.columnCount || 10, 10); c++) {
           const cv = (worksheet.getRow(found.r).getCell(c).value || '').toString();
           if (cv.includes('{{')) { targetCol = c; break; }
         }
-        if (!targetCol) targetCol = amountColIndex || 7; // default to detected amount col or G
+        if (!targetCol) targetCol = amountColIndex || 7;
 
-        // If placeholder found in a different column (e.g. A), clear it to remove {{KEY}} text, 
-        // but ONLY write value to the target amount column to avoid overwriting labels (like 'Amount in words').
-        // Exception: if the key is explicitly intended for that column (handled separately for words).
-        if (found.c !== targetCol) {
-          const colLetter = String.fromCharCode(64 + found.c);
-          const cell = worksheet.getCell(`${colLetter}${found.r}`);
-          cell.value = ''; // clear placeholder
-        }
-
-        // Write to Amount Column
         const colLetter = String.fromCharCode(64 + targetCol);
-        const cell = worksheet.getCell(`${colLetter}${found.r}`);
-        cell.value = Number(Math.round((p.value + Number.EPSILON) * 100) / 100);
+        const cell = worksheet.getRow(found.r).getCell(targetCol);
+
+        // Use formula even for label-matched cells if possible
+        if (lbl === 'total' || lbl === 'total amount') {
+          const isGrand = grandTotalRows.includes(found.r);
+          const baseRow = isGrand ? (rowTotalBefore || found.r - 2) : (findCellContaining('sub total')?.r || found.r - 1);
+          if (isGrand) {
+            cell.value = { formula: `${amountColLetter}${baseRow}+${amountColLetter}${cgstRow}+${amountColLetter}${cgstRow + 1}`, result: foot.grandTotal };
+          } else {
+            cell.value = { formula: `${amountColLetter}${findCellContaining('sub total')?.r}+${amountColLetter}${mgmtRow}`, result: foot.totalBeforeTax };
+          }
+        } else {
+          cell.value = Number(Math.round((p.value + Number.EPSILON) * 100) / 100);
+        }
         cell.numFmt = '#,##0';
         cell.alignment = { horizontal: 'right', indent: 1 };
         written.push({ key: p.key, addr: `${colLetter}${found.r}` });
@@ -582,8 +866,12 @@ export const generateBillExcel = async (params: BillParams) => {
         dbg.getCell('A6').value = 'Header map'; dbg.getCell('B6').value = JSON.stringify(headerMap);
         dbg.getCell('A7').value = 'Totals written'; dbg.getCell('B7').value = JSON.stringify(written);
 
+        // Helpful debug: where AMBE and bank-related cells appear
+        try { dbg.getCell('A8').value = 'AMBE Cells'; dbg.getCell('B8').value = JSON.stringify(findAllCellsContaining('AMBE')); } catch (e) { /* ignore */ }
+        try { dbg.getCell('A9').value = 'Bank Cells'; dbg.getCell('B9').value = JSON.stringify(findAllCellsContaining('Union Bank').concat(findAllCellsContaining('Axis Bank'))); } catch (e) { /* ignore */ }
+
         // List sheet names and row counts
-        let r = 8;
+        let r = 10;
         dbg.getCell(`A${r}`).value = 'Sheets overview'; r++;
         for (const s of workbook.worksheets) {
           dbg.getCell(`A${r}`).value = s.name; dbg.getCell(`B${r}`).value = s.rowCount; r++;
@@ -617,7 +905,7 @@ export const generateBillExcel = async (params: BillParams) => {
 
     const bufferOut = await workbook.xlsx.writeBuffer();
     const blob = new Blob([bufferOut], { type: 'application/vnd.openxmlformats-officedocument-spreadsheetml.sheet' });
-    
+
     // User requested simpler filename format: PI-2025-12-6.xlsx
     const filename = `${params.invoiceNo.replace(/\//g, '-')}.xlsx`.replace(/[^a-zA-Z0-9_\-.]/g, '_');
     saveAs(blob, filename);
@@ -716,7 +1004,7 @@ export const generateBillExcel = async (params: BillParams) => {
   //   : 'Site';
 
   // saveAs(blob, `${sanitizedSiteName}_Invoice_${params.invoiceNo.replace(/\//g, '-')}.xlsx`);
-  
+
   // User requested simpler filename format: PI-2025-12-6.xlsx
   const filename = `${params.invoiceNo.replace(/\//g, '-')}.xlsx`.replace(/[^a-zA-Z0-9_\-.]/g, '_');
   saveAs(blob, filename);

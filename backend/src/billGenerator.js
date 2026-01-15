@@ -55,18 +55,12 @@ async function createInvoiceWorkbook(inputData, options = {}) {
     // ignore if headerFooter is not supported by the template/library version
   }
 
-  // Also replace any visible 'SHREEYA' text in the top rows (if template included it as a cell)
+  // Replace top company name in Row 1 with the selected company
   try {
-    for (let r = 1; r <= 6; r++) {
-      const row = worksheet.getRow(r);
-      for (let c = 1; c <= 8; c++) {
-        const cell = row.getCell(c);
-        if (typeof cell.value === 'string' && cell.value.trim().toUpperCase() === 'SHREEYA') {
-          cell.value = 'PROFORMA INVOICE';
-          cell.alignment = Object.assign({}, cell.alignment, { horizontal: 'center', vertical: 'top' });
-        }
-      }
-    }
+    const vendorName = inputData.companyName || 'AMBE SERVICE';
+    const cellA1 = worksheet.getRow(1).getCell(1);
+    cellA1.value = vendorName;
+    // Removed explicit size/bold override to keep "ditto same font and size"
   } catch (e) {
     // ignore any issues iterating the sheet
   }
@@ -124,16 +118,44 @@ async function createInvoiceWorkbook(inputData, options = {}) {
   // Debug logging removed (previously wrote to /tmp)  // Use resolved clientName/address/gstin computed above
   // Write clientName across merged row (A8..D8) and uppercase to match your example
   const displayName = (clientName || '').toString();
-  ['A8','B8','C8','D8'].forEach(cellAddr => { worksheet.getCell(cellAddr).value = displayName; });
+  ['A8', 'B8', 'C8', 'D8'].forEach(cellAddr => { worksheet.getCell(cellAddr).value = displayName; });
   const displayAddress = (clientAddress || '').toString();
   // Fill address across A9..D9 and enable wrapping so long addresses fit
-  ['A9','B9','C9','D9'].forEach(cellAddr => { 
+  ['A9', 'B9', 'C9', 'D9'].forEach(cellAddr => {
     const cell = worksheet.getCell(cellAddr);
     cell.value = displayAddress;
     cell.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
   });
   if (displayAddress.length > 60) worksheet.getRow(9).height = 30;
   worksheet.getCell('A11').value = clientGstin ? `GSTIN : ${clientGstin}` : '';
+
+  // --- Vendor Details (Bank, Terms, Signatory) ---
+  if (inputData.bankDetails) {
+    const bankRowIdx = findRowByLabel(/bank details/i);
+    if (bankRowIdx) {
+      const bd = inputData.bankDetails;
+      worksheet.getRow(bankRowIdx + 1).getCell(1).value = `Bank Name :  ${bd.name || bd.bankName}`;
+      worksheet.getRow(bankRowIdx + 2).getCell(1).value = `Acc no : ${bd.accNo || bd.accountNo}`;
+      worksheet.getRow(bankRowIdx + 3).getCell(1).value = `IFSC Code: ${bd.ifsc || bd.ifscCode}   Branch: ${bd.branch}`;
+    }
+  }
+
+  if (inputData.terms) {
+    const termsRowIdx = findRowByLabel(/terms\s*&\s*condition/i);
+    if (termsRowIdx) {
+      worksheet.getRow(termsRowIdx + 1).getCell(1).value = inputData.terms;
+    }
+  }
+
+  if (inputData.signatory) {
+    const sigRowIdx = findRowByLabel(/authorized signatory/i) || findRowByLabel(/for ambe/i);
+    if (sigRowIdx) {
+      // Typically writes to the "For..." line which is a few rows above "Authorized signatory"
+      const cell = worksheet.getRow(sigRowIdx - 4).getCell(6);
+      cell.value = inputData.signatory;
+      cell.alignment = { wrapText: true, vertical: 'top', horizontal: 'right' };
+    }
+  }
 
   // --- Line Items ---
   // Dynamically detect header row and important column indices so the template can be edited without breaking the generator
@@ -196,8 +218,8 @@ async function createInvoiceWorkbook(inputData, options = {}) {
   const colHsn = findCol(/hsn/i, ['hsn']) || 3;
   const colRate = findCol(/rate/i, ['rate', 'rs', '₹']) || 4;
   const colDays = findCol(/working\s*days|working days|working\s*day/i, ['working', 'day', 'days']) || findCol(/days/i, ['days']) || 5;
-  const colPersons = findCol(/persons?/i, ['persons', 'person', 'no\.', 'count']) || 7;
-  const colAmount = findCol(/\bamount\b/i, ['amount', 'amt', 'rs']) || 8;
+  const colPersons = findCol(/persons?/i, ['persons', 'person', 'no\.', 'count']) || 6;
+  const colAmount = findCol(/\bamount\b/i, ['amount', 'amt', 'rs']) || 7;
 
   let startRow = headerRow + 1;
   // If the startRow still contains header-like values (due to multi-row headers or merged headers), skip down until we find a non-header row
@@ -226,36 +248,26 @@ async function createInvoiceWorkbook(inputData, options = {}) {
   }
   if (!footerRowIndex) footerRowIndex = 35; // fallback
 
+  // Determine effective range for items
   const items = inputData.items || [];
-  // Each item will now occupy two rows (service + overtime). Ensure template has enough rows.
   const requiredRows = items.length * 2;
   const maxRowsAvailable = footerRowIndex - startRow + 1;
 
   if (requiredRows > maxRowsAvailable) {
     const extra = requiredRows - maxRowsAvailable;
-    const protoRowIdx = startRow + Math.max(0, maxRowsAvailable - 1);
-    const protoRow = worksheet.getRow(protoRowIdx);
-
     worksheet.spliceRows(footerRowIndex, 0, ...Array(extra).fill([]));
+  }
 
-    // Copy formulas/styles from protoRow into newly inserted rows (attempt best effort)
-    for (let i = 0; i < extra; i++) {
-      const newRowIdx = footerRowIndex + i;
-      const newRow = worksheet.getRow(newRowIdx);
-      protoRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {
-        const v = cell.value;
-        try {
-          if (v && typeof v === 'object' && v.formula) {
-            const re = new RegExp('\\b' + protoRowIdx + '\\b', 'g');
-            newRow.getCell(colNumber).value = { formula: String(v.formula).replace(re, String(newRowIdx)) };
-          }
-          if (cell.style) newRow.getCell(colNumber).style = Object.assign({}, cell.style);
-        } catch (e) {
-          // ignore copying errors
-        }
-      });
-      newRow.commit();
-    }
+  // CRITICAL: Clear all cells in the Amount column from startRow to footer start 
+  // to avoid summing leftover values from the template in the SUM() formula.
+  const colAmountLetter = String.fromCharCode(64 + colAmount);
+  for (let rCr = startRow; rCr < (footerRowIndex + (requiredRows > maxRowsAvailable ? (requiredRows - maxRowsAvailable) : 0)); rCr++) {
+    try {
+      const row = worksheet.getRow(rCr);
+      row.getCell(colSr).value = null;
+      row.getCell(colDescription).value = null;
+      row.getCell(colAmount).value = null;
+    } catch (e) { }
   }
 
   let subTotal = 0;
@@ -274,8 +286,8 @@ async function createInvoiceWorkbook(inputData, options = {}) {
         period = periodRaw;
         const monthName = rangeMatch[2];
         const year = Number(rangeMatch[3]);
-        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        const monthIndex = monthNames.findIndex(x => new RegExp('^'+x,'i').test(monthName));
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthIndex = monthNames.findIndex(x => new RegExp('^' + x, 'i').test(monthName));
         if (monthIndex >= 0) daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
       } else {
         // Try to find 'Month Year' and expand to range
@@ -283,11 +295,11 @@ async function createInvoiceWorkbook(inputData, options = {}) {
         if (m) {
           const monthName = m[1];
           const year = Number(m[2]);
-          const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-          const monthIndex = monthNames.findIndex(x => new RegExp('^'+x,'i').test(monthName));
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const monthIndex = monthNames.findIndex(x => new RegExp('^' + x, 'i').test(monthName));
           if (monthIndex >= 0) {
             daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-            period = `1st to ${daysInMonth} ${monthNames[monthIndex].replace(/\b[a-z]/g, c=>c.toLowerCase()).replace(/^./, s=>s.toUpperCase())} ${year}`;
+            period = `1st to ${daysInMonth} ${monthNames[monthIndex].replace(/\b[a-z]/g, c => c.toLowerCase()).replace(/^./, s => s.toUpperCase())} ${year}`;
             // The above preserves month capitalization (e.g., 'November')
           }
         }
@@ -303,8 +315,8 @@ async function createInvoiceWorkbook(inputData, options = {}) {
     daysInMonth = new Date(billDate.getFullYear(), billDate.getMonth(), 0).getDate();
     // If the original periodRaw was missing, create a reasonable period string (fall back only)
     if (!period || String(period).trim() === '') {
-      const mnames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-      const prevMonth = new Date(billDate.getFullYear(), billDate.getMonth()-1, 1);
+      const mnames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      const prevMonth = new Date(billDate.getFullYear(), billDate.getMonth() - 1, 1);
       period = `1st to ${daysInMonth} ${mnames[prevMonth.getMonth()]} ${prevMonth.getFullYear()}`;
     }
   }
@@ -312,6 +324,8 @@ async function createInvoiceWorkbook(inputData, options = {}) {
   // For each input item, write two rows: service row + overtime row
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
+    const isAlreadyOt = (item.description || '').toLowerCase().includes('overtime') || (item.description || '').toLowerCase().includes('ot hrs');
+
     const serviceRowIdx = startRow + i * 2;
     const overtimeRowIdx = serviceRowIdx + 1;
 
@@ -319,6 +333,11 @@ async function createInvoiceWorkbook(inputData, options = {}) {
     const persons = Number(item.persons || 0);
     const workingDays = Number(item.working_days || item.workingDays || item.days || 0);
     const overtimeHours = Number(item.overtime_hours || item.overtimeHours || item.overtime || 0);
+
+    const rateCellAddr = String.fromCharCode(64 + colRate) + serviceRowIdx;
+    const daysCellAddr = String.fromCharCode(64 + colDays) + serviceRowIdx;
+    const amountCellAddr = String.fromCharCode(64 + colAmount) + serviceRowIdx;
+    const amountColLetter = String.fromCharCode(64 + colAmount);
 
     // Service row
     const srow = worksheet.getRow(serviceRowIdx);
@@ -340,19 +359,27 @@ async function createInvoiceWorkbook(inputData, options = {}) {
     // Ensure service description wraps and keeps its original font size
     try {
       srow.getCell(colDescription).alignment = Object.assign({}, srow.getCell(colDescription).alignment || {}, { wrapText: true, vertical: 'top', horizontal: 'left' });
-    } catch (e) {}
+    } catch (e) { }
 
     const amountCell = srow.getCell(colAmount);
-    const amountCellVal = amountCell && amountCell.value;
-    const amountHasFormula = amountCellVal && typeof amountCellVal === 'object' && amountCellVal.formula;
-    if (!amountHasFormula) amountCell.value = finalAmount;
+    // Use dynamic formula instead of hardcoded value: (Rate/DaysInMonth) * WorkingDays
+    amountCell.value = {
+      formula: `ROUND((${rateCellAddr}/${daysInMonth})*${daysCellAddr}, 0)`,
+      result: finalAmount
+    };
     srow.commit();
 
-    // Overtime row
+    // Overtime row (skip if item is already an OT item to avoid duplicate labels)
+    if (isAlreadyOt) {
+      // If it's already an OT item, we don't need the extra generated OT row.
+      // We can just clear it or skip it. For now, we'll keep the loop simple and just not write to the OT row.
+      continue;
+    }
+
     const orow = worksheet.getRow(overtimeRowIdx);
     // Shorten overtime label to a compact short form
     const svcName = (item.description || '').toString().trim();
-    const shortSvc = (svcName.split(/\s+/).slice(0,2).join(' ')).replace(/[,;:]$/,'');
+    const shortSvc = (svcName.split(/\s+/).slice(0, 2).join(' ')).replace(/[,;:]$/, '');
     const descText = `OT hrs (${shortSvc || svcName})`;
     // assign Sr No for overtime row too and right-align
     orow.getCell(colSr).value = rowCounter++;
@@ -360,8 +387,8 @@ async function createInvoiceWorkbook(inputData, options = {}) {
     orow.getCell(colDescription).value = descText;
 
     // Merge HSN and Rate vertically across service+overtime rows for a clean look
-    try { worksheet.mergeCells(serviceRowIdx, colHsn, overtimeRowIdx, colHsn); } catch(e) {}
-    try { worksheet.mergeCells(serviceRowIdx, colRate, overtimeRowIdx, colRate); } catch(e) {}
+    try { worksheet.mergeCells(serviceRowIdx, colHsn, overtimeRowIdx, colHsn); } catch (e) { }
+    try { worksheet.mergeCells(serviceRowIdx, colRate, overtimeRowIdx, colRate); } catch (e) { }
 
     // Copy style (including borders) from service row to overtime row for consistency
     const colsToCopy = [colHsn, colRate, colDescription, colDays, colPersons, colAmount];
@@ -403,8 +430,8 @@ async function createInvoiceWorkbook(inputData, options = {}) {
             scRate.border = Object.assign({}, scRate.border || {}, { left: thin });
             ocRate.border = Object.assign({}, ocRate.border || {}, { left: thin });
           }
-        } catch (e2) {}
-      } catch (e) {}
+        } catch (e2) { }
+      } catch (e) { }
     });
 
     // Slightly widen the description column for long overtime text so wrapping looks tidy (but cap so it doesn't break layout)
@@ -412,13 +439,13 @@ async function createInvoiceWorkbook(inputData, options = {}) {
       const colObj = worksheet.getColumn(colDescription);
       const currentW = colObj && colObj.width ? colObj.width : 12;
       if (descText.length > 24 && (!currentW || currentW < 16)) colObj.width = 16;
-    } catch (e) {}
+    } catch (e) { }
 
     // Keep same font size/style as the service description for uniformity; enable wrapping and shrinkToFit
     try {
       const sFont = (srow.getCell(colDescription).font) || {};
       orow.getCell(colDescription).font = Object.assign({}, sFont);
-    } catch (e) {}
+    } catch (e) { }
     orow.getCell(colDescription).alignment = Object.assign({}, orow.getCell(colDescription).alignment || {}, { wrapText: true, vertical: 'top', horizontal: 'left', shrinkToFit: true });
 
     // Ensure the description row height expands for long text but not too tall to keep design tidy
@@ -437,10 +464,16 @@ async function createInvoiceWorkbook(inputData, options = {}) {
     const overtimePerHour = daysInMonth > 0 ? (rate / daysInMonth / 9) : 0;
     const overtimeAmount = Math.round(overtimePerHour * (Number(overtimeHours) || 0));
 
+    const otRateCellAddr = String.fromCharCode(64 + colRate) + overtimeRowIdx;
+    const otDaysCellAddr = String.fromCharCode(64 + colDays) + overtimeRowIdx;
     const amountOverCell = orow.getCell(colAmount);
-    const amountOverVal = amountOverCell && amountOverCell.value;
-    const amountOverHasFormula = amountOverVal && typeof amountOverVal === 'object' && amountOverVal.formula;
-    if (!amountOverHasFormula) amountOverCell.value = overtimeAmount;
+
+    // Formula for OT: (Rate / DaysInMonth / 9) * OT_Hours
+    // Note: colRate is merged, so we use the serviceRowIdx cell address for rate
+    amountOverCell.value = {
+      formula: `ROUND((${rateCellAddr}/${daysInMonth}/9)*${otDaysCellAddr}, 0)`,
+      result: overtimeAmount
+    };
 
     // Re-apply border to merged HSN/Rate cell and enforce outer rectangle borders for the service+overtime block
     try {
@@ -457,7 +490,7 @@ async function createInvoiceWorkbook(inputData, options = {}) {
 
           sCell.border = Object.assign({}, sCell.border || {}, { top: thin, left: (sCell.border && sCell.border.left) || thin, right: (sCell.border && sCell.border.right) || thin });
           oCell.border = Object.assign({}, oCell.border || {}, { bottom: thin, left: (oCell.border && oCell.border.left) || thin, right: (oCell.border && oCell.border.right) || thin });
-        } catch (e) {}
+        } catch (e) { }
       });
 
       // Ensure HSN/Rate cells in both rows have full borders (covers merged area)
@@ -467,9 +500,9 @@ async function createInvoiceWorkbook(inputData, options = {}) {
           const rRate = worksheet.getRow(rr).getCell(colRate);
           if (topHsnCell && topHsnCell.border) rHsn.border = JSON.parse(JSON.stringify(topHsnCell.border)); else rHsn.border = Object.assign({}, rHsn.border || {}, { left: thin, top: thin, bottom: thin, right: thin });
           if (topRateCell && topRateCell.border) rRate.border = JSON.parse(JSON.stringify(topRateCell.border)); else rRate.border = Object.assign({}, rRate.border || {}, { left: thin, top: thin, bottom: thin, right: thin });
-        } catch (e) {}
+        } catch (e) { }
       }
-    } catch(e) {}
+    } catch (e) { }
     orow.commit();
 
     subTotal += finalAmount + overtimeAmount;
@@ -489,7 +522,7 @@ async function createInvoiceWorkbook(inputData, options = {}) {
         try {
           const t = getCellText(row.getCell(c));
           if (t && String(t).trim() !== '' && String(t).trim() !== '0' && String(t).trim() !== '0.00') { has = true; break; }
-        } catch(e) {}
+        } catch (e) { }
       }
       if (has) actualLastDataRow = r;
     }
@@ -497,12 +530,12 @@ async function createInvoiceWorkbook(inputData, options = {}) {
     if (actualLastDataRow < startRow) actualLastDataRow = Math.max(startRow, tentativeLastRow);
 
     // Column widths (reasonable defaults)
-    try { const cDesc = worksheet.getColumn(colDescription); if (!cDesc.width || cDesc.width < 18) cDesc.width = 20; } catch(e) {}
-    try { const cHsn = worksheet.getColumn(colHsn); if (!cHsn.width || cHsn.width < 8) cHsn.width = 10; } catch(e) {}
-    try { const cRate = worksheet.getColumn(colRate); if (!cRate.width || cRate.width < 10) cRate.width = 12; } catch(e) {}
-    try { const cDays = worksheet.getColumn(colDays); if (!cDays.width || cDays.width < 8) cDays.width = 10; } catch(e) {}
-    try { const cPersons = worksheet.getColumn(colPersons); if (!cPersons.width || cPersons.width < 6) cPersons.width = 8; } catch(e) {}
-    try { const cAmount = worksheet.getColumn(colAmount); if (!cAmount.width || cAmount.width < 10) cAmount.width = 14; } catch(e) {}
+    try { const cDesc = worksheet.getColumn(colDescription); if (!cDesc.width || cDesc.width < 18) cDesc.width = 20; } catch (e) { }
+    try { const cHsn = worksheet.getColumn(colHsn); if (!cHsn.width || cHsn.width < 8) cHsn.width = 10; } catch (e) { }
+    try { const cRate = worksheet.getColumn(colRate); if (!cRate.width || cRate.width < 10) cRate.width = 12; } catch (e) { }
+    try { const cDays = worksheet.getColumn(colDays); if (!cDays.width || cDays.width < 8) cDays.width = 10; } catch (e) { }
+    try { const cPersons = worksheet.getColumn(colPersons); if (!cPersons.width || cPersons.width < 6) cPersons.width = 8; } catch (e) { }
+    try { const cAmount = worksheet.getColumn(colAmount); if (!cAmount.width || cAmount.width < 10) cAmount.width = 14; } catch (e) { }
 
     const thin = { style: 'thin', color: { argb: 'FF000000' } };
     for (let r = startRow; r <= actualLastDataRow; r++) {
@@ -514,7 +547,7 @@ async function createInvoiceWorkbook(inputData, options = {}) {
         try {
           const t = getCellText(row.getCell(c));
           if (t && String(t).trim() !== '' && String(t).trim() !== '0' && String(t).trim() !== '0.00') { rowHasContent = true; break; }
-        } catch(e) {}
+        } catch (e) { }
       }
       if (!rowHasContent) continue; // skip empty rows entirely
 
@@ -534,7 +567,7 @@ async function createInvoiceWorkbook(inputData, options = {}) {
           if (r === startRow) cell.border = Object.assign({}, existing, { top: top, left: left, right: right });
           else if (r === actualLastDataRow) cell.border = Object.assign({}, existing, { bottom: bottom, left: left, right: right });
           else cell.border = Object.assign({}, existing, { left: left, right: right });
-        } catch (e) {}
+        } catch (e) { }
       });
 
       // Make sure description column alignment is consistent (left, wrap)
@@ -545,8 +578,8 @@ async function createInvoiceWorkbook(inputData, options = {}) {
         try {
           const above = worksheet.getRow(Math.max(startRow, r - 1)).getCell(colDescription);
           if (above && above.font) dcell.font = Object.assign({}, above.font);
-        } catch(e) {}
-      } catch (e) {}
+        } catch (e) { }
+      } catch (e) { }
 
       row.commit();
     }
@@ -556,15 +589,15 @@ async function createInvoiceWorkbook(inputData, options = {}) {
       for (let r = actualLastDataRow + 1; r <= tentativeLastRow; r++) {
         const row = worksheet.getRow(r);
         colsEnforce.forEach(c => {
-          try { row.getCell(c).border = {}; } catch(e) {}
+          try { row.getCell(c).border = {}; } catch (e) { }
         });
         row.commit();
       }
-    } catch (e) {}
-  } catch (e) {}
+    } catch (e) { }
+  } catch (e) { }
 
   // --- Totals Calculation (rounded) ---
-  const MGMT_PERCENT = 0.15; // 15%
+  const MGMT_PERCENT = (inputData.managementRate || 15) / 100;
   const GST_PERCENT = 0.09;  // 9% (CGST/SGST split)
 
   const mgmtCharges = Math.round(subTotal * MGMT_PERCENT);
@@ -599,20 +632,93 @@ async function createInvoiceWorkbook(inputData, options = {}) {
   const rowMaterial = findRowByLabel(/material charges/i);
   const rowSubTotal = findRowByLabel(/sub\s*total/i);
   const rowMgmt = findRowByLabel(/management charges/i);
-  const rowTotalBefore = findRowByLabel(/total\s*\(before tax\)|total\s*\(|total\b/i) || findRowByLabel(/^total$/i);
   const rowCgst = findRowByLabel(/add cgst/i);
   const rowSgst = findRowByLabel(/add sgst/i);
-  const rowTotalExact = findRowByLabel(/total\s*\(exact\)|total amount|total$/i);
   const rowRoundOff = findRowByLabel(/round off/i);
 
+  // Improved Total Detection: some templates have multiple "Total" rows (Before Tax and Grand Total)
+  const allTotalRows = [];
+  for (let r = 1; r <= Math.min(worksheet.rowCount, 100); r++) {
+    const row = worksheet.getRow(r);
+    for (let c = 1; c <= 6; c++) {
+      const txt = getCellText(row.getCell(c));
+      if (txt && (/^total$/i.test(txt) || /total amount/i.test(txt) || /total\s*\(before/i.test(txt))) {
+        allTotalRows.push(r);
+        break;
+      }
+    }
+  }
+
+  // Row 26 is typically Total Before Tax, Row 32/34 are Grand Totals.
+  let rowTotalBefore = allTotalRows.find(r => rowMgmt && r > rowMgmt && (!rowCgst || r < rowCgst));
+  const grandTotalRows = allTotalRows.filter(r => (rowSgst && r > rowSgst) || (rowCgst && !rowSgst && r > rowCgst) || (/total amount/i.test(getCellText(worksheet.getRow(r).getCell(4)) || getCellText(worksheet.getRow(r).getCell(1)))));
+
+  const amountColLetter = String.fromCharCode(64 + colAmount);
+  const itemsEndRow = startRow + (items.length * 2) - 1;
+  const itemsRange = `${amountColLetter}${startRow}:${amountColLetter}${itemsEndRow}`;
+
   if (rowMaterial) writeIfNotFormula(rowMaterial, colAmount, 0);
-  if (rowSubTotal) writeIfNotFormula(rowSubTotal, colAmount, subTotal);
-  if (rowMgmt) writeIfNotFormula(rowMgmt, colAmount, mgmtCharges);
-  if (rowTotalBefore) writeIfNotFormula(rowTotalBefore, colAmount, totalBeforeTax);
-  if (rowCgst) writeIfNotFormula(rowCgst, colAmount, cgst);
-  if (rowSgst) writeIfNotFormula(rowSgst, colAmount, sgst);
-  if (rowTotalExact) writeIfNotFormula(rowTotalExact, colAmount, finalTotal);
-  if (rowRoundOff) writeIfNotFormula(rowRoundOff, colAmount, finalTotal - Math.floor(finalTotal));
+
+  if (rowSubTotal) {
+    const cell = worksheet.getRow(rowSubTotal).getCell(colAmount);
+    cell.value = { formula: `SUM(${itemsRange})`, result: subTotal };
+  }
+
+  if (rowMgmt) {
+    const subtotalAddr = `${amountColLetter}${rowSubTotal}`;
+    const cell = worksheet.getRow(rowMgmt).getCell(colAmount);
+    cell.value = { formula: `ROUND(${subtotalAddr}*0.15, 0)`, result: Math.round(subTotal * 0.15) };
+  }
+
+  if (rowTotalBefore) {
+    const subtotalAddr = `${amountColLetter}${rowSubTotal}`;
+    const mgmtAddr = `${amountColLetter}${rowMgmt}`;
+    const cell = worksheet.getRow(rowTotalBefore).getCell(colAmount);
+    cell.value = { formula: `${subtotalAddr}+${mgmtAddr}`, result: subTotal + Math.round(subTotal * 0.15) };
+  }
+
+  if (rowCgst) {
+    const beforeTaxAddr = rowTotalBefore ? `${amountColLetter}${rowTotalBefore}` : (rowSubTotal ? `${amountColLetter}${rowSubTotal}` : null);
+    if (beforeTaxAddr) {
+      const cell = worksheet.getRow(rowCgst).getCell(colAmount);
+      cell.value = { formula: `ROUND(${beforeTaxAddr}*0.09, 0)`, result: cgst };
+    }
+  }
+
+  if (rowSgst) {
+    const beforeTaxAddr = rowTotalBefore ? `${amountColLetter}${rowTotalBefore}` : (rowSubTotal ? `${amountColLetter}${rowSubTotal}` : null);
+    if (beforeTaxAddr) {
+      const cell = worksheet.getRow(rowSgst).getCell(colAmount);
+      cell.value = { formula: `ROUND(${beforeTaxAddr}*0.09, 0)`, result: sgst };
+    }
+  }
+
+  // Update ALL grand total rows (e.g., Row 32 and Row 34)
+  grandTotalRows.forEach(r => {
+    const beforeTaxAddr = rowTotalBefore ? `${amountColLetter}${rowTotalBefore}` : (rowSubTotal ? `${amountColLetter}${rowSubTotal}` : null);
+    const cgstAddr = rowCgst ? `${amountColLetter}${rowCgst}` : null;
+    const sgstAddr = rowSgst ? `${amountColLetter}${rowSgst}` : null;
+    const cell = worksheet.getRow(r).getCell(colAmount);
+
+    if (beforeTaxAddr) {
+      let formula = beforeTaxAddr;
+      if (cgstAddr) formula += `+${cgstAddr}`;
+      if (sgstAddr) formula += `+${sgstAddr}`;
+      cell.value = { formula: formula, result: finalTotal };
+    } else {
+      cell.value = finalTotal;
+    }
+    cell.numFmt = '#,##0';
+  });
+
+  if (rowRoundOff) {
+    const lastGrandRow = grandTotalRows[grandTotalRows.length - 1] || rowTotalBefore;
+    if (lastGrandRow) {
+      const totalExactAddr = `${amountColLetter}${lastGrandRow}`;
+      const cell = worksheet.getRow(rowRoundOff).getCell(colAmount);
+      cell.value = { formula: `ROUND(${totalExactAddr}, 0)-${totalExactAddr}`, result: 0 };
+    }
+  }
 
   // Fallback to write to the previously hard-coded locations if dynamic lookup failed
   try {
@@ -621,9 +727,15 @@ async function createInvoiceWorkbook(inputData, options = {}) {
     if (!rowTotalBefore) writeIfNotFormula(26, colAmount, totalBeforeTax);
     if (!rowCgst) writeIfNotFormula(28, colAmount, cgst);
     if (!rowSgst) writeIfNotFormula(29, colAmount, sgst);
-    if (!rowTotalExact) writeIfNotFormula(32, colAmount, finalTotal);
-    if (!rowRoundOff) writeIfNotFormula(33, colAmount, finalTotal - Math.floor(finalTotal));
-    writeIfNotFormula(34, colAmount, Math.round(finalTotal));
+    if (!rowTotalExact) {
+      writeIfNotFormula(32, colAmount, finalTotal);
+      writeIfNotFormula(34, colAmount, Math.round(finalTotal));
+    }
+    if (rowRoundOff) {
+      // already handled above if row found
+    } else {
+      writeIfNotFormula(33, colAmount, finalTotal - Math.floor(finalTotal));
+    }
   } catch (e) {
     // ignore fallback errors
   }
@@ -631,7 +743,7 @@ async function createInvoiceWorkbook(inputData, options = {}) {
   const finalAmountRounded = Math.round(finalTotal);
   const amountInWords = (numWords(finalAmountRounded) || '') + ' Only';
   const formattedWords = amountInWords.replace(/\b\w/g, l => l.toUpperCase());
-  const rowWordsLabel = (function(){
+  const rowWordsLabel = (function () {
     for (let r = 1; r <= worksheet.rowCount; r++) {
       const row = worksheet.getRow(r);
       for (let c = 1; c <= worksheet.columnCount; c++) {
@@ -643,6 +755,13 @@ async function createInvoiceWorkbook(inputData, options = {}) {
   })();
 
   if (rowWordsLabel) {
+    // Clear any likely stale values in the rows around the words labels (often templates have old hardcoded text)
+    for (let r = rowWordsLabel - 1; r <= rowWordsLabel + 3; r++) {
+      if (r === rowWordsLabel) continue;
+      const cell = worksheet.getRow(r).getCell(1);
+      if (typeof cell.value === 'string' && cell.value.length > 20) cell.value = '';
+    }
+
     // try writing to the next row column A (common layout), else same row col A
     const targetRow = Math.min(worksheet.rowCount, rowWordsLabel + 1);
     const wordsCell = worksheet.getRow(targetRow).getCell(1);
