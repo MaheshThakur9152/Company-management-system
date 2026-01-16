@@ -1131,6 +1131,9 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
     const saveManualAttendance = async (status: AttendanceStatus | null) => {
         if (!selectedAttendance) return;
 
+        // Close modal immediately for better UX
+        setAttendanceModalOpen(false);
+
         if (status === null) {
             const success = await deleteAttendanceRecord(selectedAttendance.empId, selectedAttendance.date);
             if (!success) {
@@ -1146,7 +1149,6 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
         }
 
         setAttendanceData(await getSharedAttendanceData());
-        setAttendanceModalOpen(false);
     };
 
     // --- EXCEL GENERATION FOR SINGLE INVOICE ---

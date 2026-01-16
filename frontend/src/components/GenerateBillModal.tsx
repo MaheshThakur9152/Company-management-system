@@ -31,6 +31,31 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
     const [cgstRate, setCgstRate] = useState(9);
     const [sgstRate, setSgstRate] = useState(9);
 
+    // PDF upload & parse POC states
+    const [uploadFile, setUploadFile] = useState<File | null>(null);
+    const [parsing, setParsing] = useState(false);
+    const [parseResult, setParseResult] = useState<any | null>(null);
+
+    const handleUploadAndParse = async () => {
+        if (!uploadFile || !selectedSiteId) return alert('Select site and upload a PDF first');
+        setParsing(true);
+        try {
+            const fd = new FormData();
+            fd.append('file', uploadFile as Blob);
+            fd.append('siteId', selectedSiteId);
+            const res = await fetch('/api/invoices/parse', { method: 'POST', body: fd });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || json.msg || 'Parse failed');
+            setParseResult(json);
+            // optionally auto-populate items here or let user accept
+        } catch (err: any) {
+            console.error('Parse error', err);
+            alert('Failed to parse PDF: ' + (err.message || err));
+        } finally {
+            setParsing(false);
+        }
+    };
+
     // Additional Details
     const [bankName, setBankName] = useState('Axis bank');
     const [accNo, setAccNo] = useState('924020001871570');
@@ -371,6 +396,46 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
                             >
                                 {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </select>
+
+                            {/* PDF Upload & Parse (POC) */}
+                            <div className="mt-3">
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Upload Attendance PDF</label>
+                                <input type="file" accept="application/pdf" onChange={(e) => {
+                                    const f = e.target.files && e.target.files[0];
+                                    if (f) setUploadFile(f);
+                                }} className="w-full text-sm" />
+                                <div className="flex gap-2 mt-2">
+                                    <button
+                                        onClick={async () => await handleUploadAndParse()}
+                                        disabled={!uploadFile || !selectedSiteId || parsing}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-md text-sm disabled:opacity-60"
+                                    >
+                                        {parsing ? 'Parsing...' : 'Upload & Parse PDF'}
+                                    </button>
+                                    <button
+                                        onClick={() => { setUploadFile(null); setParseResult(null); }}
+                                        className="bg-gray-100 text-gray-700 py-2 px-3 rounded-md text-sm"
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
+                                {parseResult && (
+                                    <div className="mt-3 text-sm bg-gray-50 p-3 rounded border">
+                                        <div className="font-medium">Parsed Result Preview</div>
+                                        <div className="text-xs text-gray-600">Employees parsed: {parseResult.parsed.employees.length}</div>
+                                        <div className="text-xs text-gray-600">Total days (aggregated): {parseResult.items.reduce((s,i) => s + (i.working_days||0), 0)}</div>
+                                        <div className="mt-2">
+                                            <button onClick={() => {
+                                                if (!parseResult.items) return;
+                                                const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+                                                const mapped = parseResult.items.map((i: any) => ({ description: i.description, hsn: i.hsn || '9985', rate: i.rate || 25000, workingDays: i.working_days || 0, persons: i.persons || 0, amount: ((i.working_days || 0) * ((i.rate || 25000) / daysInMonth)) }));
+                                                setItems(mapped);
+                                                alert('Items populated from parsed PDF - review before generating');
+                                            }} className="text-sm text-blue-600">Use Parsed Items</button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-gray-500 mb-1">Invoice No</label>
