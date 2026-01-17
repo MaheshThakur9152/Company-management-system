@@ -1134,21 +1134,52 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
         // Close modal immediately for better UX
         setAttendanceModalOpen(false);
 
-        if (status === null) {
-            const success = await deleteAttendanceRecord(selectedAttendance.empId, selectedAttendance.date);
-            if (!success) {
-                alert("Failed to clear attendance. Please try again.");
-                return;
-            }
-        } else {
-            const record: AttendanceRecord = {
-                id: Date.now().toString(), employeeId: selectedAttendance.empId, date: selectedAttendance.date, status: status,
-                checkInTime: 'Manual', isSynced: true, isLocked: true, remarks: 'Added by Admin'
-            };
-            await updateAttendanceRecord(record);
-        }
+        // Store previous state for rollback
+        const previousData = [...attendanceData];
 
-        setAttendanceData(await getSharedAttendanceData());
+        // Optimistic update
+        setAttendanceData(prev => {
+            const newData = [...prev];
+            const idx = newData.findIndex(r => r.employeeId === selectedAttendance.empId && r.date === selectedAttendance.date);
+            
+            if (idx >= 0) {
+                newData.splice(idx, 1);
+            }
+
+            if (status !== null) {
+                newData.push({
+                    id: Date.now().toString(),
+                    employeeId: selectedAttendance.empId,
+                    date: selectedAttendance.date,
+                    status: status,
+                    checkInTime: 'Manual',
+                    isSynced: true,
+                    isLocked: true,
+                    remarks: 'Added by Admin'
+                });
+            }
+            return newData;
+        });
+
+        try {
+            if (status === null) {
+                const success = await deleteAttendanceRecord(selectedAttendance.empId, selectedAttendance.date);
+                if (!success) throw new Error("Failed to clear attendance");
+            } else {
+                const record: AttendanceRecord = {
+                    id: Date.now().toString(), employeeId: selectedAttendance.empId, date: selectedAttendance.date, status: status,
+                    checkInTime: 'Manual', isSynced: true, isLocked: true, remarks: 'Added by Admin'
+                };
+                await updateAttendanceRecord(record);
+            }
+            
+            // Background refresh
+            getSharedAttendanceData().then(data => setAttendanceData(data));
+        } catch (err) {
+            console.error("Failed to save manual attendance", err);
+            alert("Failed to update attendance. Reverting changes.");
+            setAttendanceData(previousData);
+        }
     };
 
     // --- EXCEL GENERATION FOR SINGLE INVOICE ---
