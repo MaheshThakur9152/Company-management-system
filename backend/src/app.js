@@ -97,9 +97,15 @@ app.get('/api/download/image/*', (req, res) => {
 // --- Routes (employees + uploads shown here) ---
 app.get('/api/employees', async (req, res) => {
   try {
-    const { site, sort, order } = req.query;
+    const { site, sort, order, includeInactive, status } = req.query;
     let query = {};
     if (site) query.siteId = site;
+    // By default only return Active employees unless `includeInactive=true` or a specific `status` is requested
+    if (!includeInactive && !status) {
+      query.status = 'Active';
+    } else if (status) {
+      query.status = status;
+    }
     let sortOptions = {};
     if (sort) sortOptions[sort] = order === 'desc' ? -1 : 1;
     else sortOptions.name = 1;
