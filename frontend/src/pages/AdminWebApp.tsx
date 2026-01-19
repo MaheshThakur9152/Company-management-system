@@ -338,14 +338,30 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                 const io = await getSocket();
                 if (!isMounted) return;
 
-                const backendUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-                    ? 'http://localhost:3002'
-                    : window.location.origin; // Assume same origin for prod or adjust if needed
+                // Determine backend origin from configured API_URL (strip trailing '/api') or fall back to origin/localhost
+                const backendUrl = (function() {
+                    try {
+                        // If API_URL is absolute (e.g. https://api.ambeservice.com/api) use it without the '/api' suffix
+                        if (API_URL && API_URL.startsWith('http')) return API_URL.replace(/\/api\/?$/, '');
+                        // Local dev
+                        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return 'http://localhost:3002';
+                        // If API_URL is relative (/api) assume same origin as the page
+                        if (API_URL && API_URL.startsWith('/')) return window.location.origin;
+                        return window.location.origin;
+                    } catch (e) { return window.location.origin; }
+                })();
 
                 const socket = io(backendUrl, {
-                    transports: ['websocket', 'polling'],
-                    reconnectionDelay: 5000
+                    // Prefer polling first so that environments that block raw websocket upgrades can still work
+                    transports: ['polling', 'websocket'],
+                    reconnectionDelay: 5000,
+                    withCredentials: true
                 });
+
+                socket.on('connect_error', (err: any) => {
+                    console.error('Socket connect_error:', err);
+                });
+                socket.on('connect', () => console.debug('Socket connected to', backendUrl));
 
                 socketRef.current = socket;
 
