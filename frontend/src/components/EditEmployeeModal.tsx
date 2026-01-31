@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, User, MapPin, Briefcase, Calendar, Upload, Plus, Check, DollarSign } from 'lucide-react';
 import { Employee, Site } from '@types';
-import { getSites } from '@services/mockData';
+import { getSites, API_URL } from '@services/mockData';
 
 interface EditEmployeeModalProps {
     isOpen: boolean;
@@ -42,7 +42,9 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
             let allRoles = [...defaultRoles];
 
             try {
-                const res = await fetch('/api/roles');
+                const res = await fetch(`${API_URL}/roles`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+                });
                 if (res.ok) {
                     const data: JobRole[] = await res.json();
                     if (data.length > 0) {
@@ -97,9 +99,14 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
         if (!newRoleName.trim()) return;
 
         try {
-            const res = await fetch('/api/roles', {
+            const url = `${API_URL}/roles`;
+            console.log("Adding role via URL:", url);
+            const res = await fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                },
                 body: JSON.stringify({ name: newRoleName.trim() })
             });
 
@@ -110,11 +117,16 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
                 setIsAddingRole(false);
                 setNewRoleName('');
             } else {
-                alert("Failed to add role");
+                try {
+                    const err = await res.json();
+                    alert(`Failed to add role: ${err.error || res.statusText}`);
+                } catch {
+                    alert(`Failed to add role: ${res.statusText}`);
+                }
             }
         } catch (err) {
             console.error("Error adding role", err);
-            alert("Error adding role");
+            alert("Error adding role check console for details");
         }
     };
 
