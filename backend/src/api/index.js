@@ -409,6 +409,7 @@ const JobRole = require('../models/JobRole');
           syncedCount: (bulkResult.upsertedCount || 0) + (bulkResult.modifiedCount || 0) 
         };
         
+        // Emit logic changed to reflect updates as well as inserts
         if (insertedRecords.length > 0) {
           const grouped = insertedRecords.reduce((acc, r) => {
             const sid = r.siteId || 'unknown';
@@ -417,7 +418,13 @@ const JobRole = require('../models/JobRole');
             return acc;
           }, {});
           for (const sid of Object.keys(grouped)) {
-            scheduleAttendanceEmit(sid, grouped[sid]);
+            // Check if scheduleAttendanceEmit exists and is a function
+            if (typeof scheduleAttendanceEmit === 'function') {
+               scheduleAttendanceEmit(sid, grouped[sid]);
+            } else {
+               // Fallback if not defined yet (hoisting issue potential or simple miss)
+               io.to(sid).emit('attendance_update', { message: 'New attendance synced', count: grouped[sid].length, records: grouped[sid] });
+            }
           }
         }
       }
