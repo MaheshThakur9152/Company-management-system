@@ -1201,15 +1201,13 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                     isLocked: true, 
                     remarks: 'Added by Admin'
                 };
+                
                 // Wait for the backend to confirm before we trust the state.
                 const success = await updateAttendanceRecord(record);
                 if (!success) throw new Error("Update failed on server");
                 
-                // FORCE Update local state from backend to ensure alignment ID/Timestamp
-                // This prevents the "stale read" problem where the optimistic update is overwritten by a background fetch
-                const freshData = await getSharedAttendanceData();
-                setAttendanceData(freshData);
-                setCachedData('attendance', freshData);
+                // Removed aggressive full re-fetch to avoid race conditions/stale cache.
+                // We trust the optimistic update + the socket event that will follow.
             }
         } catch (err) {
             console.error("Failed to save manual attendance", err);

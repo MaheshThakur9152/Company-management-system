@@ -51,7 +51,12 @@ export const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '
 
 async function apiCall<T>(endpoint: string, method: string = 'GET', body?: any): Promise<T> {
     try {
-        const headers: any = { 'Content-Type': 'application/json' };
+        const headers: any = { 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        };
         const config: any = { method, headers, credentials: 'include' };
         
         // Add Authorization header if token exists
@@ -62,7 +67,14 @@ async function apiCall<T>(endpoint: string, method: string = 'GET', body?: any):
         
         if (body) config.body = JSON.stringify(body);
         
-        const response = await fetch(`${API_URL}${endpoint}`, config);
+        // Add cache-buster to URL for GET requests to be absolutely sure
+        let url = `${API_URL}${endpoint}`;
+        if (method === 'GET') {
+            const separator = url.includes('?') ? '&' : '?';
+            url = `${url}${separator}_t=${Date.now()}`;
+        }
+        
+        const response = await fetch(url, config);
         if (!response.ok) {
             // Try to parse error message from body
             let errorMessage = `API Error: ${response.status}`;
