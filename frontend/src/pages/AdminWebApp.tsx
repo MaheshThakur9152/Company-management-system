@@ -1184,7 +1184,9 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
         try {
             if (status === null) {
                 const success = await deleteAttendanceRecord(selectedAttendance.empId, selectedAttendance.date);
-                if (!success) throw new Error("Failed to clear attendance");
+                if (!success) {
+                    console.warn("Delete call returned non-success, but may be already deleted");
+                }
             } else {
                 const record: AttendanceRecord = {
                     id: Date.now().toString(), 
@@ -1199,12 +1201,16 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                     isLocked: true, 
                     remarks: 'Added by Admin'
                 };
+                // Wait for the backend to confirm before we trust the state.
                 const success = await updateAttendanceRecord(record);
                 if (!success) throw new Error("Update failed on server");
+                
+                // FORCE Update local state from backend to ensure alignment ID/Timestamp
+                // This prevents the "stale read" problem where the optimistic update is overwritten by a background fetch
+                const freshData = await getSharedAttendanceData();
+                setAttendanceData(freshData);
+                setCachedData('attendance', freshData);
             }
-            
-            // Background refresh to ensure consistency
-            getSharedAttendanceData().then(data => setAttendanceData(data));
         } catch (err) {
             console.error("Failed to save manual attendance", err);
             alert("Failed to update attendance. Reverting changes.");
