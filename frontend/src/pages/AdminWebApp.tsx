@@ -276,6 +276,9 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
         date: string;
         currentStatus: AttendanceStatus | null;
         photoUrl?: string | null;
+        timestamp?: string;
+        location?: { lat: number; lng: number };
+        checkInTime?: string;
     } | null>(null);
 
     const [showAutoInvoiceDropdown, setShowAutoInvoiceDropdown] = useState(false);
@@ -1132,7 +1135,8 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
             currentStatus: record ? record.status : null,
             photoUrl: record?.photoUrl,
             timestamp: record?.timestamp,
-            location: record?.location
+            location: record?.location,
+            checkInTime: record?.checkInTime
         });
         setAttendanceModalOpen(true);
     };
@@ -1165,7 +1169,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                     employeeId: selectedAttendance.empId,
                     date: selectedAttendance.date,
                     status: status,
-                    checkInTime: 'Manual',
+                    checkInTime: selectedAttendance.checkInTime || 'Manual',
                     timestamp: selectedAttendance.timestamp || new Date().toISOString(),
                     photoUrl: selectedAttendance.photoUrl,
                     location: selectedAttendance.location,
@@ -1187,7 +1191,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                     employeeId: selectedAttendance.empId, 
                     date: selectedAttendance.date, 
                     status: status,
-                    checkInTime: 'Manual', 
+                    checkInTime: selectedAttendance.checkInTime || 'Manual', 
                     timestamp: selectedAttendance.timestamp || new Date().toISOString(),
                     photoUrl: selectedAttendance.photoUrl,
                     location: selectedAttendance.location,
@@ -2013,33 +2017,48 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                             const record = empMap.get(dateStr);
                                                             let content = <span className="text-gray-200">-</span>;
                                                             let cellClass = "cursor-pointer hover:bg-gray-100";
+
                                                             if (record) {
-                                                                if (record.status === 'P') {
-                                                                    if (record.photoUrl) {
-                                                                        content = (
-                                                                            <div className="flex justify-center items-center group relative w-full h-full">
-                                                                                <img
-                                                                                    src={getSafePhotoUrl(record.photoUrl)}
-                                                                                    className="w-8 h-8 rounded object-cover border border-green-500 shadow-sm"
-                                                                                    alt="P"
-                                                                                    onError={handleImageError}
-                                                                                    loading="lazy"
-                                                                                />
-                                                                                <div className="absolute -top-1 -right-1 bg-blue-500 rounded-full p-0.5 border border-white">
-                                                                                    <Camera size={8} className="text-white" />
-                                                                                </div>
-                                                                                {/* Hover Preview - Fixed positioning to avoid clipping */}
-                                                                                <div className="fixed hidden group-hover:block z-[9999] pointer-events-none" style={{ transform: 'translate(-50%, -110%)' }}>
-                                                                                    <img src={getSafePhotoUrl(record.photoUrl)} className="w-48 h-48 rounded-lg shadow-2xl border-4 border-white object-cover bg-gray-800" alt="Preview" onError={handleImageError} loading="lazy" />
+                                                                const status = record.status;
+                                                                
+                                                                // Color mapping
+                                                                let bgClass = '';
+                                                                let textClass = '';
+                                                                let borderClass = 'border-transparent';
+
+                                                                if (status === 'P') { bgClass = 'bg-green-50/30'; textClass = 'text-green-600'; borderClass = 'border-green-500'; }
+                                                                else if (status === 'A') { bgClass = 'bg-red-50'; textClass = 'text-red-500'; borderClass = 'border-red-500'; }
+                                                                else if (status === 'HD') { bgClass = 'bg-orange-50'; textClass = 'text-orange-600'; borderClass = 'border-orange-500'; }
+                                                                else if (status === 'W/O') { bgClass = 'bg-blue-50'; textClass = 'text-blue-600'; borderClass = 'border-blue-500'; }
+                                                                else if (status === 'WOP') { bgClass = 'bg-purple-50'; textClass = 'text-purple-600'; borderClass = 'border-purple-500'; }
+                                                                else if (status === 'WOE' || status === 'HDE' || status === 'PH') { bgClass = 'bg-gray-50'; textClass = 'text-gray-600'; }
+
+                                                                cellClass += ` ${bgClass}`;
+
+                                                                if (record.photoUrl) {
+                                                                    content = (
+                                                                        <div className="flex justify-center items-center group relative w-full h-full">
+                                                                            <img
+                                                                                src={getSafePhotoUrl(record.photoUrl)}
+                                                                                className={`w-8 h-8 rounded object-cover border ${borderClass} shadow-sm`}
+                                                                                alt={status}
+                                                                                onError={handleImageError}
+                                                                                loading="lazy"
+                                                                            />
+                                                                            <div className="absolute -top-1 -right-1 bg-blue-500 rounded-full p-0.5 border border-white">
+                                                                                <Camera size={8} className="text-white" />
+                                                                            </div>
+                                                                            <div className="fixed hidden group-hover:block z-[9999] pointer-events-none" style={{ transform: 'translate(-50%, -110%)' }}>
+                                                                                <img src={getSafePhotoUrl(record.photoUrl)} className="w-48 h-48 rounded-lg shadow-2xl border-4 border-white object-cover bg-gray-800" alt="Preview" onError={handleImageError} loading="lazy" />
+                                                                                <div className="absolute bottom-2 left-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded">
+                                                                                    {status} • {new Date(record.timestamp || record.checkInTime || '').toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                                                                 </div>
                                                                             </div>
-                                                                        );
-                                                                    } else { content = <span className="text-green-600 font-bold">P</span>; }
-                                                                    cellClass += " bg-green-50/30";
+                                                                        </div>
+                                                                    );
+                                                                } else {
+                                                                    content = <span className={`${textClass} font-bold`}>{status}</span>;
                                                                 }
-                                                                else if (record.status === 'A') { content = <span className="text-red-500 font-bold">A</span>; cellClass += " bg-red-50"; }
-                                                                else if (record.status === 'HD') { content = <span className="text-orange-600 font-bold">HD</span>; cellClass += " bg-orange-50"; }
-                                                                else if (record.status === 'W/O') { content = <span className="text-blue-600 font-bold">WO</span>; cellClass += " bg-blue-50"; } else if (record.status === 'WOP') { content = <span className="text-purple-600 font-bold">WOP</span>; cellClass += " bg-purple-50"; }
                                                             }
                                                             return (<td key={d} className={`border-r border-gray-100 p-1 ${cellClass}`} onClick={() => handleCellClick(emp, d)}>{content}</td>);
                                                         })}
