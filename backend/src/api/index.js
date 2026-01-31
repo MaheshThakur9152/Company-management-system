@@ -386,11 +386,16 @@ const JobRole = require('../models/JobRole');
           updatedAt: new Date()
         };
 
-        // Use upsert to update if exists, insert if not
+        // Use upsert to update if exists, insert if not. 
+        // We use $setOnInsert for 'id' so we don't try to change the unique field on update.
+        const { id, ...updateFields } = prepared;
         bulkOps.push({
           updateOne: {
             filter: { employeeId: record.employeeId, date: record.date },
-            update: { $set: prepared },
+            update: { 
+              $set: updateFields,
+              $setOnInsert: { id: id || Date.now().toString() }
+            },
             upsert: true
           }
         });
