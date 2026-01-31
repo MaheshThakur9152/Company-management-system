@@ -91,6 +91,7 @@ export interface AttendanceRecord {
   date: string;
   status: AttendanceStatus;
   checkInTime?: string;
+  timestamp?: string;
   photoUrl?: string;
   location?: { lat: number; lng: number };
   isSynced: boolean;

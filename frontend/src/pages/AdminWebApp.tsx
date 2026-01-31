@@ -1130,7 +1130,9 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
             empName: emp.name,
             date: dateStr,
             currentStatus: record ? record.status : null,
-            photoUrl: record?.photoUrl
+            photoUrl: record?.photoUrl,
+            timestamp: record?.timestamp,
+            location: record?.location
         });
         setAttendanceModalOpen(true);
     };
@@ -1155,12 +1157,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
 
         // Optimistic update
         setAttendanceData(prev => {
-            const newData = [...prev];
-            const idx = newData.findIndex(r => r.employeeId === selectedAttendance.empId && r.date === selectedAttendance.date);
-            
-            if (idx >= 0) {
-                newData.splice(idx, 1);
-            }
+            const newData = prev.filter(r => !(r.employeeId === selectedAttendance.empId && r.date === selectedAttendance.date));
 
             if (status !== null) {
                 newData.push({
@@ -1169,6 +1166,9 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                     date: selectedAttendance.date,
                     status: status,
                     checkInTime: 'Manual',
+                    timestamp: selectedAttendance.timestamp || new Date().toISOString(),
+                    photoUrl: selectedAttendance.photoUrl,
+                    location: selectedAttendance.location,
                     isSynced: true,
                     isLocked: true,
                     remarks: 'Added by Admin'
@@ -1183,13 +1183,23 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                 if (!success) throw new Error("Failed to clear attendance");
             } else {
                 const record: AttendanceRecord = {
-                    id: Date.now().toString(), employeeId: selectedAttendance.empId, date: selectedAttendance.date, status: status,
-                    checkInTime: 'Manual', isSynced: true, isLocked: true, remarks: 'Added by Admin'
+                    id: Date.now().toString(), 
+                    employeeId: selectedAttendance.empId, 
+                    date: selectedAttendance.date, 
+                    status: status,
+                    checkInTime: 'Manual', 
+                    timestamp: selectedAttendance.timestamp || new Date().toISOString(),
+                    photoUrl: selectedAttendance.photoUrl,
+                    location: selectedAttendance.location,
+                    isSynced: true, 
+                    isLocked: true, 
+                    remarks: 'Added by Admin'
                 };
-                await updateAttendanceRecord(record);
+                const success = await updateAttendanceRecord(record);
+                if (!success) throw new Error("Update failed on server");
             }
             
-            // Background refresh
+            // Background refresh to ensure consistency
             getSharedAttendanceData().then(data => setAttendanceData(data));
         } catch (err) {
             console.error("Failed to save manual attendance", err);
