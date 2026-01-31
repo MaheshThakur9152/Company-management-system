@@ -7,6 +7,7 @@ const AttendanceSchema = new mongoose.Schema({
   status: { type: String, required: true }, // P, A, HD, etc.
   checkInTime: String,
   checkOutTime: String,
+  timestamp: String,
   type: { type: String, enum: ['IN', 'OUT'], default: 'IN' },
   deviceId: String,
   photoUrl: String,

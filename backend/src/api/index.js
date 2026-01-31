@@ -366,36 +366,44 @@ const JobRole = require('../models/JobRole');
     try {
       const records = req.body;
       const bulkOps = [];
-      const errors = [];
       const insertedRecords = [];
+      
       for (const record of records) {
-        const existingRecord = await Attendance.findOne({ employeeId: record.employeeId, date: record.date });
-        if (existingRecord) {
-          errors.push({ employeeId: record.employeeId, error: "Attendance already marked for this date." });
-          continue;
-        }
         if (!record.siteId) {
           const emp = await Employee.findOne({ id: record.employeeId });
           if (emp) record.siteId = emp.siteId;
         }
+        
         if (record.photoUrl && record.photoUrl.startsWith('data:image')) {
           const uploadResult = await uploadToCloudinary(record.photoUrl, 'ambe_attendance');
           if (uploadResult) record.photoUrl = uploadResult.secure_url;
         }
-        const prepared = { ...record, isSynced: true, isLocked: true };
-        bulkOps.push({ insertOne: { document: prepared } });
+
+        const prepared = { 
+          ...record, 
+          isSynced: true, 
+          isLocked: true,
+          updatedAt: new Date()
+        };
+
+        // Use upsert to update if exists, insert if not
+        bulkOps.push({
+          updateOne: {
+            filter: { employeeId: record.employeeId, date: record.date },
+            update: { $set: prepared },
+            upsert: true
+          }
+        });
         insertedRecords.push(prepared);
       }
-      let result = { insertedCount: 0 };
+
+      let result = { nUpserted: 0, nModified: 0 };
       if (bulkOps.length > 0) {
-        try {
-          result = await Attendance.bulkWrite(bulkOps, { ordered: false });
-        } catch (err) {
-          if (err.code === 11000 || err.writeErrors) {
-            result = { insertedCount: err.result.nInserted };
-          } else { throw err; }
-        }
-        // Emit inserted records grouped by site so clients can apply them without refetching
+        const bulkResult = await Attendance.bulkWrite(bulkOps, { ordered: false });
+        result = { 
+          syncedCount: (bulkResult.upsertedCount || 0) + (bulkResult.modifiedCount || 0) 
+        };
+        
         if (insertedRecords.length > 0) {
           const grouped = insertedRecords.reduce((acc, r) => {
             const sid = r.siteId || 'unknown';
@@ -404,13 +412,35 @@ const JobRole = require('../models/JobRole');
             return acc;
           }, {});
           for (const sid of Object.keys(grouped)) {
-            // Schedule a batched emit to avoid too many socket events in high-throughput scenarios
             scheduleAttendanceEmit(sid, grouped[sid]);
           }
         }
       }
-      res.json({ success: true, syncedCount: result.insertedCount || 0, errors });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+      res.json({ success: true, syncedCount: result.syncedCount || 0 });
+    } catch (e) { 
+      console.error('attendance sync error', e); 
+      res.status(500).json({ error: e.message }); 
+    }
+  });
+
+  app.delete('/api/attendance/record/:employeeId/:date', async (req, res) => {
+    try {
+      const { employeeId, date } = req.params;
+      const result = await Attendance.deleteOne({ employeeId, date });
+      
+      // Update site clients via socket
+      const emp = await Employee.findOne({ id: employeeId });
+      if (emp && emp.siteId) {
+        io.to(emp.siteId).emit('attendance_update', { 
+          message: 'Attendance record deleted', 
+          deleted: { employeeId, date } 
+        });
+      }
+
+      res.json({ success: result.deletedCount > 0 });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   // Invoices
