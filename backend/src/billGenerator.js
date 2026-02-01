@@ -131,12 +131,60 @@ async function createInvoiceWorkbook(inputData, options = {}) {
 
   // --- Vendor Details (Bank, Terms, Signatory) ---
   if (inputData.bankDetails) {
-    const bankRowIdx = findRowByLabel(/bank details/i);
-    if (bankRowIdx) {
-      const bd = inputData.bankDetails;
-      worksheet.getRow(bankRowIdx + 1).getCell(1).value = `Bank Name :  ${bd.name || bd.bankName}`;
-      worksheet.getRow(bankRowIdx + 2).getCell(1).value = `Acc no : ${bd.accNo || bd.accountNo}`;
-      worksheet.getRow(bankRowIdx + 3).getCell(1).value = `IFSC Code: ${bd.ifsc || bd.ifscCode}   Branch: ${bd.branch}`;
+    const bd = inputData.bankDetails;
+
+    // Helper: find a cell that contains the needle (case-insensitive). Returns {r,c} or null
+    function findCell(needle) {
+      const n = String(needle).toLowerCase();
+      for (let r = 1; r <= worksheet.rowCount; r++) {
+        const row = worksheet.getRow(r);
+        for (let c = 1; c <= Math.min(worksheet.columnCount, 20); c++) {
+          const txt = getCellText(row.getCell(c));
+          if (txt && txt.toLowerCase().includes(n)) return { r, c };
+        }
+      }
+      return null;
+    }
+
+    // Try several anchors in order of reliability
+    const bankDetailsCell = findCell('bank details');
+    const bankNameCell = findCell('bank name');
+    const accNoCell = findCell('acc no') || findCell('account no');
+
+    // Determine the column to write into (prefer the bank name or acc no column if present)
+    let col = 1;
+    if (bankNameCell) col = bankNameCell.c;
+    else if (accNoCell) col = accNoCell.c;
+    else if (bankDetailsCell) col = bankDetailsCell.c;
+
+    // Safe writer that targets the resolved column
+    function writeBankLine(rowIdx, text) {
+      try {
+        worksheet.getRow(rowIdx).getCell(col).value = text;
+      } catch (e) { /* ignore write errors */ }
+    }
+
+    if (accNoCell) {
+      const accRow = accNoCell.r;
+      writeBankLine(accRow - 1, `Bank Name :  ${bd.name || bd.bankName}`);
+      writeBankLine(accRow, `Acc no : ${bd.accNo || bd.accountNo}`);
+      writeBankLine(accRow + 1, `IFSC Code: ${bd.ifsc || bd.ifscCode}   Branch: ${bd.branch || bd.branchName || ''}`);
+    } else if (bankNameCell) {
+      const r = bankNameCell.r;
+      writeBankLine(r, `Bank Name :  ${bd.name || bd.bankName}`);
+      writeBankLine(r + 1, `Acc no : ${bd.accNo || bd.accountNo}`);
+      writeBankLine(r + 2, `IFSC Code: ${bd.ifsc || bd.ifscCode}   Branch: ${bd.branch || bd.branchName || ''}`);
+    } else if (bankDetailsCell) {
+      const r = bankDetailsCell.r;
+      writeBankLine(r + 1, `Bank Name :  ${bd.name || bd.bankName}`);
+      writeBankLine(r + 2, `Acc no : ${bd.accNo || bd.accountNo}`);
+      writeBankLine(r + 3, `IFSC Code: ${bd.ifsc || bd.ifscCode}   Branch: ${bd.branch || bd.branchName || ''}`);
+    } else {
+      // Last-resort fallback: write near the totals area so it appears on the invoice
+      const rowNearTotal = findRowByLabel(/total/i) || 26;
+      writeBankLine(rowNearTotal + 2, `Bank Name :  ${bd.name || bd.bankName}`);
+      writeBankLine(rowNearTotal + 3, `Acc no : ${bd.accNo || bd.accountNo}`);
+      writeBankLine(rowNearTotal + 4, `IFSC Code: ${bd.ifsc || bd.ifscCode}   Branch: ${bd.branch || bd.branchName || ''}`);
     }
   }
 
@@ -756,10 +804,16 @@ async function createInvoiceWorkbook(inputData, options = {}) {
 
   if (rowWordsLabel) {
     // Clear any likely stale values in the rows around the words labels (often templates have old hardcoded text)
+    // Avoid clearing bank-related lines (IFSC/Bank/Acc) which may legitimately be long strings
     for (let r = rowWordsLabel - 1; r <= rowWordsLabel + 3; r++) {
       if (r === rowWordsLabel) continue;
       const cell = worksheet.getRow(r).getCell(1);
-      if (typeof cell.value === 'string' && cell.value.length > 20) cell.value = '';
+      if (typeof cell.value === 'string' && cell.value.length > 20) {
+        const txt = cell.value;
+        if (!/\b(ifsc|ifsc code|bank|acc(?:ount)?|branch)\b/i.test(txt)) {
+          cell.value = '';
+        }
+      }
     }
 
     // try writing to the next row column A (common layout), else same row col A
