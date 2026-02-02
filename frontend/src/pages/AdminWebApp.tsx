@@ -1294,6 +1294,133 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
         }
     };
 
+    const handleViewScoreReport = () => {
+        const reportData = filteredEmployees.map(emp => {
+            const empAttendance = attendanceByEmployee.get(emp.id);
+            const records: { date: string, status: string, score: number }[] = [];
+            let totalScore = 0;
+
+            if (empAttendance) {
+                 // Sort dates to ensure chronological order
+                const sortedDates = Array.from(empAttendance.keys()).sort();
+                
+                for (const dateStr of sortedDates) {
+                    const record = empAttendance.get(dateStr);
+                    if (!record) continue;
+
+                    const [rYear, rMonth, rDay] = dateStr.split('-').map(Number);
+                    
+                    if (rMonth === selectedMonth && rYear === selectedYear) {
+                        let score = 0;
+                        if (record.status === 'P') score = 1;
+                        else if (record.status === 'A') score = -1;
+                        else if (record.status === 'W/O') score = 1;
+                        else if (record.status === 'WOP') score = 2;
+                        
+                        // Only add to list if it has a relevant status or it affects score
+                        if (record.status) {
+                             totalScore += score;
+                             records.push({
+                                 date: dateStr,
+                                 status: record.status,
+                                 score: score
+                             });
+                        }
+                    }
+                }
+            }
+            
+            return {
+                name: emp.name,
+                code: emp.biometricCode,
+                records,
+                totalScore
+            };
+        }).filter(d => d.records.length > 0);
+
+        // Generate HTML
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Attendance Score Report - ${selectedMonth}/${selectedYear}</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f9fafb; color: #1f2937; }
+                    .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                    h1 { color: #3730a3; margin-bottom: 5px; }
+                    h2 { color: #6b7280; font-weight: normal; margin-top: 0; margin-bottom: 30px; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px; }
+                    table { border-collapse: collapse; width: 100%; margin-bottom: 0; font-size: 14px; }
+                    th, td { border: 1px solid #e5e7eb; padding: 10px 12px; text-align: left; }
+                    th { background-color: #f3f4f6; color: #374151; font-weight: 600; }
+                    .emp-section { margin-bottom: 30px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+                    .emp-header { background-color: #e0e7ff; padding: 12px 15px; font-weight: bold; color: #3730a3; display: flex; justify-content: space-between; align-items: center; }
+                    .score-badge { background: #4f46e5; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.9em; }
+                    .status-P { color: #166534; font-weight: 500; }
+                    .status-A { color: #dc2626; font-weight: 500; }
+                    .status-W-O { color: #d97706; font-weight: 500; }
+                    .status-WOP { color: #7e22ce; font-weight: 500; }
+                    .score-pos { color: #166534; }
+                    .score-neg { color: #dc2626; }
+                    .no-print { margin-bottom: 20px; text-align: right; }
+                    button { background: #3730a3; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-family: inherit; }
+                    button:hover { background: #4338ca; }
+                    @media print {
+                        .no-print { display: none; }
+                        body { background: white; padding: 0; }
+                        .container { box-shadow: none; padding: 0; }
+                        .emp-section { break-inside: avoid; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="no-print">
+                        <button onclick="window.print()">Print Report</button>
+                    </div>
+                    <h1>Attendance Score Report</h1>
+                    <h2>Month: ${selectedMonth} / ${selectedYear}</h2>
+                    
+                    ${reportData.map(emp => `
+                        <div class="emp-section">
+                            <div class="emp-header">
+                                <span>${emp.name} <span style="font-weight:normal; opacity:0.7">(${emp.code})</span></span>
+                                <span class="score-badge">Score: ${emp.totalScore}</span>
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width: 120px">Date</th>
+                                        <th>Status</th>
+                                        <th style="width: 100px; text-align: right">Impact</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${emp.records.map(rec => `
+                                        <tr>
+                                            <td>${rec.date}</td>
+                                            <td class="status-${rec.status.replace('/', '-')}">${rec.status}</td>
+                                            <td style="text-align: right" class="${rec.score >= 0 ? 'score-pos' : 'score-neg'}">${rec.score > 0 ? '+' + rec.score : rec.score}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `).join('')}
+                    
+                    ${reportData.length === 0 ? '<p style="text-align:center; color: #6b7280; padding: 20px;">No attendance records found for this selection.</p>' : ''}
+                </div>
+            </body>
+            </html>
+        `;
+
+        const newWindow = window.open('', '_blank');
+        if (newWindow) {
+            newWindow.document.write(htmlContent);
+            newWindow.document.close();
+            newWindow.focus();
+        }
+    };
+
     // --- EXCEL GENERATION ---
     const downloadExcelReport = async () => {
         try {
@@ -1948,7 +2075,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                 <span className="text-sm font-bold">{attendanceStats.absentToday}</span>
                                                 <span className="text-[10px] font-bold uppercase opacity-70">Absent</span>
                                             </div>
-                                            <div onClick={() => setShowStatsModal(true)} className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg flex items-center gap-2 border border-indigo-200 shadow-sm h-[38px] cursor-pointer hover:bg-indigo-100 transition-colors" title="View Detailed Stats">
+                                            <div onClick={handleViewScoreReport} className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg flex items-center gap-2 border border-indigo-200 shadow-sm h-[38px] cursor-pointer hover:bg-indigo-100 transition-colors" title="View Detailed Score Report">
                                                 <CalendarDays size={16} />
                                                 <span className="text-sm font-bold">{attendanceStats.totalWorkingScore}</span>
                                                 <span className="text-[10px] font-bold uppercase opacity-70">Score</span>
