@@ -394,7 +394,27 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                             setAttendanceData(prev => {
                                 const map = new Map(prev.map(r => [`${r.employeeId}|${r.date}`, r]));
                                 for (const rec of payload.records) {
-                                    map.set(`${rec.employeeId}|${rec.date}`, rec);
+                                    const key = `${rec.employeeId}|${rec.date}`;
+                                    const existing = map.get(key);
+
+                                    // Prefer the newer record based on updatedAt -> timestamp
+                                    const recTime = rec && (rec.updatedAt ? new Date(rec.updatedAt).getTime() : (rec.timestamp ? new Date(rec.timestamp).getTime() : null));
+                                    const existingTime = existing && (existing.updatedAt ? new Date(existing.updatedAt).getTime() : (existing.timestamp ? new Date(existing.timestamp).getTime() : null));
+
+                                    // Merge rules:
+                                    // - If no existing record, accept incoming
+                                    // - If incoming has a time and existing has a time, keep the newer
+                                    // - If incoming has time but existing doesn't, accept incoming
+                                    // - If incoming lacks time, do NOT overwrite existing (conservative)
+                                    if (!existing) {
+                                        map.set(key, rec);
+                                    } else if (recTime != null && existingTime != null) {
+                                        if (recTime >= existingTime) map.set(key, rec);
+                                    } else if (recTime != null && existingTime == null) {
+                                        map.set(key, rec);
+                                    } else {
+                                        // incoming has no timestamp - skip to avoid overwriting newer data
+                                    }
                                 }
                                 const merged = Array.from(map.values());
                                 setCachedData('attendance', merged);
@@ -404,6 +424,14 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                         } else if (payload && payload.count && payload.count > 0) {
                             // fallback: lightweight refresh if only count provided
                             getSharedAttendanceData().then(att => { setAttendanceData(att); setCachedData('attendance', att); setLastAttendanceUpdate(new Date().toISOString()); }).catch(err => console.error(err));
+                        } else if (payload && payload.deleted) {
+                            // Remove deleted record
+                            setAttendanceData(prev => {
+                                const filtered = prev.filter(r => !(r.employeeId === payload.deleted.employeeId && r.date === payload.deleted.date));
+                                setCachedData('attendance', filtered);
+                                return filtered;
+                            });
+                            setLastAttendanceUpdate(new Date().toISOString());
                         }
 
                         if (n > 0) {
@@ -1171,6 +1199,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                     status: status,
                     checkInTime: selectedAttendance.checkInTime || 'Manual',
                     timestamp: selectedAttendance.timestamp || new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
                     photoUrl: selectedAttendance.photoUrl,
                     location: selectedAttendance.location,
                     isSynced: true,
@@ -1189,23 +1218,24 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                 }
             } else {
                 const record: AttendanceRecord = {
-                    id: Date.now().toString(), 
-                    employeeId: selectedAttendance.empId, 
-                    date: selectedAttendance.date, 
+                    id: Date.now().toString(),
+                    employeeId: selectedAttendance.empId,
+                    date: selectedAttendance.date,
                     status: status,
-                    checkInTime: selectedAttendance.checkInTime || 'Manual', 
+                    checkInTime: selectedAttendance.checkInTime || 'Manual',
                     timestamp: selectedAttendance.timestamp || new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
                     photoUrl: selectedAttendance.photoUrl,
                     location: selectedAttendance.location,
-                    isSynced: true, 
-                    isLocked: true, 
+                    isSynced: true,
+                    isLocked: true,
                     remarks: 'Added by Admin'
                 };
-                
+
                 // Wait for the backend to confirm before we trust the state.
                 const success = await updateAttendanceRecord(record);
                 if (!success) throw new Error("Update failed on server");
-                
+
                 // Removed aggressive full re-fetch to avoid race conditions/stale cache.
                 // We trust the optimistic update + the socket event that will follow.
             }

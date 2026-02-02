@@ -85,11 +85,8 @@ const JobRole = require('../models/JobRole');
     try {
       const records = req.body;
       const bulkOps = [];
-      const errors = [];
-      const insertedRecords = [];
+      const processed = [];
       for (const record of records) {
-        const existingRecord = await mongoose.model('Attendance').findOne({ employeeId: record.employeeId, date: record.date });
-        if (existingRecord) { errors.push({ employeeId: record.employeeId, error: 'Attendance already marked for this date.' }); continue; }
         if (!record.siteId) {
           const emp = await mongoose.model('Employee').findOne({ id: record.employeeId });
           if (emp) record.siteId = emp.siteId;
@@ -98,20 +95,48 @@ const JobRole = require('../models/JobRole');
           const uploadResult = await uploadBase64ToCloudinary(record.photoUrl, 'ambe_attendance');
           if (uploadResult) record.photoUrl = uploadResult.secure_url;
         }
-        const prepared = { ...record, isSynced: true, isLocked: true };
-        bulkOps.push({ insertOne: { document: prepared } });
-        insertedRecords.push(prepared);
+
+        const prepared = { ...record, isSynced: true, isLocked: true, updatedAt: new Date() };
+
+        // Use upsert so clients (including admin edits) can update existing records
+        const { id, ...updateFields } = prepared;
+        bulkOps.push({
+          updateOne: {
+            filter: { employeeId: record.employeeId, date: record.date },
+            update: {
+              $set: updateFields,
+              $setOnInsert: { id: id || Date.now().toString() }
+            },
+            upsert: true
+          }
+        });
+        processed.push(prepared);
       }
-      let result = { insertedCount: 0 };
+
+      let result = { syncedCount: 0 };
       if (bulkOps.length > 0) {
-        try { result = await mongoose.model('Attendance').bulkWrite(bulkOps, { ordered: false }); }
-        catch (err) { if (err.code === 11000 || err.writeErrors) { result = { insertedCount: err.result.nInserted }; } else { throw err; } }
-        if (insertedRecords.length > 0) {
-          const grouped = insertedRecords.reduce((acc, r) => { const sid = r.siteId || 'unknown'; acc[sid] = acc[sid] || []; acc[sid].push(r); return acc; }, {});
-          for (const sid of Object.keys(grouped)) io.to(sid).emit('attendance_update', { message: 'New attendance synced', count: grouped[sid].length, records: grouped[sid] });
+        const bulkResult = await mongoose.model('Attendance').bulkWrite(bulkOps, { ordered: false });
+        result = { syncedCount: (bulkResult.upsertedCount || 0) + (bulkResult.modifiedCount || 0) };
+
+        if (processed.length > 0) {
+          const grouped = processed.reduce((acc, r) => { const sid = r.siteId || 'unknown'; acc[sid] = acc[sid] || []; acc[sid].push(r); return acc; }, {});
+          for (const sid of Object.keys(grouped)) {
+            try {
+              // Fetch authoritative saved records and emit (so emitted records contain DB timestamps/ids)
+              const conditions = grouped[sid].map(r => ({ employeeId: r.employeeId, date: r.date }));
+              const actualRecords = await Attendance.find({ $or: conditions }).lean();
+              if (typeof scheduleAttendanceEmit === 'function') scheduleAttendanceEmit(sid, actualRecords);
+              else io.to(sid).emit('attendance_update', { message: 'New attendance synced', count: actualRecords.length, records: actualRecords });
+            } catch (err) {
+              console.error('Failed to fetch saved attendance records for emit (sync):', err);
+              if (typeof scheduleAttendanceEmit === 'function') scheduleAttendanceEmit(sid, grouped[sid]);
+              else io.to(sid).emit('attendance_update', { message: 'New attendance synced', count: grouped[sid].length, records: grouped[sid] });
+            }
+          }
         }
       }
-      res.json({ success: true, syncedCount: result.insertedCount || 0, errors });
+
+      res.json({ success: true, syncedCount: result.syncedCount || 0 });
     } catch (e) { console.error('attendance sync error', e); res.status(500).json({ error: e.message }); }
   });
 
@@ -418,12 +443,16 @@ const JobRole = require('../models/JobRole');
             return acc;
           }, {});
           for (const sid of Object.keys(grouped)) {
-            // Check if scheduleAttendanceEmit exists and is a function
-            if (typeof scheduleAttendanceEmit === 'function') {
-               scheduleAttendanceEmit(sid, grouped[sid]);
-            } else {
-               // Fallback if not defined yet (hoisting issue potential or simple miss)
-               io.to(sid).emit('attendance_update', { message: 'New attendance synced', count: grouped[sid].length, records: grouped[sid] });
+            try {
+              const conditions = grouped[sid].map(r => ({ employeeId: r.employeeId, date: r.date }));
+              const actualRecords = await Attendance.find({ $or: conditions }).lean();
+              // Use the schedule emitter so batching still works
+              if (typeof scheduleAttendanceEmit === 'function') scheduleAttendanceEmit(sid, actualRecords);
+              else io.to(sid).emit('attendance_update', { message: 'New attendance synced', count: actualRecords.length, records: actualRecords });
+            } catch (err) {
+              console.error('Failed to fetch saved attendance records for emit (upsert):', err);
+              if (typeof scheduleAttendanceEmit === 'function') scheduleAttendanceEmit(sid, grouped[sid]);
+              else io.to(sid).emit('attendance_update', { message: 'New attendance synced', count: grouped[sid].length, records: grouped[sid] });
             }
           }
         }
