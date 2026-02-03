@@ -17,6 +17,7 @@ const SiteSchema = new mongoose.Schema({
   workOrderDate: String,
   workOrderEndDate: String,
   billingRate: Number,
+  managementRate: Number,
   companyName: String,
   username: { type: String, unique: true, sparse: true }, // Username for supervisor login
   password: { type: String }, // Password for supervisor login (no default)

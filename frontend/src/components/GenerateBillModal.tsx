@@ -27,7 +27,7 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
     const [workOrderPeriod, setWorkOrderPeriod] = useState('01/09/2025-31/03/2026');
 
     const [items, setItems] = useState<any[]>([]);
-    const [managementRate, setManagementRate] = useState(5);
+    const [managementRate, setManagementRate] = useState(15);
     const [cgstRate, setCgstRate] = useState(9);
     const [sgstRate, setSgstRate] = useState(9);
 
@@ -142,6 +142,12 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
 
     useEffect(() => {
         if (selectedSiteId) {
+            const site = sites.find(s => s.id === selectedSiteId);
+            if (site) {
+                if (site.managementRate !== undefined && site.managementRate !== null) {
+                    setManagementRate(site.managementRate);
+                }
+            }
             calculateItems();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps

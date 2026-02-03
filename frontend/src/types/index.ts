@@ -30,6 +30,7 @@ export interface Site {
   workOrderDate?: string; // Start Date
   workOrderEndDate?: string; // Expiry Date
   billingRate?: number; // Rate used for bill
+  managementRate?: number; // Management Fee %
   companyName?: 'AMBE SERVICE' | 'AMBE SERVICE FACILITIES PRIVATE LIMITED';
   status?: 'Active' | 'Pending' | 'Deleted';
   username?: string;

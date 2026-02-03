@@ -27,7 +27,7 @@ const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({ isOpen, invoice, on
   useEffect(() => {
     if (invoice) {
       setFormData(invoice);
-      setManagementRate((invoice.managementRate || 7).toString());
+      setManagementRate((invoice.managementRate !== undefined ? invoice.managementRate : 7).toString());
       setMaterialCharges((invoice.materialCharges || 0).toString());
       
       if (invoice.items && invoice.items.length > 0) {

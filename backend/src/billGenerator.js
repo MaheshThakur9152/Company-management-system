@@ -715,14 +715,24 @@ async function createInvoiceWorkbook(inputData, options = {}) {
   if (rowMgmt) {
     const subtotalAddr = `${amountColLetter}${rowSubTotal}`;
     const cell = worksheet.getRow(rowMgmt).getCell(colAmount);
-    cell.value = { formula: `ROUND(${subtotalAddr}*0.15, 0)`, result: Math.round(subTotal * 0.15) };
+    cell.value = { formula: `ROUND(${subtotalAddr}*${MGMT_PERCENT}, 0)`, result: Math.round(subTotal * MGMT_PERCENT) };
+
+    // Update label to reflect actual percentage
+    const rowObj = worksheet.getRow(rowMgmt);
+    for(let c=1; c<=6; c++) {
+        const cVal = getCellText(rowObj.getCell(c));
+        if (cVal && /management charges/i.test(cVal)) {
+            rowObj.getCell(c).value = `Management charges @ ${(inputData.managementRate || 15)}%`;
+            break;
+        }
+    }
   }
 
   if (rowTotalBefore) {
     const subtotalAddr = `${amountColLetter}${rowSubTotal}`;
     const mgmtAddr = `${amountColLetter}${rowMgmt}`;
     const cell = worksheet.getRow(rowTotalBefore).getCell(colAmount);
-    cell.value = { formula: `${subtotalAddr}+${mgmtAddr}`, result: subTotal + Math.round(subTotal * 0.15) };
+    cell.value = { formula: `${subtotalAddr}+${mgmtAddr}`, result: subTotal + Math.round(subTotal * MGMT_PERCENT) };
   }
 
   if (rowCgst) {
