@@ -227,12 +227,70 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
     woCell.value = emp.weeklyOff;
     woCell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
 
+    let skipUntilIndex = -1;
+
     daysArray.forEach((day, dayIndex) => {
+      if (dayIndex <= skipUntilIndex) return;
+
       const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const record = empRecords.find(r => r.date === dateStr);
       const date = new Date(year, month - 1, day);
       const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
       const isWO = emp.weeklyOff.toLowerCase() === dayName.toLowerCase();
+
+      // Check for Leave Spanning
+      if (emp.status === 'On Leave' && emp.leavingDate) {
+        const [ly, lm, ld] = emp.leavingDate.split('-').map(Number);
+        const leaveStart = new Date(ly, lm - 1, ld);
+        // Reset hours for accurate comparison
+        leaveStart.setHours(0,0,0,0);
+        
+        let leaveEnd = null;
+        if (emp.returnDate) {
+            const [ry, rm, rd] = emp.returnDate.split('-').map(Number);
+            leaveEnd = new Date(ry, rm - 1, rd);
+            leaveEnd.setHours(0,0,0,0);
+        }
+
+        const currentMs = date.getTime();
+        const startMs = leaveStart.getTime();
+        
+        // Determine effective range for this month
+        const monthStart = new Date(year, month - 1, 1);
+        monthStart.setHours(0,0,0,0);
+        const effectiveStart = startMs < monthStart.getTime() ? monthStart : leaveStart;
+        
+        // Check if current date is within leave
+        const isWithin = leaveEnd ? (currentMs >= startMs && currentMs <= leaveEnd.getTime()) : (currentMs >= startMs);
+
+        if (isWithin) {
+            // Only trigger merge on the first day of the visible leave block
+             if (currentMs === effectiveStart.getTime()) {
+                const monthEnd = new Date(year, month, 0);
+                monthEnd.setHours(0,0,0,0);
+                const effectiveEnd = (leaveEnd && leaveEnd.getTime() < monthEnd.getTime()) ? leaveEnd : monthEnd;
+                
+                const diffTime = effectiveEnd.getTime() - effectiveStart.getTime();
+                const spanDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                
+                const cell = empRow.getCell(5 + dayIndex);
+                try {
+                    // ExcelJS columns are 1-based, mergeCells takes (top, left, bottom, right)
+                    // 5 + dayIndex is the column number.
+                    worksheet.mergeCells(currentRow, 5 + dayIndex, currentRow, 5 + dayIndex + span - 1);
+                } catch (e) { console.error("Merge error", e); }
+
+                cell.value = emp.leaveReason ? `On Leave: ${emp.leaveReason}` : 'On Leave';
+                cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF9C4000' } }; // Orange text
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE6CC' } }; // Light Orange
+                cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+
+                skipUntilIndex = dayIndex + span - 1;
+                return;
+             }
+        }
+      }
 
       // Check for New Joining
       let isPreJoining = false;
@@ -287,11 +345,6 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
           cell.value = '0.5';
           rowPresent += 0.5;
         }
-      } else if (isWO) {
-        cell.value = 'W/O';
-        cell.font = { ...cell.font, color: { argb: 'FF0000FF' }, bold: true }; // Blue Text
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCCCCFF' } }; // Light Blue BG
-        rowWO++;
       } else {
         const isFuture = date > new Date();
         if (!isFuture) {
