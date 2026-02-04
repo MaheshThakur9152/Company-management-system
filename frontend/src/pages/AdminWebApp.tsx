@@ -1511,7 +1511,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                     const [rYear, rMonth] = dateStr.split('-').map(Number);
                     if (rMonth === selectedMonth && rYear === selectedYear) {
                         if (record.status === 'P') totalWorkingScore += 1;
-                        else if (record.status === 'A') totalWorkingScore -= 1;
+                        else if (record.status === 'A') totalWorkingScore += 0; // Absent is neutral (0), so changing P(+1) to A(0) reduces score by 1
                         else if (record.status === 'W/O') totalWorkingScore += 1;
                         else if (record.status === 'WOP') totalWorkingScore += 2;
                     }
@@ -2103,12 +2103,12 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                     <table className="w-full text-center text-xs border-collapse">
                                         <thead>
                                             <tr className="bg-gray-50 border-b border-gray-100">
-                                                <th className="p-3 sticky left-0 bg-gray-50 z-10 border-r border-gray-100 text-left min-w-[180px]">Employee</th>
+                                                <th className="p-3 sticky left-0 top-0 bg-gray-50 z-30 border-r border-gray-100 text-left min-w-[180px] shadow-sm">Employee</th>
                                                 {Array.from({ length: new Date(selectedYear, selectedMonth, 0).getDate() }, (_, i) => i + 1).map(d => {
                                                     const date = new Date(selectedYear, selectedMonth - 1, d);
                                                     const weekday = date.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 2);
                                                     return (
-                                                        <th key={d} className="p-2 border-r border-gray-100 min-w-[32px] font-medium text-gray-500">
+                                                        <th key={d} className="p-2 sticky top-0 bg-gray-50 z-20 border-r border-gray-100 min-w-[32px] font-medium text-gray-500 shadow-sm">
                                                             <div className="flex flex-col items-center">
                                                                 <span>{d}</span>
                                                                 <span className="text-[9px] font-normal text-gray-400 uppercase">{weekday}</span>
@@ -2123,7 +2123,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                 const empMap = attendanceByEmployee.get(emp.id) || new Map<string, AttendanceRecord>();
                                                 return (
                                                     <tr key={emp.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                                        <td className="p-3 sticky left-0 bg-white z-10 border-r border-gray-100 text-left font-medium text-gray-900">
+                                                        <td className="p-3 sticky left-0 bg-white z-10 border-r border-gray-100 text-left font-medium text-gray-900 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                                                             <div className="flex items-center justify-between gap-3 min-w-[180px]">
                                                                 <div className="flex items-center gap-3">
                                                                     <div

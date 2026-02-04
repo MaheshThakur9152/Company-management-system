@@ -24,6 +24,15 @@ export function isEmployeeActiveForMonth(e: Employee, month: number, year: numbe
   }
 
   if (activeUntil) {
+    // Check if the leaving date is in the same month/year as usage report
+    // If they left during this month, they must be active.
+    if (activeUntil.getMonth() === (month - 1) && activeUntil.getFullYear() === year) {
+        return true;
+    }
+
+    // Set to end of day to avoid timezone/midnight issues where 00:00:00 might be < 00:00:00
+    activeUntil.setHours(23, 59, 59, 999);
+
     // If they stopped being active before the start of the report month, they should not be included
     if (activeUntil < reportMonthStart) return false;
   }
