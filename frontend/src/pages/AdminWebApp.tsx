@@ -1911,7 +1911,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                     if (userRole === 'SuperAdmin') return matchesSearch;
                                     return matchesSearch && e.status !== 'Deleted';
                                 }).map(emp => (
-                                    <div key={emp.id} className={`bg-white p-5 rounded-xl border shadow-sm hover:shadow-md ${emp.status === 'Pending' ? 'border-yellow-400 bg-yellow-50' : (emp.status === 'Deleted' ? 'border-red-400 bg-red-50 opacity-75' : (emp.status === 'Inactive' ? 'border-gray-300 bg-gray-50' : ''))}`}>
+                                    <div key={emp.id} className={`bg-white p-5 rounded-xl border shadow-sm hover:shadow-md ${emp.status === 'Pending' ? 'border-yellow-400 bg-yellow-50' : (emp.status === 'Deleted' ? 'border-red-400 bg-red-50 opacity-75' : (emp.status === 'Inactive' ? 'border-gray-300 bg-gray-50' : (emp.status === 'On Leave' ? 'border-orange-200 bg-orange-50' : '')))}`}>
                                         <div className="flex justify-between items-start">
                                             <div className="flex items-center gap-4">
                                                 <img src={getSafePhotoUrl(emp.photoUrl)} className="w-12 h-12 rounded-full object-cover border" onError={handleImageError} loading="lazy" />
@@ -1921,6 +1921,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                     {emp.status === 'Pending' && <span className="text-[10px] bg-yellow-200 text-yellow-800 px-1.5 py-0.5 rounded font-bold">Pending Approval</span>}
                                                     {emp.status === 'Deleted' && <span className="text-[10px] bg-red-200 text-red-800 px-1.5 py-0.5 rounded font-bold">Deleted</span>}
                                                     {emp.status === 'Inactive' && <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-bold">Inactive</span>}
+                                                    {emp.status === 'On Leave' && <span className="text-[10px] bg-orange-200 text-orange-800 px-1.5 py-0.5 rounded font-bold">On Leave</span>}
                                                 </div>
                                             </div>
                                             <div className="flex gap-1">

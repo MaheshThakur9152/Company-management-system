@@ -12,29 +12,43 @@ export function isEmployeeActiveForMonth(e: Employee, month: number, year: numbe
   if (!e) return false;
   if (e.status === 'Deleted') return false;
 
-  const reportMonthStart = new Date(year, month - 1, 1);
+  // Report Month Start (Local Beginning of Day)
+  const reportMonthStart = new Date(year, month - 1, 1, 0, 0, 0, 0);
 
   let activeUntil: Date | null = null;
+
   if (e.leavingDate) {
-    activeUntil = new Date(e.leavingDate);
+    // Robust parsing for YYYY-MM-DD to avoid UTC conversion issues
+    if (typeof e.leavingDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(e.leavingDate)) {
+        const [y, m, d] = e.leavingDate.split('-').map(Number);
+        // Create Local Date at End of Day (23:59:59.999)
+        activeUntil = new Date(y, m - 1, d, 23, 59, 59, 999);
+    } else {
+        // Fallback for other formats (Date object or non-standard string)
+        activeUntil = new Date(e.leavingDate);
+        activeUntil.setHours(23, 59, 59, 999);
+    }
   } else if (e.status === 'Inactive') {
-    // If no explicit leavingDate but status is Inactive, treat them as active only through the end of the current month
+    // Inactive but no date: Assume inactive "as of today" to prevent ghosting in future months,
+    // but keep visible in current/past months.
     const today = new Date();
-    activeUntil = new Date(today.getFullYear(), today.getMonth() + 1, 0); // last day of current month
+    activeUntil = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+  } else if (e.status === 'On Leave') {
+      // Employees on leave should ALWAYS be visible in the list, 
+      // because they are technically still employed and might return any time.
+      return true;
   }
 
   if (activeUntil) {
-    // Check if the leaving date is in the same month/year as usage report
-    // If they left during this month, they must be active.
-    if (activeUntil.getMonth() === (month - 1) && activeUntil.getFullYear() === year) {
-        return true;
+    // If the employee left BEFORE the 1st of the requested month, return false (Hidden).
+    if (activeUntil.getTime() < reportMonthStart.getTime()) {
+        // EXCEPTION: If they are "On Leave", we want them to stay visible in the sheet 
+        // regardless of the date they started their leave.
+        if (e.status === 'On Leave') {
+            return true;
+        }
+        return false;
     }
-
-    // Set to end of day to avoid timezone/midnight issues where 00:00:00 might be < 00:00:00
-    activeUntil.setHours(23, 59, 59, 999);
-
-    // If they stopped being active before the start of the report month, they should not be included
-    if (activeUntil < reportMonthStart) return false;
   }
 
   return true;

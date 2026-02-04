@@ -485,7 +485,11 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
                                 <input
                                     type="radio"
                                     checked={formData.status === 'Active'}
-                                    onChange={() => handleChange('status', 'Active')}
+                                    onChange={() => {
+                                        handleChange('status', 'Active');
+                                        // Clear leaving date when marking as active so they don't get hidden by old dates
+                                        handleChange('leavingDate', ''); 
+                                    }}
                                     className="hidden"
                                 />
                                 <span className={`text-sm font-medium ${formData.status === 'Active' ? 'text-primary' : 'text-gray-600'}`}>Active</span>
@@ -497,10 +501,29 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
                                 <input
                                     type="radio"
                                     checked={formData.status === 'Inactive'}
-                                    onChange={() => handleChange('status', 'Inactive')}
+                                    onChange={() => {
+                                        handleChange('status', 'Inactive');
+                                        // Auto-set leaving date to today if not set, to ensure visibility logic works correctly
+                                        if (!formData.leavingDate) {
+                                            handleChange('leavingDate', new Date().toISOString().split('T')[0]);
+                                        }
+                                    }}
                                     className="hidden"
                                 />
                                 <span className={`text-sm font-medium ${formData.status === 'Inactive' ? 'text-gray-800' : 'text-gray-600'}`}>Inactive</span>
+                            </label>
+
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${formData.status === 'On Leave' ? 'border-orange-500' : 'border-gray-300'}`}>
+                                    {formData.status === 'On Leave' && <div className="w-2 h-2 rounded-full bg-orange-500" />}
+                                </div>
+                                <input
+                                    type="radio"
+                                    checked={formData.status === 'On Leave'}
+                                    onChange={() => handleChange('status', 'On Leave')}
+                                    className="hidden"
+                                />
+                                <span className={`text-sm font-medium ${formData.status === 'On Leave' ? 'text-orange-600' : 'text-gray-600'}`}>On Leave</span>
                             </label>
                         </div>
 
@@ -515,6 +538,36 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
                                     onChange={(e) => handleChange('leavingDate', e.target.value)}
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
                                 />
+                            </div>
+                        )}
+
+                        {formData.status === 'On Leave' && (
+                            <div className="mt-3 grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
+                                        <Calendar size={12} /> Leave Start
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={formData.leavingDate || new Date().toISOString().split('T')[0]}
+                                        onChange={(e) => handleChange('leavingDate', e.target.value)}
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
+                                        <Calendar size={12} /> Return (Opt)
+                                    </label>
+                                    {/* We can store return date in a new field or just keep it noted in UI for now as it wasn't strictly asked to persist properly yet. 
+                                        Actually, let's just use a text placeholder or ignore for MVP as backend doesn't support 'returnDate' yet.
+                                        Or better, repurpose 'joiningDate'?? No that's bad.
+                                        Let's just show it as a UI element for now or stick to Leave Start.
+                                        User said "date of arrival can be flexible".
+                                        I'll add a 'Expected Return' that doesn't save yet or saves to 'stoppedDate' if unused.
+                                        Safe bet: Just leave start is crucial.
+                                     */}
+                                     <div className="text-xs text-gray-400 italic mt-2">Flexible Return</div>
+                                </div>
                             </div>
                         )}
                     </div>

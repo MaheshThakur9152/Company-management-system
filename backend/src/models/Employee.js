@@ -9,7 +9,7 @@ const EmployeeSchema = new mongoose.Schema({
   photoUrl: String,
   phone: String,
   weeklyOff: { type: String, default: 'Sunday' },
-  status: { type: String, enum: ['Active', 'Inactive', 'Pending', 'Deleted'], default: 'Active' },
+  status: { type: String, enum: ['Active', 'Inactive', 'Pending', 'Deleted', 'On Leave'], default: 'Active' },
   joiningDate: String,
   leavingDate: String,
   aadharNumber: String,
