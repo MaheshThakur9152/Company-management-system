@@ -12,6 +12,8 @@ const EmployeeSchema = new mongoose.Schema({
   status: { type: String, enum: ['Active', 'Inactive', 'Pending', 'Deleted', 'On Leave'], default: 'Active' },
   joiningDate: String,
   leavingDate: String,
+  returnDate: String,
+  leaveReason: String,
   aadharNumber: String,
   panNumber: String,
   bankDetails: {

@@ -161,14 +161,11 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
             return;
         }
         if (formData.status === 'On Leave') {
-            if (!formData.returnDate) {
-                alert("Please select a return date for leave.");
-                return;
-            }
-            if (!formData.leaveReason) {
-                alert("Please provide a reason for leave.");
-                return;
-            }
+            // Return date acts as optional now based on user feedback
+            // if (!formData.returnDate) {
+            //    alert("Please select a return date for leave.");
+            //    return;
+            // }
         }
         onSave(formData as Employee);
         onClose();
@@ -567,7 +564,7 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
-                                            <Calendar size={12} /> Return Date
+                                            <Calendar size={12} /> Return Date (Opt)
                                         </label>
                                         <input
                                             type="date"

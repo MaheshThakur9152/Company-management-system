@@ -2180,20 +2180,24 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                             const currentDate = new Date(selectedYear, selectedMonth - 1, d);
                                                             
                                                             // Check for Leave Spanning
-                                                            if (emp.status === 'On Leave' && emp.leavingDate && emp.returnDate) {
+                                                            if (emp.status === 'On Leave' && emp.leavingDate) {
                                                                 const [ly, lm, ld] = emp.leavingDate.split('-').map(Number);
                                                                 const leaveStart = new Date(ly, lm - 1, ld);
                                                                 
-                                                                const [ry, rm, rd] = emp.returnDate.split('-').map(Number);
-                                                                const leaveEnd = new Date(ry, rm - 1, rd);
+                                                                let leaveEnd = null;
+                                                                if (emp.returnDate) {
+                                                                    const [ry, rm, rd] = emp.returnDate.split('-').map(Number);
+                                                                    leaveEnd = new Date(ry, rm - 1, rd);
+                                                                }
 
                                                                 const currentMs = currentDate.getTime();
                                                                 const startMs = leaveStart.getTime();
-                                                                const endMs = leaveEnd.getTime();
 
-                                                                if (currentMs >= startMs && currentMs <= endMs) {
+                                                                // If no return date, assume indefinite leave (just show for rest of visible month)
+                                                                const shouldShow = leaveEnd ? (currentMs >= startMs && currentMs <= leaveEnd.getTime()) : (currentMs >= startMs);
+
+                                                                if (shouldShow) {
                                                                     // Determine if we should render the colspan cell
-                                                                    // Identify the effective start date for this view (Month start or Leave start)
                                                                     const monthStart = new Date(selectedYear, selectedMonth - 1, 1);
                                                                     const effectiveStart = startMs < monthStart.getTime() ? monthStart : leaveStart;
                                                                     
@@ -2201,7 +2205,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                     if (currentMs === effectiveStart.getTime()) {
                                                                         // Calculate colspan
                                                                         const monthEnd = new Date(selectedYear, selectedMonth, 0);
-                                                                        const effectiveEnd = endMs > monthEnd.getTime() ? monthEnd : leaveEnd;
+                                                                        const effectiveEnd = (leaveEnd && leaveEnd.getTime() < monthEnd.getTime()) ? leaveEnd : monthEnd;
                                                                         
                                                                         const diffTime = effectiveEnd.getTime() - effectiveStart.getTime();
                                                                         const spanDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
@@ -2209,7 +2213,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                         return (
                                                                             <td key={d} colSpan={spanDays} className="bg-orange-50/80 border-r border-gray-200 p-1 text-xs text-orange-800 font-medium text-left px-3 align-middle">
                                                                                 <div className="line-clamp-1 overflow-hidden text-ellipsis whitespace-nowrap" title={emp.leaveReason}>
-                                                                                    On Leave: {emp.leaveReason || 'No Reason'}
+                                                                                    {emp.leaveReason ? `On Leave: ${emp.leaveReason}` : 'On Leave'}
                                                                                 </div>
                                                                             </td>
                                                                         );
