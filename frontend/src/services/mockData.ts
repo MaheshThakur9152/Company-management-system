@@ -179,7 +179,7 @@ export const deleteInvoice = async (invoiceId: string): Promise<boolean> => {
 // --- EMPLOYEES ---
 export const getEmployees = async (): Promise<Employee[]> => {
     try {
-        return await apiCall<Employee[]>('/employees');
+        return await apiCall<Employee[]>('/employees?includeInactive=true');
     } catch (e) {
         console.error("Failed to fetch employees", e);
         return [];
