@@ -160,6 +160,16 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
             alert("Please assign a site.");
             return;
         }
+        if (formData.status === 'On Leave') {
+            if (!formData.returnDate) {
+                alert("Please select a return date for leave.");
+                return;
+            }
+            if (!formData.leaveReason) {
+                alert("Please provide a reason for leave.");
+                return;
+            }
+        }
         onSave(formData as Employee);
         onClose();
     };
@@ -542,31 +552,39 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
                         )}
 
                         {formData.status === 'On Leave' && (
-                            <div className="mt-3 grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
-                                        <Calendar size={12} /> Leave Start
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={formData.leavingDate || new Date().toISOString().split('T')[0]}
-                                        onChange={(e) => handleChange('leavingDate', e.target.value)}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
-                                    />
+                            <div className="mt-3 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
+                                            <Calendar size={12} /> Leave Start
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={formData.leavingDate || new Date().toISOString().split('T')[0]}
+                                            onChange={(e) => handleChange('leavingDate', e.target.value)}
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
+                                            <Calendar size={12} /> Return Date
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={formData.returnDate || ''}
+                                            onChange={(e) => handleChange('returnDate', e.target.value)}
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
+                                        />
+                                    </div>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
-                                        <Calendar size={12} /> Return (Opt)
-                                    </label>
-                                    {/* We can store return date in a new field or just keep it noted in UI for now as it wasn't strictly asked to persist properly yet. 
-                                        Actually, let's just use a text placeholder or ignore for MVP as backend doesn't support 'returnDate' yet.
-                                        Or better, repurpose 'joiningDate'?? No that's bad.
-                                        Let's just show it as a UI element for now or stick to Leave Start.
-                                        User said "date of arrival can be flexible".
-                                        I'll add a 'Expected Return' that doesn't save yet or saves to 'stoppedDate' if unused.
-                                        Safe bet: Just leave start is crucial.
-                                     */}
-                                     <div className="text-xs text-gray-400 italic mt-2">Flexible Return</div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Reason</label>
+                                    <input
+                                        value={formData.leaveReason || ''}
+                                        onChange={(e) => handleChange('leaveReason', e.target.value)}
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
+                                        placeholder="e.g. Going to village"
+                                    />
                                 </div>
                             </div>
                         )}

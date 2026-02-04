@@ -49,6 +49,8 @@ export interface Employee {
   status: 'Active' | 'Inactive' | 'Stopped' | 'Pending' | 'Deleted' | 'On Leave';
   stoppedDate?: string;
   leavingDate?: string;
+  returnDate?: string;
+  leaveReason?: string;
   joiningDate: string;
   aadharNumber?: string;
   panNumber?: string;

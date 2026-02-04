@@ -2177,6 +2177,49 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                         </td>
                                                         {Array.from({ length: new Date(selectedYear, selectedMonth, 0).getDate() }, (_, i) => i + 1).map(d => {
                                                             const dateStr = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+                                                            const currentDate = new Date(selectedYear, selectedMonth - 1, d);
+                                                            
+                                                            // Check for Leave Spanning
+                                                            if (emp.status === 'On Leave' && emp.leavingDate && emp.returnDate) {
+                                                                const [ly, lm, ld] = emp.leavingDate.split('-').map(Number);
+                                                                const leaveStart = new Date(ly, lm - 1, ld);
+                                                                
+                                                                const [ry, rm, rd] = emp.returnDate.split('-').map(Number);
+                                                                const leaveEnd = new Date(ry, rm - 1, rd);
+
+                                                                const currentMs = currentDate.getTime();
+                                                                const startMs = leaveStart.getTime();
+                                                                const endMs = leaveEnd.getTime();
+
+                                                                if (currentMs >= startMs && currentMs <= endMs) {
+                                                                    // Determine if we should render the colspan cell
+                                                                    // Identify the effective start date for this view (Month start or Leave start)
+                                                                    const monthStart = new Date(selectedYear, selectedMonth - 1, 1);
+                                                                    const effectiveStart = startMs < monthStart.getTime() ? monthStart : leaveStart;
+                                                                    
+                                                                    // Render only on the effective start day
+                                                                    if (currentMs === effectiveStart.getTime()) {
+                                                                        // Calculate colspan
+                                                                        const monthEnd = new Date(selectedYear, selectedMonth, 0);
+                                                                        const effectiveEnd = endMs > monthEnd.getTime() ? monthEnd : leaveEnd;
+                                                                        
+                                                                        const diffTime = effectiveEnd.getTime() - effectiveStart.getTime();
+                                                                        const spanDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                                                                        
+                                                                        return (
+                                                                            <td key={d} colSpan={spanDays} className="bg-orange-50/80 border-r border-gray-200 p-1 text-xs text-orange-800 font-medium text-left px-3 align-middle">
+                                                                                <div className="line-clamp-1 overflow-hidden text-ellipsis whitespace-nowrap" title={emp.leaveReason}>
+                                                                                    On Leave: {emp.leaveReason || 'No Reason'}
+                                                                                </div>
+                                                                            </td>
+                                                                        );
+                                                                    } else {
+                                                                        // Skip rendering for spanned days
+                                                                        return null;
+                                                                    }
+                                                                }
+                                                            }
+
                                                             const record = empMap.get(dateStr);
                                                             let content = <span className="text-gray-200">-</span>;
                                                             let cellClass = "cursor-pointer hover:bg-gray-100";
