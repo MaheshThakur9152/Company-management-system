@@ -640,7 +640,7 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
 
 window.generateAttendanceExcelBrowser = generateAttendanceExcelBrowser;
 
-async function generatePayrollExcel(employees, attendanceData, month, year, sites = []) {
+async function generatePayrollExcel(employees, attendanceData, month, year, sites = [], salaryRecords = []) {
   const ExcelJS = window.ExcelJS;
   if (!ExcelJS) throw new Error('ExcelJS library not loaded');
 
@@ -689,7 +689,7 @@ async function generatePayrollExcel(employees, attendanceData, month, year, site
         counter++;
       }
 
-      generatePayrollSheet(workbook, sheetName, siteData.name, siteData.employees, attendanceData, month, year);
+      generatePayrollSheet(workbook, sheetName, siteData.name, siteData.employees, attendanceData, month, year, salaryRecords);
     }
   }
 
@@ -703,7 +703,7 @@ async function generatePayrollExcel(employees, attendanceData, month, year, site
   window.URL.revokeObjectURL(url);
 }
 
-function generatePayrollSheet(workbook, sheetName, siteName, employees, attendanceData, month, year) {
+function generatePayrollSheet(workbook, sheetName, siteName, employees, attendanceData, month, year, salaryRecords = []) {
   const worksheet = workbook.addWorksheet(sheetName);
   const daysInMonth = new Date(year, month, 0).getDate();
 
@@ -742,17 +742,64 @@ function generatePayrollSheet(workbook, sheetName, siteName, employees, attendan
       return r.employeeId === emp.id && d.getMonth() + 1 === month && d.getFullYear() === year;
     });
 
-    // 1. Calculate Days
-    const pd = empRecords.filter(r => r.status === 'P').length;
-    const wo = empRecords.filter(r => r.status === 'W/O').length;
-    const woe = empRecords.filter(r => r.status === 'WOE' || r.status === 'WOP').length;
-    const ph = empRecords.filter(r => r.status === 'PH').length; // Maps to HD (Holiday)
-    const hde = empRecords.filter(r => r.status === 'HDE').length;
-    const hdHalf = empRecords.filter(r => r.status === 'HD').length; // Half Day
+    // 1. Calculate Days (Matching employeeUtils.ts logic)
+    let totalPaidDays = 0;
 
-    // Total Paid Days = PD + WO + WOE + HD + HDE + (HalfDay * 0.5)
-    const effectivePD = pd + (hdHalf * 0.5);
-    const totalPaidDays = effectivePD + wo + woe + ph + hde;
+    // Counters for display columns
+    let countPD = 0;
+    let countWO = 0;
+    let countWOE = 0;
+    let countHD = 0; // HD (Holiday) from PH
+    let countHDE = 0;
+    let countHalfDay = 0; // HD status (0.5)
+
+    const weekDayMap = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
+    const empWeeklyOffIdx = weekDayMap[emp.weeklyOff || 'Sunday'] ?? 0;
+
+    // Iterate loop for day logic
+    empRecords.forEach(r => {
+      const d = new Date(r.date);
+      const dayOfWeek = d.getDay();
+      const isWeekoff = dayOfWeek === empWeeklyOffIdx;
+
+      switch (r.status) {
+        case 'P':
+          if (isWeekoff) {
+            totalPaidDays += 2;
+            countPD += 1;
+            countWO += 1;
+          } else {
+            totalPaidDays += 1;
+            countPD += 1;
+          }
+          break;
+        case 'WOP':
+          totalPaidDays += 2;
+          countPD += 1; // Treated as Present for breakdown
+          countWO += 1; // Treated as Weekoff for breakdown
+          break;
+        case 'W/O':
+          totalPaidDays += 1;
+          countWO += 1;
+          break;
+        case 'HD': // Half Day
+          totalPaidDays += 0.5;
+          countHalfDay += 1;
+          break;
+        case 'PH': // Public Holiday
+          totalPaidDays += 1;
+          countHD += 1;
+          break;
+        case 'HDE':
+          totalPaidDays += 1;
+          countHDE += 1;
+          break;
+        case 'WOE':
+          totalPaidDays += 1;
+          countWOE += 1;
+          break;
+      }
+    });
 
     const totalOTHours = empRecords.reduce((sum, r) => sum + (r.overtimeHours || 0), 0);
 
@@ -770,22 +817,40 @@ function generatePayrollSheet(workbook, sheetName, siteName, employees, attendan
     }
     const hourlyRate = dailyRate / 9;
 
-    // 3. Amounts
+    // 3. Amounts (Calculated)
     const daysAmount = totalPaidDays * dailyRate;
     const otAmount = totalOTHours * hourlyRate;
-    const grossSalary = daysAmount + otAmount;
+    let grossSalary = daysAmount + otAmount;
 
-    // 4. Deductions
-    const ded = salaryDetails.deductionBreakdown || { advance: 0, uniform: 0, shoes: 0, idCard: 0, cbre: 0, others: 0 };
-    const totalDeductions = (ded.advance || 0) + (ded.uniform || 0) + (ded.shoes || 0) + (ded.idCard || 0) + (ded.cbre || 0) + (ded.others || 0);
+    // 4. Deductions (Calculated)
+    let ded = salaryDetails.deductionBreakdown || { advance: 0, uniform: 0, shoes: 0, idCard: 0, cbre: 0, others: 0 };
+    let totalDeductions = (ded.advance || 0) + (ded.uniform || 0) + (ded.shoes || 0) + (ded.idCard || 0) + (ded.cbre || 0) + (ded.others || 0);
 
-    // 5. Net
+    // 5. Net (Calculated)
     const netBeforeAllowances = grossSalary - totalDeductions;
     const allowances = (salaryDetails.allowancesBreakdown?.travelling || 0) + (salaryDetails.allowancesBreakdown?.others || 0);
-    const finalNet = netBeforeAllowances + allowances;
+    let finalNet = netBeforeAllowances + allowances;
+
+    // 6. OVERRIDE with Salary Record if exists
+    const record = salaryRecords.find(r => r.employeeId === emp.id && r.month === month && r.year === year);
+    if (record) {
+      // Use stored values
+      grossSalary = record.grossSalary || grossSalary;
+      totalDeductions = record.totalDeductions !== undefined ? record.totalDeductions : totalDeductions;
+      finalNet = record.netSalary !== undefined ? record.netSalary : finalNet;
+
+      // Use stored breakdown for deductions if available
+      if (record.breakdown && record.breakdown.deductions) {
+        ded = record.breakdown.deductions;
+      }
+    }
 
     const row = worksheet.getRow(index + 3);
     row.height = 20;
+
+    // effectivePD calculation for display: countPD + (countHalfDay * 0.5)
+    // Previous code used: effectivePD = pd + (hdHalf * 0.5)
+    const effectivePD = countPD + (countHalfDay * 0.5);
 
     const cells = [
       index + 1,
@@ -795,21 +860,21 @@ function generatePayrollSheet(workbook, sheetName, siteName, employees, attendan
       dailyRate,
       hourlyRate,
       effectivePD,
-      wo,
-      woe,
-      ph, // HD column
-      hde,
-      ded.cbre, // CBRE Dedu column
+      countWO,
+      countWOE,
+      countHD, // HD column (PH)
+      countHDE,
+      ded.cbre || 0, // Deduction (CBRE)
       totalPaidDays, // TOTAL
       totalOTHours,
       daysAmount,
       otAmount,
       grossSalary,
-      ded.advance,
-      ded.uniform,
-      ded.shoes,
-      ded.idCard,
-      ded.others,
+      ded.advance || 0,
+      ded.uniform || 0,
+      ded.shoes || 0,
+      ded.idCard || 0,
+      ded.others || 0,
       totalDeductions,
       Math.round(finalNet)
     ];

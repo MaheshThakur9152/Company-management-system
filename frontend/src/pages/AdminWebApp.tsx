@@ -16,7 +16,7 @@ import {
     updateInvoice, getEmployees, addEmployee, updateEmployee,
     deleteEmployee, getSites, addSite, updateSite, deleteSite,
     addInvoice, updateAttendanceRecord, deleteAttendancePhoto, deleteAttendanceRecord,
-    loginUser, verifyOtp, getUsers, addUser, deleteUser, revokeUserTrust, updateUser, getLocationLogs, revokeSupervisorDevice, deleteInvoice
+    loginUser, verifyOtp, getUsers, addUser, deleteUser, revokeUserTrust, updateUser, getLocationLogs, revokeSupervisorDevice, deleteInvoice, getSalaryRecords
 } from '@services/mockData';
 
 import EditInvoiceModal from '@components/EditInvoiceModal';
@@ -1465,12 +1465,15 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
         try {
             await getExcelJS();
             if ((window as any).generatePayrollExcel) {
+                // Fetch latest salary records to reflect saved deductions/overrides
+                const salaryRecords = await getSalaryRecords();
+
                 const employeesToExport = (siteId === 'all'
                     ? employees
                     : employees.filter(e => e.siteId === siteId))
                     .filter(e => isEmployeeActiveForMonth(e, selectedMonth, selectedYear));
 
-                await (window as any).generatePayrollExcel(employeesToExport, attendanceData, selectedMonth, selectedYear, sites);
+                await (window as any).generatePayrollExcel(employeesToExport, attendanceData, selectedMonth, selectedYear, sites, salaryRecords);
             } else {
                 alert("Payroll script not loaded");
             }
