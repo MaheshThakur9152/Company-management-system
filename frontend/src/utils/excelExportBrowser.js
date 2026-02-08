@@ -315,12 +315,10 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
         switch (record.status) {
           case 'P':
             if (isWO) {
-              // Present on Week Off -> Treating as WOP implies double benefit
-              cell.value = 'WOP'; // upgrading display to WOP for clarity? Or keep P but count double?
-              // Let's keep P to match valid record but count correctly.
-              // Actually, if it's P on WO, it usually means they worked.
-              // If we want to show 'P' but count 2:
-              cell.value = 'P';
+              // Present on Week Off -> display as W/O on top and P on bottom
+              cell.value = 'W/O\nP';
+              cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCC99FF' } };
               rowPresent++;
               rowWO++;
             } else {
@@ -345,7 +343,9 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
             rowWO++;
             break;
           case 'WOP': // Week Off Present -> 2 days (1 Present + 1 WO)
-            cell.value = 'WOP';
+            // Display as two lines: W/O on top and P at bottom
+            cell.value = 'W/O\nP';
+            cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCC99FF' } };
             rowPresent++;
             rowWO++;
@@ -387,16 +387,19 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
     const rowNum = empRow.number;
 
     const totalPresentCell = empRow.getCell(5 + daysInMonth);
+    // Include WOP (Week Off Present) variants in present count. Some cells may contain a newline ("W/O\nP"),
+    // so we add COUNTIF checks for both contiguous and newline-containing variants using CHAR(10).
     totalPresentCell.value = {
-      formula: `COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"P")+(COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"0.5")*0.5)`,
+      formula: `COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"P") + (COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"0.5")*0.5) + COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"WOP") + COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"*WO*P*") + COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"*WO"&CHAR(10)&"P*") + COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"*W/O*P*") + COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"*W/O"&CHAR(10)&"P*")`,
       result: rowPresent
     };
     totalPresentCell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
     totalPresentCell.numFmt = '0.00';
 
     const woCountCell = empRow.getCell(6 + daysInMonth);
+    // Count WO variants including W/O, WOE and WOP. Also include patterns that may contain a newline (e.g. "W/O\nP").
     woCountCell.value = {
-      formula: `COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"W/O")+COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"WOE")+COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"WOP")`,
+      formula: `COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"W/O")+COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"WOE")+COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"WOP")+COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"*WO*P*")+COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"*WO"&CHAR(10)&"P*")+COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"*W/O*P*")+COUNTIF(${startCol}${rowNum}:${endCol}${rowNum},"*W/O"&CHAR(10)&"P*")`,
       result: rowWO
     };
     woCountCell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
@@ -449,7 +452,8 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
     const endRow = currentRow - 1;
     const cell = presentStrengthRow.getCell(4 + i);
     cell.value = {
-      formula: `COUNTIF(${colLetter}${startRow}:${colLetter}${endRow},"P")+(COUNTIF(${colLetter}${startRow}:${colLetter}${endRow},"0.5")*0.5)`,
+      // Include WOP variants in daily present strength as well (including W/O\nP)
+      formula: `COUNTIF(${colLetter}${startRow}:${colLetter}${endRow},"P") + (COUNTIF(${colLetter}${startRow}:${colLetter}${endRow},"0.5")*0.5) + COUNTIF(${colLetter}${startRow}:${colLetter}${endRow},"WOP") + COUNTIF(${colLetter}${startRow}:${colLetter}${endRow},"*WO*P*") + COUNTIF(${colLetter}${startRow}:${colLetter}${endRow},"*WO"&CHAR(10)&"P*") + COUNTIF(${colLetter}${startRow}:${colLetter}${endRow},"*W/O*P*") + COUNTIF(${colLetter}${startRow}:${colLetter}${endRow},"*W/O"&CHAR(10)&"P*")`,
     };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCCCC' } }; // Pinkish
     cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
