@@ -342,7 +342,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                 if (!isMounted) return;
 
                 // Determine backend origin from configured API_URL (strip trailing '/api') or fall back to origin/localhost
-                const backendUrl = (function() {
+                const backendUrl = (function () {
                     try {
                         // If API_URL is absolute (e.g. https://api.ambeservice.com/api) use it without the '/api' suffix
                         if (API_URL && API_URL.startsWith('http')) return API_URL.replace(/\/api\/?$/, '');
@@ -1301,35 +1301,35 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
             let totalScore = 0;
 
             if (empAttendance) {
-                 // Sort dates to ensure chronological order
+                // Sort dates to ensure chronological order
                 const sortedDates = Array.from(empAttendance.keys()).sort();
-                
+
                 for (const dateStr of sortedDates) {
                     const record = empAttendance.get(dateStr);
                     if (!record) continue;
 
                     const [rYear, rMonth, rDay] = dateStr.split('-').map(Number);
-                    
+
                     if (rMonth === selectedMonth && rYear === selectedYear) {
                         let score = 0;
                         if (record.status === 'P') score = 1;
                         else if (record.status === 'A') score = -1;
                         else if (record.status === 'W/O') score = 1;
                         else if (record.status === 'WOP') score = 2;
-                        
+
                         // Only add to list if it has a relevant status or it affects score
                         if (record.status) {
-                             totalScore += score;
-                             records.push({
-                                 date: dateStr,
-                                 status: record.status,
-                                 score: score
-                             });
+                            totalScore += score;
+                            records.push({
+                                date: dateStr,
+                                status: record.status,
+                                score: score
+                            });
                         }
                     }
                 }
             }
-            
+
             return {
                 name: emp.name,
                 code: emp.biometricCode,
@@ -1489,6 +1489,11 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
             const isVisible = isEmployeeActiveForMonth(e, selectedMonth, selectedYear);
 
             return matchesSearch && matchesSite && isVisible;
+        }).sort((a, b) => {
+            const roleA = a.role || 'Unassigned';
+            const roleB = b.role || 'Unassigned';
+            if (roleA !== roleB) return roleA.localeCompare(roleB);
+            return (a.name || '').localeCompare(b.name || '');
         });
     }, [employees, searchTerm, selectedSiteFilter, selectedYear, selectedMonth]);
 
@@ -2120,159 +2125,193 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {filteredEmployees.slice(0, visibleRows).map(emp => {
+                                            {filteredEmployees.slice(0, visibleRows).map((emp, index, arr) => {
                                                 const empMap = attendanceByEmployee.get(emp.id) || new Map<string, AttendanceRecord>();
+
+                                                const prevEmp = index > 0 ? arr[index - 1] : null;
+                                                const currentRole = emp.role || 'Unassigned';
+                                                const prevRole = prevEmp ? (prevEmp.role || 'Unassigned') : null;
+                                                const showHeader = !prevEmp || currentRole !== prevRole;
+                                                const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+
                                                 return (
-                                                    <tr key={emp.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                                        <td className="p-3 sticky left-0 bg-white z-10 border-r border-gray-100 text-left font-medium text-gray-900 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                                                            <div className="flex items-center justify-between gap-3 min-w-[180px]">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div
-                                                                        className="relative cursor-pointer hover:opacity-80 transition-opacity"
-                                                                        onClick={() => { setEditingEmployee(emp); setShowEmployeeModal(true); }}
-                                                                        title="Click to Edit Staff"
-                                                                    >
-                                                                        <img src={getSafePhotoUrl(emp.photoUrl)} className="w-8 h-8 rounded-full object-cover border border-gray-100 shadow-sm" alt="" onError={handleImageError} loading="lazy" />
-                                                                        <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${emp.status === 'Active' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                                                                    </div>
-                                                                    <div className="text-left">
-                                                                        {(() => {
-                                                                            const d = emp.salaryDetails?.deductionBreakdown;
-                                                                            const total = (d?.advance || 0) + (d?.uniform || 0) + (d?.shoes || 0) + (d?.others || 0);
-                                                                            if (total > 0) {
-                                                                                const breakdown = [
-                                                                                    d?.advance ? `Adv: ${d.advance}` : '',
-                                                                                    d?.uniform ? `Uni: ${d.uniform}` : '',
-                                                                                    d?.shoes ? `Shoes: ${d.shoes}` : '',
-                                                                                    d?.others ? `Oth: ${d.others}` : ''
-                                                                                ].filter(Boolean).join(', ');
-                                                                                return (
-                                                                                    <div className="group relative w-fit">
-                                                                                        <div className="text-[10px] text-red-500 font-bold mb-0.5 cursor-help border-b border-dotted border-red-300">
-                                                                                            ₹{total}
-                                                                                        </div>
-                                                                                        <div className="hidden group-hover:block absolute left-0 bottom-full mb-1 bg-gray-900 text-white text-[10px] px-2 py-1 rounded shadow-lg whitespace-nowrap z-50">
-                                                                                            {breakdown}
-                                                                                        </div>
+                                                    <React.Fragment key={emp.id}>
+                                                        {showHeader && (
+                                                            <tr className="bg-slate-50/50 border-b border-slate-200/40">
+                                                                <td colSpan={daysInMonth + 1} className="p-0 sticky left-0 z-20 overflow-hidden">
+                                                                    <div className="flex items-center gap-4 px-5 py-3.5 bg-gradient-to-r from-teal-50/40 via-white to-transparent">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="w-1.5 h-8 bg-teal-500 rounded-full shadow-[0_0_8px_rgba(20,184,166,0.25)]" />
+                                                                            <div className="flex flex-col">
+                                                                                <div className="flex items-center gap-3">
+                                                                                    <span className="text-sm font-black text-slate-700 tracking-[0.1em] uppercase">
+                                                                                        {currentRole}
+                                                                                    </span>
+                                                                                    <div className="flex items-center gap-2 px-2.5 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">
+                                                                                        <div className="w-1.5 h-1.5 bg-teal-500 rounded-full shadow-[0_0_4px_rgba(20,184,166,0.5)]" />
+                                                                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                                                                            {filteredEmployees.filter(e => (e.role || 'Unassigned') === currentRole).length} Active Staff
+                                                                                        </span>
                                                                                     </div>
-                                                                                );
-                                                                            }
-                                                                            return null;
-                                                                        })()}
-                                                                        <div className="font-bold text-gray-800">{emp.name}</div>
-                                                                        <div className="flex items-center gap-2 mt-1">
-                                                                            <div className="text-[10px] text-gray-400 font-mono">{emp.biometricCode}</div>
-                                                                            <div className="text-xs font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">{emp.phone || 'No Phone'}</div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex-1 h-px bg-gradient-to-r from-slate-200/60 to-transparent" />
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                        <tr className="border-b border-gray-100 hover:bg-gray-50">
+                                                            <td className="p-3 sticky left-0 bg-white z-10 border-r border-gray-100 text-left font-medium text-gray-900 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                                                <div className="flex items-center justify-between gap-3 min-w-[180px]">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div
+                                                                            className="relative cursor-pointer hover:opacity-80 transition-opacity"
+                                                                            onClick={() => { setEditingEmployee(emp); setShowEmployeeModal(true); }}
+                                                                            title="Click to Edit Staff"
+                                                                        >
+                                                                            <img src={getSafePhotoUrl(emp.photoUrl)} className="w-8 h-8 rounded-full object-cover border border-gray-100 shadow-sm" alt="" onError={handleImageError} loading="lazy" />
+                                                                            <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${emp.status === 'Active' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                                                        </div>
+                                                                        <div className="text-left">
+                                                                            {(() => {
+                                                                                const d = emp.salaryDetails?.deductionBreakdown;
+                                                                                const total = (d?.advance || 0) + (d?.uniform || 0) + (d?.shoes || 0) + (d?.others || 0);
+                                                                                if (total > 0) {
+                                                                                    const breakdown = [
+                                                                                        d?.advance ? `Adv: ${d.advance}` : '',
+                                                                                        d?.uniform ? `Uni: ${d.uniform}` : '',
+                                                                                        d?.shoes ? `Shoes: ${d.shoes}` : '',
+                                                                                        d?.others ? `Oth: ${d.others}` : ''
+                                                                                    ].filter(Boolean).join(', ');
+                                                                                    return (
+                                                                                        <div className="group relative w-fit">
+                                                                                            <div className="text-[10px] text-red-500 font-bold mb-0.5 cursor-help border-b border-dotted border-red-300">
+                                                                                                ₹{total}
+                                                                                            </div>
+                                                                                            <div className="hidden group-hover:block absolute left-0 bottom-full mb-1 bg-gray-900 text-white text-[10px] px-2 py-1 rounded shadow-lg whitespace-nowrap z-50">
+                                                                                                {breakdown}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    );
+                                                                                }
+                                                                                return null;
+                                                                            })()}
+                                                                            <div className="font-bold text-gray-800">{emp.name}</div>
+                                                                            <div className="flex items-center gap-2 mt-1">
+                                                                                <div className="text-[10px] text-gray-400 font-mono">{emp.biometricCode}</div>
+                                                                                <div className="text-xs font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">{emp.phone || 'No Phone'}</div>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); setDeductionEmployee(emp); setShowDeductionModal(true); }}
+                                                                        className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
+                                                                        title="Edit Deductions (Advance, Uniform, etc.)"
+                                                                    >
+                                                                        <Banknote size={14} />
+                                                                    </button>
                                                                 </div>
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); setDeductionEmployee(emp); setShowDeductionModal(true); }}
-                                                                    className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
-                                                                    title="Edit Deductions (Advance, Uniform, etc.)"
-                                                                >
-                                                                    <Banknote size={14} />
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                        {Array.from({ length: new Date(selectedYear, selectedMonth, 0).getDate() }, (_, i) => i + 1).map(d => {
-                                                            const dateStr = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-                                                            const currentDate = new Date(selectedYear, selectedMonth - 1, d);
-                                                            
-                                                            // Check for Leave Spanning
-                                                            if (emp.status === 'On Leave' && emp.leavingDate) {
-                                                                const [ly, lm, ld] = emp.leavingDate.split('-').map(Number);
-                                                                const leaveStart = new Date(ly, lm - 1, ld);
-                                                                
-                                                                let leaveEnd = null;
-                                                                if (emp.returnDate) {
-                                                                    const [ry, rm, rd] = emp.returnDate.split('-').map(Number);
-                                                                    leaveEnd = new Date(ry, rm - 1, rd);
-                                                                }
+                                                            </td>
+                                                            {Array.from({ length: new Date(selectedYear, selectedMonth, 0).getDate() }, (_, i) => i + 1).map(d => {
+                                                                const dateStr = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+                                                                const currentDate = new Date(selectedYear, selectedMonth - 1, d);
 
-                                                                const currentMs = currentDate.getTime();
-                                                                const startMs = leaveStart.getTime();
+                                                                // Check for Leave Spanning
+                                                                if (emp.status === 'On Leave' && emp.leavingDate) {
+                                                                    const [ly, lm, ld] = emp.leavingDate.split('-').map(Number);
+                                                                    const leaveStart = new Date(ly, lm - 1, ld);
 
-                                                                // If no return date, assume indefinite leave (just show for rest of visible month)
-                                                                const shouldShow = leaveEnd ? (currentMs >= startMs && currentMs <= leaveEnd.getTime()) : (currentMs >= startMs);
+                                                                    let leaveEnd = null;
+                                                                    if (emp.returnDate) {
+                                                                        const [ry, rm, rd] = emp.returnDate.split('-').map(Number);
+                                                                        leaveEnd = new Date(ry, rm - 1, rd);
+                                                                    }
 
-                                                                if (shouldShow) {
-                                                                    // Determine if we should render the colspan cell
-                                                                    const monthStart = new Date(selectedYear, selectedMonth - 1, 1);
-                                                                    const effectiveStart = startMs < monthStart.getTime() ? monthStart : leaveStart;
-                                                                    
-                                                                    // Render only on the effective start day
-                                                                    if (currentMs === effectiveStart.getTime()) {
-                                                                        // Calculate colspan
-                                                                        const monthEnd = new Date(selectedYear, selectedMonth, 0);
-                                                                        const effectiveEnd = (leaveEnd && leaveEnd.getTime() < monthEnd.getTime()) ? leaveEnd : monthEnd;
-                                                                        
-                                                                        const diffTime = effectiveEnd.getTime() - effectiveStart.getTime();
-                                                                        const spanDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                                                                        
-                                                                        return (
-                                                                            <td key={d} colSpan={spanDays} className="bg-orange-50/80 border-r border-gray-200 p-1 text-xs text-orange-800 font-medium text-left px-3 align-middle">
-                                                                                <div className="line-clamp-1 overflow-hidden text-ellipsis whitespace-nowrap" title={emp.leaveReason}>
-                                                                                    {emp.leaveReason ? `On Leave: ${emp.leaveReason}` : 'On Leave'}
-                                                                                </div>
-                                                                            </td>
-                                                                        );
-                                                                    } else {
-                                                                        // Skip rendering for spanned days
-                                                                        return null;
+                                                                    const currentMs = currentDate.getTime();
+                                                                    const startMs = leaveStart.getTime();
+
+                                                                    // If no return date, assume indefinite leave (just show for rest of visible month)
+                                                                    const shouldShow = leaveEnd ? (currentMs >= startMs && currentMs <= leaveEnd.getTime()) : (currentMs >= startMs);
+
+                                                                    if (shouldShow) {
+                                                                        // Determine if we should render the colspan cell
+                                                                        const monthStart = new Date(selectedYear, selectedMonth - 1, 1);
+                                                                        const effectiveStart = startMs < monthStart.getTime() ? monthStart : leaveStart;
+
+                                                                        // Render only on the effective start day
+                                                                        if (currentMs === effectiveStart.getTime()) {
+                                                                            // Calculate colspan
+                                                                            const monthEnd = new Date(selectedYear, selectedMonth, 0);
+                                                                            const effectiveEnd = (leaveEnd && leaveEnd.getTime() < monthEnd.getTime()) ? leaveEnd : monthEnd;
+
+                                                                            const diffTime = effectiveEnd.getTime() - effectiveStart.getTime();
+                                                                            const spanDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+                                                                            return (
+                                                                                <td key={d} colSpan={spanDays} className="bg-orange-50/80 border-r border-gray-200 p-1 text-xs text-orange-800 font-medium text-left px-3 align-middle">
+                                                                                    <div className="line-clamp-1 overflow-hidden text-ellipsis whitespace-nowrap" title={emp.leaveReason}>
+                                                                                        {emp.leaveReason ? `On Leave: ${emp.leaveReason}` : 'On Leave'}
+                                                                                    </div>
+                                                                                </td>
+                                                                            );
+                                                                        } else {
+                                                                            // Skip rendering for spanned days
+                                                                            return null;
+                                                                        }
                                                                     }
                                                                 }
-                                                            }
 
-                                                            const record = empMap.get(dateStr);
-                                                            let content = <span className="text-gray-200">-</span>;
-                                                            let cellClass = "cursor-pointer hover:bg-gray-100";
+                                                                const record = empMap.get(dateStr);
+                                                                let content = <span className="text-gray-200">-</span>;
+                                                                let cellClass = "cursor-pointer hover:bg-gray-100";
 
-                                                            if (record) {
-                                                                const status = record.status;
-                                                                
-                                                                // Color mapping
-                                                                let bgClass = '';
-                                                                let textClass = '';
-                                                                let borderClass = 'border-transparent';
+                                                                if (record) {
+                                                                    const status = record.status;
 
-                                                                if (status === 'P') { bgClass = 'bg-green-50/30'; textClass = 'text-green-600'; borderClass = 'border-green-500'; }
-                                                                else if (status === 'A') { bgClass = 'bg-red-50'; textClass = 'text-red-500'; borderClass = 'border-red-500'; }
-                                                                else if (status === 'HD') { bgClass = 'bg-orange-50'; textClass = 'text-orange-600'; borderClass = 'border-orange-500'; }
-                                                                else if (status === 'W/O') { bgClass = 'bg-blue-50'; textClass = 'text-blue-600'; borderClass = 'border-blue-500'; }
-                                                                else if (status === 'WOP') { bgClass = 'bg-purple-50'; textClass = 'text-purple-600'; borderClass = 'border-purple-500'; }
-                                                                else if (status === 'WOE' || status === 'HDE' || status === 'PH') { bgClass = 'bg-gray-50'; textClass = 'text-gray-600'; }
+                                                                    // Color mapping
+                                                                    let bgClass = '';
+                                                                    let textClass = '';
+                                                                    let borderClass = 'border-transparent';
 
-                                                                cellClass += ` ${bgClass}`;
+                                                                    if (status === 'P') { bgClass = 'bg-green-50/30'; textClass = 'text-green-600'; borderClass = 'border-green-500'; }
+                                                                    else if (status === 'A') { bgClass = 'bg-red-50'; textClass = 'text-red-500'; borderClass = 'border-red-500'; }
+                                                                    else if (status === 'HD') { bgClass = 'bg-orange-50'; textClass = 'text-orange-600'; borderClass = 'border-orange-500'; }
+                                                                    else if (status === 'W/O') { bgClass = 'bg-blue-50'; textClass = 'text-blue-600'; borderClass = 'border-blue-500'; }
+                                                                    else if (status === 'WOP') { bgClass = 'bg-purple-50'; textClass = 'text-purple-600'; borderClass = 'border-purple-500'; }
+                                                                    else if (status === 'WOE' || status === 'HDE' || status === 'PH') { bgClass = 'bg-gray-50'; textClass = 'text-gray-600'; }
 
-                                                                if (record.photoUrl) {
-                                                                    content = (
-                                                                        <div className="flex justify-center items-center group relative w-full h-full">
-                                                                            <img
-                                                                                src={getSafePhotoUrl(record.photoUrl)}
-                                                                                className={`w-8 h-8 rounded object-cover border ${borderClass} shadow-sm`}
-                                                                                alt={status}
-                                                                                onError={handleImageError}
-                                                                                loading="lazy"
-                                                                            />
-                                                                            <div className="absolute -top-1 -right-1 bg-blue-500 rounded-full p-0.5 border border-white">
-                                                                                <Camera size={8} className="text-white" />
-                                                                            </div>
-                                                                            <div className="fixed hidden group-hover:block z-[9999] pointer-events-none" style={{ transform: 'translate(-50%, -110%)' }}>
-                                                                                <img src={getSafePhotoUrl(record.photoUrl)} className="w-48 h-48 rounded-lg shadow-2xl border-4 border-white object-cover bg-gray-800" alt="Preview" onError={handleImageError} loading="lazy" />
-                                                                                <div className="absolute bottom-2 left-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded">
-                                                                                    {status} • {new Date(record.timestamp || record.checkInTime || '').toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                                    cellClass += ` ${bgClass}`;
+
+                                                                    if (record.photoUrl) {
+                                                                        content = (
+                                                                            <div className="flex justify-center items-center group relative w-full h-full">
+                                                                                <img
+                                                                                    src={getSafePhotoUrl(record.photoUrl)}
+                                                                                    className={`w-8 h-8 rounded object-cover border ${borderClass} shadow-sm`}
+                                                                                    alt={status}
+                                                                                    onError={handleImageError}
+                                                                                    loading="lazy"
+                                                                                />
+                                                                                <div className="absolute -top-1 -right-1 bg-blue-500 rounded-full p-0.5 border border-white">
+                                                                                    <Camera size={8} className="text-white" />
+                                                                                </div>
+                                                                                <div className="fixed hidden group-hover:block z-[9999] pointer-events-none" style={{ transform: 'translate(-50%, -110%)' }}>
+                                                                                    <img src={getSafePhotoUrl(record.photoUrl)} className="w-48 h-48 rounded-lg shadow-2xl border-4 border-white object-cover bg-gray-800" alt="Preview" onError={handleImageError} loading="lazy" />
+                                                                                    <div className="absolute bottom-2 left-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded">
+                                                                                        {status} • {new Date(record.timestamp || record.checkInTime || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                                    </div>
                                                                                 </div>
                                                                             </div>
-                                                                        </div>
-                                                                    );
-                                                                } else {
-                                                                    content = <span className={`${textClass} font-bold`}>{status}</span>;
+                                                                        );
+                                                                    } else {
+                                                                        content = <span className={`${textClass} font-bold`}>{status}</span>;
+                                                                    }
                                                                 }
-                                                            }
-                                                            return (<td key={d} className={`border-r border-gray-100 p-1 ${cellClass}`} onClick={() => handleCellClick(emp, d)}>{content}</td>);
-                                                        })}
-                                                    </tr>
+                                                                return (<td key={d} className={`border-r border-gray-100 p-1 ${cellClass}`} onClick={() => handleCellClick(emp, d)}>{content}</td>);
+                                                            })}
+                                                        </tr>
+                                                    </React.Fragment>
                                                 );
                                             })}
                                             {filteredEmployees.length === 0 && (

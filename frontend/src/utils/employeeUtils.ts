@@ -20,13 +20,13 @@ export function isEmployeeActiveForMonth(e: Employee, month: number, year: numbe
   if (e.leavingDate) {
     // Robust parsing for YYYY-MM-DD to avoid UTC conversion issues
     if (typeof e.leavingDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(e.leavingDate)) {
-        const [y, m, d] = e.leavingDate.split('-').map(Number);
-        // Create Local Date at End of Day (23:59:59.999)
-        activeUntil = new Date(y, m - 1, d, 23, 59, 59, 999);
+      const [y, m, d] = e.leavingDate.split('-').map(Number);
+      // Create Local Date at End of Day (23:59:59.999)
+      activeUntil = new Date(y, m - 1, d, 23, 59, 59, 999);
     } else {
-        // Fallback for other formats (Date object or non-standard string)
-        activeUntil = new Date(e.leavingDate);
-        activeUntil.setHours(23, 59, 59, 999);
+      // Fallback for other formats (Date object or non-standard string)
+      activeUntil = new Date(e.leavingDate);
+      activeUntil.setHours(23, 59, 59, 999);
     }
   } else if (e.status === 'Inactive') {
     // Inactive but no date: Assume inactive "as of today" to prevent ghosting in future months,
@@ -34,20 +34,20 @@ export function isEmployeeActiveForMonth(e: Employee, month: number, year: numbe
     const today = new Date();
     activeUntil = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
   } else if (e.status === 'On Leave') {
-      // Employees on leave should ALWAYS be visible in the list, 
-      // because they are technically still employed and might return any time.
-      return true;
+    // Employees on leave should ALWAYS be visible in the list, 
+    // because they are technically still employed and might return any time.
+    return true;
   }
 
   if (activeUntil) {
     // If the employee left BEFORE the 1st of the requested month, return false (Hidden).
     if (activeUntil.getTime() < reportMonthStart.getTime()) {
-        // EXCEPTION: If they are "On Leave", we want them to stay visible in the sheet 
-        // regardless of the date they started their leave.
-        if (e.status === 'On Leave') {
-            return true;
-        }
-        return false;
+      // EXCEPTION: If they are "On Leave", we want them to stay visible in the sheet 
+      // regardless of the date they started their leave.
+      if (e.status === 'On Leave') {
+        return true;
+      }
+      return false;
     }
   }
 
@@ -106,8 +106,12 @@ export function computeWorkingDaysForEmployee(records: AttendanceRecord[], e: Em
 
     switch (rec.status) {
       case 'P':
+        // If explicitly marked P on a weekoff day in the system without WOP status, it's still double?
+        // Usually the system marks it as WOP. But if it's P and it isWeekoff, let's count as 2 to be safe/generous, 
+        // or strictly follow status. Let's strictly follow status but handle the P on W/O edge case if needed.
+        // Assuming 'P' means standard working day present.
         if (isWeekoff) {
-          workingDays += 2; // present on weekoff counts double
+          workingDays += 2;
           breakdown.present += 1;
           breakdown.weekoff += 1;
         } else {
@@ -115,11 +119,21 @@ export function computeWorkingDaysForEmployee(records: AttendanceRecord[], e: Em
           breakdown.present += 1;
         }
         break;
+      case 'WOP': // Week Off Present - Explicit status
+        workingDays += 2;
+        breakdown.present += 1;
+        breakdown.weekoff += 1; // It counts as both weekoff benefit + working
+        break;
       case 'A':
-        workingDays -= 1;
+        // Absent should NOT subtract from 0 if we are summing up working days. 
+        // We are calculating "Days to be Paid". 
+        // If I am absent, I get 0 pay for that day. I don't get -1 pay.
+        // PREVIOUS BUG: workingDays -= 1; 
+        workingDays += 0;
         breakdown.absent += 1;
         break;
       case 'W/O':
+        // Standard Week Off - Paid Leave
         workingDays += 1;
         breakdown.weekoff += 1;
         break;
@@ -132,11 +146,15 @@ export function computeWorkingDaysForEmployee(records: AttendanceRecord[], e: Em
         breakdown.ph += 1;
         break;
       default:
-        // WOE, WOP, Leave, etc. Treat as 1 by default except Leave which is 0
+        // For other statuses, if it's 'Leave', it's 0 (unless paid leave, but 'Leave' usually implies approved unpaid or deducted elsewhere).
+        // Let's assume neutral 0 for unknown statuses to be safe, unless explicitly mapped.
         if (rec.status === 'Leave') {
-          // No addition
+          workingDays += 0;
         } else {
-          workingDays += 1;
+          // Fallback
+          // If it's something like "Site Closed" or similar paid event? 
+          // Better to count 0 to avoid overpayment bugs.
+          workingDays += 0;
           breakdown.other += 1;
         }
         break;
