@@ -92,10 +92,8 @@ export function computeWorkingDaysForEmployee(records: AttendanceRecord[], e: Em
 
   for (let d = 1; d <= daysInMonth; d++) {
     const dateObj = new Date(year, month - 1, d);
-    const rec = records.find(r => {
-      const rd = new Date(r.date);
-      return rd.getFullYear() === dateObj.getFullYear() && rd.getMonth() === dateObj.getMonth() && rd.getDate() === dateObj.getDate();
-    });
+    const targetDateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const rec = records.find(r => r.date === targetDateStr);
 
     const isWeekoff = dateObj.getDay() === weeklyOffIdx;
 

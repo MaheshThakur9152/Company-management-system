@@ -243,52 +243,52 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
         const [ly, lm, ld] = emp.leavingDate.split('-').map(Number);
         const leaveStart = new Date(ly, lm - 1, ld);
         // Reset hours for accurate comparison
-        leaveStart.setHours(0,0,0,0);
-        
+        leaveStart.setHours(0, 0, 0, 0);
+
         let leaveEnd = null;
         if (emp.returnDate) {
-            const [ry, rm, rd] = emp.returnDate.split('-').map(Number);
-            leaveEnd = new Date(ry, rm - 1, rd);
-            leaveEnd.setHours(0,0,0,0);
+          const [ry, rm, rd] = emp.returnDate.split('-').map(Number);
+          leaveEnd = new Date(ry, rm - 1, rd);
+          leaveEnd.setHours(0, 0, 0, 0);
         }
 
         const currentMs = date.getTime();
         const startMs = leaveStart.getTime();
-        
+
         // Determine effective range for this month
         const monthStart = new Date(year, month - 1, 1);
-        monthStart.setHours(0,0,0,0);
+        monthStart.setHours(0, 0, 0, 0);
         const effectiveStart = startMs < monthStart.getTime() ? monthStart : leaveStart;
-        
+
         // Check if current date is within leave
         const isWithin = leaveEnd ? (currentMs >= startMs && currentMs <= leaveEnd.getTime()) : (currentMs >= startMs);
 
         if (isWithin) {
-            // Only trigger merge on the first day of the visible leave block
-             if (currentMs === effectiveStart.getTime()) {
-                const monthEnd = new Date(year, month, 0);
-                monthEnd.setHours(0,0,0,0);
-                const effectiveEnd = (leaveEnd && leaveEnd.getTime() < monthEnd.getTime()) ? leaveEnd : monthEnd;
-                
-                const diffTime = effectiveEnd.getTime() - effectiveStart.getTime();
-                const spanDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                
-                const cell = empRow.getCell(5 + dayIndex);
-                try {
-                    // ExcelJS columns are 1-based, mergeCells takes (top, left, bottom, right)
-                    // 5 + dayIndex is the column number.
-                    worksheet.mergeCells(currentRow, 5 + dayIndex, currentRow, 5 + dayIndex + span - 1);
-                } catch (e) { console.error("Merge error", e); }
+          // Only trigger merge on the first day of the visible leave block
+          if (currentMs === effectiveStart.getTime()) {
+            const monthEnd = new Date(year, month, 0);
+            monthEnd.setHours(0, 0, 0, 0);
+            const effectiveEnd = (leaveEnd && leaveEnd.getTime() < monthEnd.getTime()) ? leaveEnd : monthEnd;
 
-                cell.value = emp.leaveReason ? `On Leave: ${emp.leaveReason}` : 'On Leave';
-                cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF9C4000' } }; // Orange text
-                cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE6CC' } }; // Light Orange
-                cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+            const diffTime = effectiveEnd.getTime() - effectiveStart.getTime();
+            const spanDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
-                skipUntilIndex = dayIndex + span - 1;
-                return;
-             }
+            const cell = empRow.getCell(5 + dayIndex);
+            try {
+              // ExcelJS columns are 1-based, mergeCells takes (top, left, bottom, right)
+              // 5 + dayIndex is the column number.
+              worksheet.mergeCells(currentRow, 5 + dayIndex, currentRow, 5 + dayIndex + span - 1);
+            } catch (e) { console.error("Merge error", e); }
+
+            cell.value = emp.leaveReason ? `On Leave: ${emp.leaveReason}` : 'On Leave';
+            cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF9C4000' } }; // Orange text
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE6CC' } }; // Light Orange
+            cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+
+            skipUntilIndex = dayIndex + span - 1;
+            return;
+          }
         }
       }
 
@@ -310,46 +310,73 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
       cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
 
       if (isPreJoining) {
-        cell.value = "N/J"; // Or merge if possible, but N/J is simpler and matches legend
-        // If we want to merge "NEW JOINING" across cells, it's complex inside this loop.
-        // Let's stick to N/J per cell as per legend.
+        cell.value = "N/J";
       } else if (record) {
-        if (record.status === 'P') {
-          cell.value = 'P';
-          rowPresent++;
-        } else if (record.status === 'A') {
-          cell.value = 'A';
-          cell.font = { ...cell.font, color: { argb: 'FFFF0000' }, bold: true };
-        } else if (record.status === 'PH') { // Mapped to HD (Holiday)
-          cell.value = 'HD';
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
-          rowHD++;
-        } else if (record.status === 'W/O') {
-          cell.value = 'W/O';
-          cell.font = { ...cell.font, color: { argb: 'FF0000FF' }, bold: true }; // Blue Text
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCCCCFF' } }; // Light Blue BG
-          rowWO++;
-        } else if (record.status === 'WOP') {
-          cell.value = 'WOP';
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCC99FF' } };
-          rowWO++;
-        } else if (record.status === 'WOE') {
-          cell.value = 'WOE';
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF92D050' } };
-          rowWO++;
-        } else if (record.status === 'HDE') {
-          cell.value = 'HDE';
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
-          rowHD++;
-        } else if (record.status === 'HD') { // Half Day
-          cell.value = '0.5';
-          rowPresent += 0.5;
+        switch (record.status) {
+          case 'P':
+            if (isWO) {
+              // Present on Week Off -> Treating as WOP implies double benefit
+              cell.value = 'WOP'; // upgrading display to WOP for clarity? Or keep P but count double?
+              // Let's keep P to match valid record but count correctly.
+              // Actually, if it's P on WO, it usually means they worked.
+              // If we want to show 'P' but count 2:
+              cell.value = 'P';
+              rowPresent++;
+              rowWO++;
+            } else {
+              cell.value = 'P';
+              rowPresent++;
+            }
+            break;
+          case 'A':
+            cell.value = 'A';
+            cell.font = { ...cell.font, color: { argb: 'FFFF0000' }, bold: true };
+            // Absent = 0 days.
+            break;
+          case 'PH': // Public Holiday -> Counts as HD (Holiday) column = 1 day
+            cell.value = 'HD'; // Display HD for Holiday? Legend says HD = DASERA...
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+            rowHD++;
+            break;
+          case 'W/O': // Week Off -> 1 day
+            cell.value = 'W/O';
+            cell.font = { ...cell.font, color: { argb: 'FF0000FF' }, bold: true };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCCCCFF' } };
+            rowWO++;
+            break;
+          case 'WOP': // Week Off Present -> 2 days (1 Present + 1 WO)
+            cell.value = 'WOP';
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCC99FF' } };
+            rowPresent++;
+            rowWO++;
+            break;
+          case 'WOE': // Week Off Extra? Assuming similar to W/O or WOP? 
+            // Context implies Extra Week Off maybe?
+            // If it's a paid off day:
+            cell.value = 'WOE';
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF92D050' } };
+            rowWO++;
+            break;
+          case 'HDE': // Holiday Extra?
+            cell.value = 'HDE';
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+            rowHD++;
+            break;
+          case 'HD': // Half Day -> 0.5 Present
+            cell.value = '0.5';
+            rowPresent += 0.5;
+            break;
+          default:
+            cell.value = record.status;
+            // Default handling?
+            break;
         }
       } else {
         const isFuture = date > new Date();
         if (!isFuture) {
           cell.value = 'A';
           cell.font = { ...cell.font, color: { argb: 'FFFF0000' }, bold: true };
+          // Absent = 0
         }
       }
     });

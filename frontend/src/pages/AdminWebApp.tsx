@@ -1311,11 +1311,23 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                     const [rYear, rMonth, rDay] = dateStr.split('-').map(Number);
 
                     if (rMonth === selectedMonth && rYear === selectedYear) {
+                        const dateObj = new Date(rYear, rMonth - 1, rDay);
+                        const dayOfWeek = dateObj.getDay(); // 0=Sun, 1=Mon...
+
+                        // Map week day string to index
+                        const weekDayMap: Record<string, number> = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
+                        const empWeekOffIdx = weekDayMap[emp.weeklyOff || 'Sunday'] ?? 0;
+                        const isWeekOffDay = dayOfWeek === empWeekOffIdx;
+
                         let score = 0;
-                        if (record.status === 'P') score = 1;
-                        else if (record.status === 'A') score = -1;
+                        if (record.status === 'P') {
+                            score = isWeekOffDay ? 2 : 1;
+                        }
+                        else if (record.status === 'A') score = 0;
                         else if (record.status === 'W/O') score = 1;
                         else if (record.status === 'WOP') score = 2;
+                        else if (record.status === 'PH') score = 1;
+                        else if (record.status === 'HD') score = 0.5;
 
                         // Only add to list if it has a relevant status or it affects score
                         if (record.status) {
@@ -1513,12 +1525,21 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
             if (empAttendance) {
                 // Calculate total score for the CURRENTLY VIEWED month/year
                 for (const [dateStr, record] of empAttendance.entries()) {
-                    const [rYear, rMonth] = dateStr.split('-').map(Number);
+                    const [rYear, rMonth, rDay] = dateStr.split('-').map(Number);
                     if (rMonth === selectedMonth && rYear === selectedYear) {
-                        if (record.status === 'P') totalWorkingScore += 1;
-                        else if (record.status === 'A') totalWorkingScore += 0; // Absent is neutral (0), so changing P(+1) to A(0) reduces score by 1
+                        // Determine if this date is the employee's weekoff to correctly score P on weekoff as +2
+                        const dateObj = new Date(rYear, rMonth - 1, rDay);
+                        const dayOfWeek = dateObj.getDay(); // 0=Sun, 1=Mon...
+                        const weekDayMap: Record<string, number> = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
+                        const empWeekOffIdx = weekDayMap[emp.weeklyOff || 'Sunday'] ?? 0;
+                        const isWeekOffDay = dayOfWeek === empWeekOffIdx;
+
+                        if (record.status === 'P') totalWorkingScore += isWeekOffDay ? 2 : 1;
+                        else if (record.status === 'A') totalWorkingScore += 0; // Absent is neutral (0)
                         else if (record.status === 'W/O') totalWorkingScore += 1;
                         else if (record.status === 'WOP') totalWorkingScore += 2;
+                        else if (record.status === 'PH') totalWorkingScore += 1;
+                        else if (record.status === 'HD') totalWorkingScore += 0.5;
                     }
                 }
 
@@ -1762,7 +1783,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                     <div className="text-4xl font-extrabold text-indigo-700 mb-1">{attendanceStats.totalWorkingScore}</div>
                                                     <div className="flex gap-2">
                                                         <span className="text-[10px] text-gray-500 bg-white px-1.5 py-0.5 rounded border border-gray-200">P: +1</span>
-                                                        <span className="text-[10px] text-gray-500 bg-white px-1.5 py-0.5 rounded border border-gray-200">A: -1</span>
+                                                        <span className="text-[10px] text-gray-500 bg-white px-1.5 py-0.5 rounded border border-gray-200">A: 0</span>
                                                         <span className="text-[10px] text-gray-500 bg-white px-1.5 py-0.5 rounded border border-gray-200">WO: +1</span>
                                                         <span className="text-[10px] text-gray-500 bg-white px-1.5 py-0.5 rounded border border-gray-200">WOP: +2</span>
                                                     </div>

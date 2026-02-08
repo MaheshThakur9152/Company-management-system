@@ -104,7 +104,7 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
 
     const netBeforeAllowances = grossSalary - totalDeductions;
     const allowances = (salaryDetails.allowancesBreakdown?.travelling || 0) + (salaryDetails.allowancesBreakdown?.others || 0);
-    const finalNet = netBeforeAllowances + allowances;
+    const finalNet = Math.max(0, netBeforeAllowances + allowances);
 
     return {
       dailyRate,
