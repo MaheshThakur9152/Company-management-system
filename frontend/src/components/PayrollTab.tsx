@@ -39,6 +39,9 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
   const [localEmployees, setLocalEmployees] = useState<Employee[]>(employees);
   const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>([]);
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  
+  // Paid Days Edit State
+  const [editingPaidDays, setEditingPaidDays] = useState<{ empId: string, value: string } | null>(null);
 
   // Sync local employees when props change
   React.useEffect(() => {
@@ -63,7 +66,58 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
     setEditingEmployee(null);
   };
 
+  const handlePaidDaysUpdate = async (empId: string, days: number) => {
+    const emp = localEmployees.find(e => e.id === empId);
+    if (!emp) return;
 
+    const current = getSalaryStatus(empId);
+    
+    // Calculate new stats with overridden days
+    const stats = calculatePayroll(emp, days);
+    
+    let deductionBreakdown = stats.breakdown.deductions;
+    let allowancesBreakdown = stats.breakdown.allowances;
+
+    if (current.record && current.record.breakdown) {
+       // Keep existing deductions/allowances if they exist in record
+       deductionBreakdown = current.record.breakdown.deductions || deductionBreakdown;
+       allowancesBreakdown = current.record.breakdown.allowances || allowancesBreakdown;
+    }
+    
+    // Recalculate totals based on saved deductions/allowances but NEW gross
+    const totalDeductions = Object.values(deductionBreakdown || {}).reduce((a: any, b: any) => a + b, 0) as number;
+    const allowancesObj = allowancesBreakdown || {};
+    const totalAllowances = (allowancesObj.travelling || 0) + (allowancesObj.others || 0);
+
+    const newGross = stats.grossSalary;
+    const newNet = Math.max(0, newGross - totalDeductions + totalAllowances);
+    
+    const recordId = current.record?.id || `${empId}_${selectedMonth}_${selectedYear}`;
+    
+    const record: SalaryRecord = {
+      id: recordId,
+      employeeId: empId,
+      month: selectedMonth,
+      year: selectedYear,
+      netSalary: newNet,
+      grossSalary: newGross,
+      totalDeductions: totalDeductions,
+      manualPaidDays: days,
+      breakdown: {
+        deductions: deductionBreakdown,
+        allowances: allowancesBreakdown
+      },
+      status: current.status as any, 
+      complianceStatus: current.compliance,
+      paymentDate: current.record?.paymentDate
+    };
+
+    await updateSalaryRecord(record);
+    
+    const allRecords = await getSalaryRecords();
+    setSalaryRecords(allRecords);
+    setEditingPaidDays(null);
+  };
 
   const filteredEmployees = localEmployees.filter(e => {
     const matchesSite = selectedSiteFilter === 'all' || e.siteId === selectedSiteFilter;
@@ -71,14 +125,16 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
     return matchesSite && isVisible;
   });
 
-  const calculatePayroll = (emp: Employee) => {
+  const calculatePayroll = (emp: Employee, manualDaysOverride?: number) => {
     const empRecords = attendanceData.filter(r => {
       const d = new Date(r.date);
       return r.employeeId === emp.id && d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
     });
 
     // Compute working days using the shared rule helper
-    const { workingDays } = computeWorkingDaysForEmployee(empRecords, emp, selectedMonth, selectedYear);
+    const { workingDays: calculatedWorkingDays } = computeWorkingDaysForEmployee(empRecords, emp, selectedMonth, selectedYear);
+    const workingDays = manualDaysOverride !== undefined ? manualDaysOverride : calculatedWorkingDays;
+
     const totalOTHours = empRecords.reduce((sum, r) => sum + (r.overtimeHours || 0), 0);
 
     const salaryDetails = emp.salaryDetails || {};
@@ -150,6 +206,7 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
         grossSalary: gross,
         totalDeductions: totalDeductions,
         finalNet: gross - totalDeductions + totalAllowances,
+        manualPaidDays: current.record.manualPaidDays,
         breakdown: {
           ...current.record.breakdown,
           deductions: deductionBreakdown
@@ -180,6 +237,7 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
       netSalary: stats.finalNet,
       grossSalary: stats.grossSalary,
       totalDeductions: stats.totalDeductions,
+      manualPaidDays: stats.manualPaidDays,
       breakdown: stats.breakdown,
       status: current.status as any,
       complianceStatus: current.compliance,
@@ -209,6 +267,7 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
         finalNet: current.record.netSalary,
         grossSalary: current.record.grossSalary || 0,
         totalDeductions: current.record.totalDeductions || 0,
+        manualPaidDays: current.record.manualPaidDays,
         breakdown: current.record.breakdown
       };
     } else {
@@ -231,6 +290,7 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
       netSalary: stats.finalNet,
       grossSalary: stats.grossSalary,
       totalDeductions: stats.totalDeductions,
+      manualPaidDays: stats.manualPaidDays,
       breakdown: stats.breakdown,
       status: newStatus,
       complianceStatus: current.compliance,
@@ -311,6 +371,7 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
           finalNet: current.record.netSalary,
           grossSalary: current.record.grossSalary || 0,
           totalDeductions: current.record.totalDeductions || 0,
+          manualPaidDays: current.record.manualPaidDays,
           breakdown: current.record.breakdown
         };
       } else {
@@ -327,6 +388,7 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
         netSalary: stats.finalNet,
         grossSalary: stats.grossSalary,
         totalDeductions: stats.totalDeductions,
+        manualPaidDays: stats.manualPaidDays,
         breakdown: stats.breakdown,
         status: status,
         complianceStatus: current.compliance,
@@ -462,22 +524,30 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
             <tbody className="divide-y divide-gray-100">
               {filteredEmployees.map(emp => {
                 const status = getSalaryStatus(emp.id);
+                // Use manualPaidDays from record if available
+                const manualDays = status.record?.manualPaidDays;
+
                 let stats;
 
                 // If we have a historical record with breakdown, use it for financial values
                 if (status.record && status.record.breakdown) {
-                  const currentCalc = calculatePayroll(emp); // Get days/rates from current data
+                  const currentCalc = calculatePayroll(emp, manualDays); // Pass manual override
                   stats = {
                     ...currentCalc,
                     grossSalary: status.record.grossSalary || currentCalc.grossSalary,
                     totalDeductions: status.record.totalDeductions || currentCalc.totalDeductions,
                     finalNet: status.record.netSalary
                   };
+                  if (manualDays !== undefined) {
+                    stats.totalPaidDays = manualDays;
+                  }
                 } else {
-                  stats = calculatePayroll(emp);
+                  stats = calculatePayroll(emp, manualDays);
                 }
 
                 const isSelected = selectedEmployeeIds.includes(emp.id);
+                const isEditingDays = editingPaidDays?.empId === emp.id;
+
                 return (
                   <tr key={emp.id} className={`hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50/50' : ''}`}>
                     <td className="p-4">
@@ -500,8 +570,38 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
                         <div className="text-[10px] text-gray-400">Rate: {(stats.dailyRate || 0).toFixed(2)}</div>
                       )}
                     </td>
-                    <td className="p-4 text-center font-medium text-gray-700">
-                      {stats.totalPaidDays}
+                    <td 
+                      className="p-4 text-center font-medium text-gray-700 cursor-pointer relative group"
+                      onClick={() => !isEditingDays && setEditingPaidDays({ empId: emp.id, value: stats.totalPaidDays.toString() })}
+                    >
+                      {isEditingDays ? (
+                         <input
+                           type="number"
+                           step="0.5"
+                           className="w-20 p-1 border border-blue-500 rounded text-center outline-none shadow-sm"
+                           value={editingPaidDays.value}
+                           autoFocus
+                           onChange={(e) => setEditingPaidDays({ ...editingPaidDays, value: e.target.value })}
+                           onBlur={() => {
+                               const val = parseFloat(editingPaidDays.value);
+                               if (!isNaN(val)) handlePaidDaysUpdate(emp.id, val);
+                               else setEditingPaidDays(null);
+                           }}
+                           onKeyDown={(e) => {
+                               if (e.key === 'Enter') {
+                                   const val = parseFloat(editingPaidDays.value);
+                                   if (!isNaN(val)) handlePaidDaysUpdate(emp.id, val);
+                                   else setEditingPaidDays(null);
+                               }
+                           }}
+                           onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center gap-2">
+                           <span>{stats.totalPaidDays}</span>
+                           <Edit2 size={12} className="opacity-0 group-hover:opacity-100 text-gray-400" />
+                        </div>
+                      )}
                     </td>
                     <td className="p-4 text-right font-bold text-gray-800">
                       ₹{Math.round(stats.grossSalary || 0).toLocaleString()}

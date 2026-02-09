@@ -8,6 +8,7 @@ const salaryRecordSchema = new mongoose.Schema({
   netSalary: { type: Number, required: true },
   grossSalary: { type: Number },
   totalDeductions: { type: Number },
+  manualPaidDays: { type: Number },
   breakdown: { type: Object }, // Stores the snapshot of calculations
   status: { type: String, enum: ['Paid', 'Unpaid'], default: 'Unpaid' },
   paymentDate: { type: String },

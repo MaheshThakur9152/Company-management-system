@@ -175,6 +175,7 @@ export interface SalaryRecord {
   grossSalary?: number;
   totalDeductions?: number;
   breakdown?: any;
+  manualPaidDays?: number;
   status: 'Paid' | 'Unpaid';
   paymentDate?: string;
   complianceStatus: 'Compliant' | 'Non-Compliant' | 'Pending';
