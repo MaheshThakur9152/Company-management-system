@@ -28,12 +28,15 @@
     "mongoose": "^7.6.3",
     "morgan": "^1.10.1",
     "msedge-tts": "^2.0.3",
-    "multer": "^1.4.4",
+    "multer": "^2.0.2",
     "nodemailer": "^7.0.11",
     "num-words": "^1.2.3",
     "socket.io": "^4.8.1",
     "streamifier": "^0.1.1",
     "xss-clean": "^0.1.4"
+  },
+  "overrides": {
+    "rimraf": "^4.4.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

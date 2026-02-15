@@ -4,7 +4,7 @@ import { loadScript } from './scriptLoader';
 
 const ensureJSPDFLoaded = async () => {
   if ((window as any).jspdf) return (window as any).jspdf;
-  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.1.0/jspdf.umd.min.js');
   if (!(window as any).jspdf) {
      throw new Error("jsPDF loaded but window.jspdf is undefined");
   }

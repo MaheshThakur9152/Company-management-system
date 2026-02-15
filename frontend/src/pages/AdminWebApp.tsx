@@ -33,12 +33,6 @@ import { loadScript } from '@utils/scriptLoader';
 import { isEmployeeActiveForMonth } from '@utils/employeeUtils';
 
 // Access global variables safely
-const getXLSX = async () => {
-    if ((window as any).XLSX) return (window as any).XLSX;
-    await loadScript('https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js');
-    return (window as any).XLSX;
-};
-
 const getDeviceId = () => {
     let deviceId = localStorage.getItem('ambe_device_id');
     if (!deviceId) {
@@ -128,7 +122,7 @@ const getExcelJS = async () => {
 
 const getJSPDF = async () => {
     if ((window as any).jspdf) return (window as any).jspdf;
-    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.1.0/jspdf.umd.min.js');
     return (window as any).jspdf;
 };
 

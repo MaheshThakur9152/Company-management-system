@@ -16,7 +16,7 @@
     "express-rate-limit": "^8.2.1",
     "file-saver": "^2.0.5",
     "helmet": "^8.1.0",
-    "jspdf": "^3.0.4",
+    "jspdf": "^4.1.0",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.554.0",
     "morgan": "^1.10.1",
@@ -24,8 +24,7 @@
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.11.0",
     "recharts": "^3.5.0",
-    "socket.io": "^4.8.1",
-    "xlsx": "^0.18.5"
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",
@@ -37,5 +36,8 @@
     "tailwindcss": "^4.1.17",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
+  },
+  "overrides": {
+    "rimraf": "^4.4.1"
   }
 }
