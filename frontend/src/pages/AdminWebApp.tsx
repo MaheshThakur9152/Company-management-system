@@ -2215,7 +2215,14 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                                 }
                                                                                 return null;
                                                                             })()}
-                                                                            <div className="font-bold text-gray-800">{emp.name}</div>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <div className="font-bold text-gray-800">{emp.name}</div>
+                                                                                {emp.weeklyOff && (
+                                                                                    <div className="text-[10px] font-bold text-red-600 border border-red-200 bg-red-50 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                                                                        {emp.weeklyOff.slice(0, 3)}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
                                                                             <div className="flex items-center gap-2 mt-1">
                                                                                 <div className="text-[10px] text-gray-400 font-mono">{emp.biometricCode}</div>
                                                                                 <div className="text-xs font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">{emp.phone || 'No Phone'}</div>
