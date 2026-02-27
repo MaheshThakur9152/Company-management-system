@@ -2252,43 +2252,53 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                     // Only apply if the joining date is AFTER the start of the current month
                                                                     // If joining date is way in the past, no "New Joining" cells.
                                                                     // AND only apply if the current cell date is strictly BEFORE the joining date.
-                                                                    
+
                                                                     if (joinDateObj > monthStart && currentDate.getTime() < joinDateObj.getTime()) {
                                                                         // Since we iterate day by day (d=1, 2...), we can just trigger the colspan on the first day of the month (d=1)
                                                                         // OR if the month starts before the joining date block (which is always true because we are in the block < joinDate),
                                                                         // the block effectively starts at d=1 for this view.
-                                                                        
+
                                                                         if (d === 1) {
-                                                                             // Determine the end of the "New Joining" block
-                                                                             // It ends the day before joining, OR at the end of the month if joining is in a future month.
-                                                                             const dayBeforeJoin = new Date(joinDateObj);
-                                                                             dayBeforeJoin.setDate(dayBeforeJoin.getDate() - 1);
-                                                                             
-                                                                             const effectiveEnd = (dayBeforeJoin.getTime() < monthEnd.getTime()) ? dayBeforeJoin : monthEnd;
-                                                                             
-                                                                             // Calculate days from monthStart (1st) to effectiveEnd
-                                                                             const diffTime = effectiveEnd.getTime() - monthStart.getTime();
-                                                                             const spanDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                                                                             
-                                                                             if (spanDays > 0) {
-                                                                                 return (
-                                                                                     <td key={d} colSpan={spanDays} className="bg-purple-50/50 p-0 text-center align-middle relative border-r border-purple-100 last:border-r-0">
-                                                                                         <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none overflow-hidden">
-                                                                                             <div className="w-[150%] h-[150%] bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,#a855f7_10px,#a855f7_20px)] rotate-0" />
-                                                                                         </div>
-                                                                                         <div className="relative z-10 flex items-center justify-center gap-1.5 px-3 py-1">
-                                                                                             <div className="p-1 rounded-full bg-purple-100 text-purple-600 shadow-sm border border-purple-200 aspect-square flex items-center justify-center">
-                                                                                                 <UserPlus size={10} strokeWidth={2.5} />
-                                                                                             </div>
-                                                                                             <span className="text-[10px] uppercase font-bold text-purple-700 tracking-wider">
-                                                                                                 New Joining
-                                                                                             </span>
-                                                                                         </div>
-                                                                                     </td>
-                                                                                 );
-                                                                             }
+                                                                            // Determine the end of the "New Joining" block
+                                                                            // It ends the day before joining, OR at the end of the month if joining is in a future month.
+                                                                            const dayBeforeJoin = new Date(joinDateObj);
+                                                                            dayBeforeJoin.setDate(dayBeforeJoin.getDate() - 1);
+
+                                                                            const effectiveEnd = (dayBeforeJoin.getTime() < monthEnd.getTime()) ? dayBeforeJoin : monthEnd;
+
+                                                                            // Calculate days from monthStart (1st) to effectiveEnd
+                                                                            const diffTime = effectiveEnd.getTime() - monthStart.getTime();
+                                                                            const spanDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+                                                                            if (spanDays > 0) {
+                                                                                return (
+                                                                                    <td
+                                                                                        key={d}
+                                                                                        colSpan={spanDays}
+                                                                                        className="bg-purple-50/30 p-2 text-center align-middle relative border-r border-gray-100 last:border-r-0"
+                                                                                    >
+                                                                                        {/* Subtle, properly contained striped background */}
+                                                                                        <div
+                                                                                            className="absolute inset-0 pointer-events-none"
+                                                                                            style={{
+                                                                                                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(168, 85, 247, 0.04) 10px, rgba(168, 85, 247, 0.04) 20px)'
+                                                                                            }}
+                                                                                        />
+
+                                                                                        {/* Centered Pill Badge */}
+                                                                                        <div className="relative z-10 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white border border-purple-100 rounded-full shadow-sm mx-auto">
+                                                                                            <div className="text-purple-500 flex items-center justify-center">
+                                                                                                <UserPlus size={12} strokeWidth={2.5} />
+                                                                                            </div>
+                                                                                            <span className="text-[10px] font-bold text-purple-600 uppercase tracking-widest mt-[1px]">
+                                                                                                New Joining
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </td>
+                                                                                );
+                                                                            }
                                                                         }
-                                                                        
+
                                                                         // Skip rendering for subsequent covered days
                                                                         return null;
                                                                     }
