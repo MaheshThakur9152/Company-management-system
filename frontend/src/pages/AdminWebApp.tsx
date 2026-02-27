@@ -2242,6 +2242,50 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                 const dateStr = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
                                                                 const currentDate = new Date(selectedYear, selectedMonth - 1, d);
 
+                                                                // --- NEW JOINING LOGIC ---
+                                                                if (emp.joiningDate) {
+                                                                    const [jy, jm, jd] = emp.joiningDate.split('-').map(Number);
+                                                                    const joinDateObj = new Date(jy, jm - 1, jd);
+                                                                    const monthStart = new Date(selectedYear, selectedMonth - 1, 1);
+                                                                    const monthEnd = new Date(selectedYear, selectedMonth, 0);
+
+                                                                    // Only apply if the joining date is AFTER the start of the current month
+                                                                    // If joining date is way in the past, no "New Joining" cells.
+                                                                    // AND only apply if the current cell date is strictly BEFORE the joining date.
+                                                                    
+                                                                    if (joinDateObj > monthStart && currentDate.getTime() < joinDateObj.getTime()) {
+                                                                        // Since we iterate day by day (d=1, 2...), we can just trigger the colspan on the first day of the month (d=1)
+                                                                        // OR if the month starts before the joining date block (which is always true because we are in the block < joinDate),
+                                                                        // the block effectively starts at d=1 for this view.
+                                                                        
+                                                                        if (d === 1) {
+                                                                             // Determine the end of the "New Joining" block
+                                                                             // It ends the day before joining, OR at the end of the month if joining is in a future month.
+                                                                             const dayBeforeJoin = new Date(joinDateObj);
+                                                                             dayBeforeJoin.setDate(dayBeforeJoin.getDate() - 1);
+                                                                             
+                                                                             const effectiveEnd = (dayBeforeJoin.getTime() < monthEnd.getTime()) ? dayBeforeJoin : monthEnd;
+                                                                             
+                                                                             // Calculate days from monthStart (1st) to effectiveEnd
+                                                                             const diffTime = effectiveEnd.getTime() - monthStart.getTime();
+                                                                             const spanDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                                                                             
+                                                                             if (spanDays > 0) {
+                                                                                 return (
+                                                                                     <td key={d} colSpan={spanDays} className="bg-purple-50/80 border-r border-gray-200 p-1 text-xs text-purple-800 font-medium text-left px-3 align-middle">
+                                                                                         <div className="line-clamp-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                                                                                             New Joining
+                                                                                         </div>
+                                                                                     </td>
+                                                                                 );
+                                                                             }
+                                                                        }
+                                                                        
+                                                                        // Skip rendering for subsequent covered days
+                                                                        return null;
+                                                                    }
+                                                                }
+
                                                                 // Check for Leave Spanning
                                                                 if (emp.status === 'On Leave' && emp.leavingDate) {
                                                                     const [ly, lm, ld] = emp.leavingDate.split('-').map(Number);

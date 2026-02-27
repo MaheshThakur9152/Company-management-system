@@ -46,7 +46,7 @@ export interface Employee {
   siteId: string;
   photoUrl: string;
   weeklyOff: string;
-  status: 'Active' | 'Inactive' | 'Stopped' | 'Pending' | 'Deleted' | 'On Leave' | 'New Joining';
+  status: 'Active' | 'Inactive' | 'Stopped' | 'Pending' | 'Deleted' | 'On Leave';
   stoppedDate?: string;
   leavingDate?: string;
   returnDate?: string;
