@@ -106,7 +106,7 @@ const setCachedData = (key: string, data: any) => {
 };
 
 const getSafePhotoUrl = (url: string | undefined | null) => {
-    if (!url) return PLACEHOLDER_IMAGE;
+    if (!url || url === 'undefined' || url === 'null') return ''; // Return empty string to trigger fallback
     const trimmedUrl = url.trim();
     if (trimmedUrl.startsWith('http') || trimmedUrl.startsWith('data:')) {
         // If it's a Cloudinary URL, add optimization parameters
@@ -2219,7 +2219,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                             title="Click to Edit Staff"
                                                                         >
                                                                             <img 
-                                                                                src={emp.photoUrl ? getSafePhotoUrl(emp.photoUrl) : getInitialsAvatar(emp.name)} 
+                                                                                src={getSafePhotoUrl(emp.photoUrl) || getInitialsAvatar(emp.name)} 
                                                                                 data-name={emp.name}
                                                                                 className="w-10 h-10 rounded-xl object-cover border border-gray-100 shadow-sm bg-gray-50" 
                                                                                 alt={emp.name} 
