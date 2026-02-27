@@ -2184,12 +2184,18 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                 <div className="flex items-center justify-between gap-3 min-w-[180px]">
                                                                     <div className="flex items-center gap-3">
                                                                         <div
-                                                                            className="relative cursor-pointer hover:opacity-80 transition-opacity"
+                                                                            className="relative cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
                                                                             onClick={() => { setEditingEmployee(emp); setShowEmployeeModal(true); }}
                                                                             title="Click to Edit Staff"
                                                                         >
-                                                                            <img src={getSafePhotoUrl(emp.photoUrl)} className="w-8 h-8 rounded-full object-cover border border-gray-100 shadow-sm" alt="" onError={handleImageError} loading="lazy" />
-                                                                            <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${emp.status === 'Active' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                                                            <img 
+                                                                                src={getSafePhotoUrl(emp.photoUrl)} 
+                                                                                className="w-10 h-10 rounded-xl object-cover border border-gray-100 shadow-sm bg-gray-50" 
+                                                                                alt="" 
+                                                                                onError={handleImageError} 
+                                                                                loading="lazy" 
+                                                                            />
+                                                                            <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${emp.status === 'Active' ? 'bg-emerald-500' : 'bg-gray-300'}`}></div>
                                                                         </div>
                                                                         <div className="text-left">
                                                                             {(() => {
@@ -2271,7 +2277,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                              
                                                                              if (spanDays > 0) {
                                                                                  return (
-                                                                                     <td key={d} colSpan={spanDays} className="bg-purple-50/20 p-0 text-center align-middle relative border-r border-purple-100 last:border-r-0">
+                                                                                     <td key={d} colSpan={spanDays} className="bg-purple-50/20 p-0 text-center align-middle relative border-r border-purple-100 last:border-r-0 overflow-hidden">
                                                                                          {/* Boxy Texture Grid Background */}
                                                                                          <div className="absolute inset-0 opacity-10 pointer-events-none" 
                                                                                              style={{ 
@@ -2280,10 +2286,10 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                                              }} 
                                                                                          />
                                                                                          
-                                                                                         <div className="relative z-10 flex flex-col items-center justify-center h-full px-2">
-                                                                                             <div className="bg-purple-100/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-purple-200 shadow-sm flex items-center gap-2">
-                                                                                                 <UserPlus size={12} className="text-purple-600" />
-                                                                                                 <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wide">
+                                                                                         <div className="relative z-10 w-full h-full flex flex-col items-center justify-center px-1">
+                                                                                             <div className="bg-purple-100/90 backdrop-blur-sm px-2 py-1 rounded border border-purple-200 shadow-sm flex items-center justify-center gap-1.5 max-w-full overflow-hidden whitespace-nowrap">
+                                                                                                 <UserPlus size={10} className="text-purple-600 flex-shrink-0" />
+                                                                                                 <span className="text-[9px] font-bold text-purple-700 uppercase tracking-wide truncate">
                                                                                                      New Joining
                                                                                                  </span>
                                                                                              </div>
