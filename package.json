@@ -3,5 +3,11 @@
   "private": true,
   "scripts": {
     "build": "npm ci --prefix frontend && npm run build --prefix frontend && rm -rf dist && cp -a frontend/dist dist"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.2.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.5.0"
   }
 }

@@ -44,10 +44,40 @@ const getDeviceId = () => {
 
 const PLACEHOLDER_IMAGE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAJ0lEQVR4nO3MMQ0AAAgDMOFf6Bzu6QAJ6aeT5F3b7fF4PB6Px+PxeDweH00D83f1HwAAAABJRU5ErkJggg==';
 
+// Helper to generate initials avatar on the fly
+const getInitialsAvatar = (name: string) => {
+    const initials = name
+        .split(' ')
+        .map(n => n[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
+    
+    // Generate a consistent color based on name
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = Math.abs(hash % 360);
+    
+    return `data:image/svg+xml,${encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+            <rect width="100" height="100" fill="hsl(${hue}, 70%, 40%)"/>
+            <text x="50" y="50" dy=".35em" fill="white" font-family="Arial, sans-serif" font-size="40" font-weight="bold" text-anchor="middle">${initials}</text>
+        </svg>
+    `)}`;
+};
+
 const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.target as HTMLImageElement;
     target.onerror = null;
-    target.src = PLACEHOLDER_IMAGE;
+    // Keep placeholder for generic errors if no name data attribute found
+    const name = target.getAttribute('data-name');
+    if (name) {
+        target.src = getInitialsAvatar(name);
+    } else {
+        target.src = PLACEHOLDER_IMAGE;
+    }
 };
 
 // Cache helpers for stable data
@@ -2189,9 +2219,10 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                             title="Click to Edit Staff"
                                                                         >
                                                                             <img 
-                                                                                src={getSafePhotoUrl(emp.photoUrl)} 
+                                                                                src={emp.photoUrl ? getSafePhotoUrl(emp.photoUrl) : getInitialsAvatar(emp.name)} 
+                                                                                data-name={emp.name}
                                                                                 className="w-10 h-10 rounded-xl object-cover border border-gray-100 shadow-sm bg-gray-50" 
-                                                                                alt="" 
+                                                                                alt={emp.name} 
                                                                                 onError={handleImageError} 
                                                                                 loading="lazy" 
                                                                             />
