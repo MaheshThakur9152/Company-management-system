@@ -532,6 +532,19 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
                                 />
                                 <span className={`text-sm font-medium ${formData.status === 'On Leave' ? 'text-orange-600' : 'text-gray-600'}`}>On Leave</span>
                             </label>
+
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${formData.status === 'Reliever' ? 'border-indigo-500' : 'border-gray-300'}`}>
+                                    {formData.status === 'Reliever' && <div className="w-2 h-2 rounded-full bg-indigo-500" />}
+                                </div>
+                                <input
+                                    type="radio"
+                                    checked={formData.status === 'Reliever'}
+                                    onChange={() => handleChange('status', 'Reliever')}
+                                    className="hidden"
+                                />
+                                <span className={`text-sm font-medium ${formData.status === 'Reliever' ? 'text-indigo-600' : 'text-gray-600'}`}>Reliever</span>
+                            </label>
                         </div>
 
                         {formData.status === 'Inactive' && (

@@ -2249,56 +2249,50 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                     const monthStart = new Date(selectedYear, selectedMonth - 1, 1);
                                                                     const monthEnd = new Date(selectedYear, selectedMonth, 0);
 
-                                                                    // Only apply if the joining date is AFTER the start of the current month
-                                                                    // If joining date is way in the past, no "New Joining" cells.
-                                                                    // AND only apply if the current cell date is strictly BEFORE the joining date.
+                                                                    // Only apply if the joining date is IN THE CURRENT MONTH
+                                                                    // The user requested: "new joining status on the current months before the joining date only in the current month only"
+                                                                    // So if joining is Feb 3, Jan should be blank, Feb 1-2 should be "New Joining".
+                                                                    const isJoiningMonth = joinDateObj.getMonth() === (selectedMonth - 1) && joinDateObj.getFullYear() === selectedYear;
 
-                                                                    if (joinDateObj > monthStart && currentDate.getTime() < joinDateObj.getTime()) {
-                                                                        // Since we iterate day by day (d=1, 2...), we can just trigger the colspan on the first day of the month (d=1)
-                                                                        // OR if the month starts before the joining date block (which is always true because we are in the block < joinDate),
-                                                                        // the block effectively starts at d=1 for this view.
-
+                                                                    if (isJoiningMonth && currentDate.getTime() < joinDateObj.getTime()) {
+                                                                        // Since we iterate day by day, we trigger colspan on the first day
+                                                                        
                                                                         if (d === 1) {
-                                                                            // Determine the end of the "New Joining" block
-                                                                            // It ends the day before joining, OR at the end of the month if joining is in a future month.
-                                                                            const dayBeforeJoin = new Date(joinDateObj);
-                                                                            dayBeforeJoin.setDate(dayBeforeJoin.getDate() - 1);
-
-                                                                            const effectiveEnd = (dayBeforeJoin.getTime() < monthEnd.getTime()) ? dayBeforeJoin : monthEnd;
-
-                                                                            // Calculate days from monthStart (1st) to effectiveEnd
-                                                                            const diffTime = effectiveEnd.getTime() - monthStart.getTime();
-                                                                            const spanDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-
-                                                                            if (spanDays > 0) {
-                                                                                return (
-                                                                                    <td
-                                                                                        key={d}
-                                                                                        colSpan={spanDays}
-                                                                                        className="bg-purple-50/30 p-2 text-center align-middle relative border-r border-gray-100 last:border-r-0"
-                                                                                    >
-                                                                                        {/* Subtle, properly contained striped background */}
-                                                                                        <div
-                                                                                            className="absolute inset-0 pointer-events-none"
-                                                                                            style={{
-                                                                                                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(168, 85, 247, 0.04) 10px, rgba(168, 85, 247, 0.04) 20px)'
-                                                                                            }}
-                                                                                        />
-
-                                                                                        {/* Centered Pill Badge */}
-                                                                                        <div className="relative z-10 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white border border-purple-100 rounded-full shadow-sm mx-auto">
-                                                                                            <div className="text-purple-500 flex items-center justify-center">
-                                                                                                <UserPlus size={12} strokeWidth={2.5} />
-                                                                                            </div>
-                                                                                            <span className="text-[10px] font-bold text-purple-600 uppercase tracking-widest mt-[1px]">
-                                                                                                New Joining
-                                                                                            </span>
-                                                                                        </div>
-                                                                                    </td>
-                                                                                );
-                                                                            }
+                                                                             // Determine the end of the "New Joining" block - which is simply day before joining
+                                                                             const dayBeforeJoin = new Date(joinDateObj);
+                                                                             dayBeforeJoin.setDate(dayBeforeJoin.getDate() - 1);
+                                                                             
+                                                                             // Effective end is date before joining (since we are in the same month, this is safe)
+                                                                             const effectiveEnd = dayBeforeJoin;
+                                                                             
+                                                                             // Calculate days from monthStart (1st) to effectiveEnd
+                                                                             const diffTime = effectiveEnd.getTime() - monthStart.getTime();
+                                                                             const spanDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                                                                             
+                                                                             if (spanDays > 0) {
+                                                                                 return (
+                                                                                     <td key={d} colSpan={spanDays} className="bg-purple-50/20 p-0 text-center align-middle relative border-r border-purple-100 last:border-r-0">
+                                                                                         {/* Boxy Texture Grid Background */}
+                                                                                         <div className="absolute inset-0 opacity-10 pointer-events-none" 
+                                                                                             style={{ 
+                                                                                                 backgroundImage: 'linear-gradient(#a855f7 1px, transparent 1px), linear-gradient(90deg, #a855f7 1px, transparent 1px)', 
+                                                                                                 backgroundSize: '20px 20px' 
+                                                                                             }} 
+                                                                                         />
+                                                                                         
+                                                                                         <div className="relative z-10 flex flex-col items-center justify-center h-full px-2">
+                                                                                             <div className="bg-purple-100/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-purple-200 shadow-sm flex items-center gap-2">
+                                                                                                 <UserPlus size={12} className="text-purple-600" />
+                                                                                                 <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wide">
+                                                                                                     New Joining
+                                                                                                 </span>
+                                                                                             </div>
+                                                                                         </div>
+                                                                                     </td>
+                                                                                 );
+                                                                             }
                                                                         }
-
+                                                                        
                                                                         // Skip rendering for subsequent covered days
                                                                         return null;
                                                                     }
@@ -2352,6 +2346,18 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                 const record = empMap.get(dateStr);
                                                                 let content = <span className="text-gray-200">-</span>;
                                                                 let cellClass = "cursor-pointer hover:bg-gray-100";
+
+                                                                // --- RELIEVER LOGIC ---
+                                                                if (emp.status === 'Reliever' && !record) {
+                                                                    // If employee is a Reliever and has NO record for this day
+                                                                    return (
+                                                                        <td key={d} className="border-r border-gray-100 p-1 bg-indigo-50/20 text-center align-middle" onClick={() => handleCellClick(emp, d)}>
+                                                                            <span className="text-[9px] text-indigo-300 font-medium px-1 leading-tight block transform -rotate-45 origin-center opacity-70 select-none">
+                                                                                RELIEVER
+                                                                            </span>
+                                                                        </td>
+                                                                    );
+                                                                }
 
                                                                 if (record) {
                                                                     const status = record.status;
