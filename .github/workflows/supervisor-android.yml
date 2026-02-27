@@ -22,9 +22,13 @@ jobs:
           java-version: '17'
           cache: gradle
 
-      - name: Grant execute permission for gradlew
+      - name: Ensure Gradle Wrapper exists
         working-directory: supervisor-android
-        run: chmod +x gradlew
+        run: |
+          if [ ! -f gradlew ]; then
+            gradle wrapper --gradle-version 8.13
+          fi
+          chmod +x gradlew
 
       - name: Build Release APK
         working-directory: supervisor-android
