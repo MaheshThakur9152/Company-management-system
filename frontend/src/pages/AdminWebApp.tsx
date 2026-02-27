@@ -2180,7 +2180,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                             </tr>
                                                         )}
                                                         <tr className="border-b border-gray-100 hover:bg-gray-50">
-                                                            <td className="p-3 sticky left-0 bg-white z-10 border-r border-gray-100 text-left font-medium text-gray-900 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                                            <td className="p-3 sticky left-0 bg-white z-20 border-r border-gray-100 text-left font-medium text-gray-900 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                                                                 <div className="flex items-center justify-between gap-3 min-w-[180px]">
                                                                     <div className="flex items-center gap-3">
                                                                         <div
@@ -2277,7 +2277,7 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                              
                                                                              if (spanDays > 0) {
                                                                                  return (
-                                                                                     <td key={d} colSpan={spanDays} className="bg-purple-50/20 p-0 text-center align-middle relative border-r border-purple-100 last:border-r-0 overflow-hidden">
+                                                                                     <td key={d} colSpan={spanDays} className="bg-purple-50/20 p-px text-center align-middle relative border-r border-purple-100 last:border-r-0 overflow-hidden">
                                                                                          {/* Boxy Texture Grid Background */}
                                                                                          <div className="absolute inset-0 opacity-10 pointer-events-none" 
                                                                                              style={{ 
@@ -2286,8 +2286,8 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                                              }} 
                                                                                          />
                                                                                          
-                                                                                         <div className="relative z-10 w-full h-full flex flex-col items-center justify-center px-1">
-                                                                                             <div className="bg-purple-100/90 backdrop-blur-sm px-2 py-1 rounded border border-purple-200 shadow-sm flex items-center justify-center gap-1.5 max-w-full overflow-hidden whitespace-nowrap">
+                                                                                         <div className="relative w-full h-full flex flex-col items-center justify-center">
+                                                                                             <div className="bg-purple-100/90 backdrop-blur-sm px-2 py-0.5 rounded border border-purple-200 shadow-sm flex items-center justify-center gap-1.5 max-w-[95%] overflow-hidden whitespace-nowrap z-0">
                                                                                                  <UserPlus size={10} className="text-purple-600 flex-shrink-0" />
                                                                                                  <span className="text-[9px] font-bold text-purple-700 uppercase tracking-wide truncate">
                                                                                                      New Joining
