@@ -6,7 +6,7 @@ import {
     Edit2, LayoutDashboard, CheckCircle, XCircle, Trash2,
     Search, CalendarDays, ShieldCheck, Download, Filter,
     CheckSquare, Square, MapPin, Briefcase, Phone, Mail,
-    Save, X, RotateCcw, Receipt, Banknote, BookOpen, AlertTriangle, ChevronDown, Camera, UserCircle
+    Save, X, RotateCcw, Receipt, Banknote, BookOpen, AlertTriangle, ChevronDown, Camera, UserCircle, UserPlus
 } from 'lucide-react';
 
 import { Invoice, Employee, AttendanceRecord, Site, AttendanceStatus, User, LocationLog } from '@types';
@@ -2272,9 +2272,17 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                              
                                                                              if (spanDays > 0) {
                                                                                  return (
-                                                                                     <td key={d} colSpan={spanDays} className="bg-purple-50/80 border-r border-gray-200 p-1 text-xs text-purple-800 font-medium text-left px-3 align-middle">
-                                                                                         <div className="line-clamp-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                                                                                             New Joining
+                                                                                     <td key={d} colSpan={spanDays} className="bg-purple-50/50 p-0 text-center align-middle relative border-r border-purple-100 last:border-r-0">
+                                                                                         <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none overflow-hidden">
+                                                                                             <div className="w-[150%] h-[150%] bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,#a855f7_10px,#a855f7_20px)] rotate-0" />
+                                                                                         </div>
+                                                                                         <div className="relative z-10 flex items-center justify-center gap-1.5 px-3 py-1">
+                                                                                             <div className="p-1 rounded-full bg-purple-100 text-purple-600 shadow-sm border border-purple-200 aspect-square flex items-center justify-center">
+                                                                                                 <UserPlus size={10} strokeWidth={2.5} />
+                                                                                             </div>
+                                                                                             <span className="text-[10px] uppercase font-bold text-purple-700 tracking-wider">
+                                                                                                 New Joining
+                                                                                             </span>
                                                                                          </div>
                                                                                      </td>
                                                                                  );
