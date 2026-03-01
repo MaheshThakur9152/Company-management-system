@@ -277,7 +277,7 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
             try {
               // ExcelJS columns are 1-based, mergeCells takes (top, left, bottom, right)
               // 5 + dayIndex is the column number.
-              worksheet.mergeCells(currentRow, 5 + dayIndex, currentRow, 5 + dayIndex + span - 1);
+              worksheet.mergeCells(currentRow, 5 + dayIndex, currentRow, 5 + dayIndex + spanDays - 1);
             } catch (e) { console.error("Merge error", e); }
 
             cell.value = emp.leaveReason ? `On Leave: ${emp.leaveReason}` : 'On Leave';
@@ -286,7 +286,7 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE6CC' } }; // Light Orange
             cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
 
-            skipUntilIndex = dayIndex + span - 1;
+            skipUntilIndex = dayIndex + spanDays - 1;
             return;
           }
         }
@@ -294,7 +294,7 @@ function generateSheetContent(workbook, sheetName, siteDisplayName, employees, a
 
       // Check for New Joining
       let isPreJoining = false;
-      if (emp.joiningDate) {
+      if (emp.joiningDate && emp.status !== 'Reliever') { // Exclude Relievers from New Joining display
         const joiningDate = new Date(emp.joiningDate);
         // Reset time parts for accurate comparison
         joiningDate.setHours(0, 0, 0, 0);
