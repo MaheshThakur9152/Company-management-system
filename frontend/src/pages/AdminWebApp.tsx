@@ -2283,55 +2283,21 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                 if (emp.joiningDate) {
                                                                     const [jy, jm, jd] = emp.joiningDate.split('-').map(Number);
                                                                     const joinDateObj = new Date(jy, jm - 1, jd);
-                                                                    const monthStart = new Date(selectedYear, selectedMonth - 1, 1);
-                                                                    const monthEnd = new Date(selectedYear, selectedMonth, 0);
-
+                                                                    
                                                                     // Only apply if the joining date is IN THE CURRENT MONTH
                                                                     // The user requested: "new joining status on the current months before the joining date only in the current month only"
                                                                     // So if joining is Feb 3, Jan should be blank, Feb 1-2 should be "New Joining".
                                                                     const isJoiningMonth = joinDateObj.getMonth() === (selectedMonth - 1) && joinDateObj.getFullYear() === selectedYear;
 
                                                                     if (isJoiningMonth && currentDate.getTime() < joinDateObj.getTime()) {
-                                                                        // Since we iterate day by day, we trigger colspan on the first day
-                                                                        
-                                                                        if (d === 1) {
-                                                                             // Determine the end of the "New Joining" block - which is simply day before joining
-                                                                             const dayBeforeJoin = new Date(joinDateObj);
-                                                                             dayBeforeJoin.setDate(dayBeforeJoin.getDate() - 1);
-                                                                             
-                                                                             // Effective end is date before joining (since we are in the same month, this is safe)
-                                                                             const effectiveEnd = dayBeforeJoin;
-                                                                             
-                                                                             // Calculate days from monthStart (1st) to effectiveEnd
-                                                                             const diffTime = effectiveEnd.getTime() - monthStart.getTime();
-                                                                             const spanDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                                                                             
-                                                                             if (spanDays > 0) {
-                                                                                 return (
-                                                                                     <td key={d} colSpan={spanDays} className="bg-purple-50/20 p-px text-center align-middle relative border-r border-purple-100 last:border-r-0 overflow-hidden">
-                                                                                         {/* Boxy Texture Grid Background */}
-                                                                                         <div className="absolute inset-0 opacity-10 pointer-events-none" 
-                                                                                             style={{ 
-                                                                                                 backgroundImage: 'linear-gradient(#a855f7 1px, transparent 1px), linear-gradient(90deg, #a855f7 1px, transparent 1px)', 
-                                                                                                 backgroundSize: '20px 20px' 
-                                                                                             }} 
-                                                                                         />
-                                                                                         
-                                                                                         <div className="relative w-full h-full flex flex-col items-center justify-center">
-                                                                                             <div className="bg-purple-100/90 backdrop-blur-sm px-2 py-0.5 rounded border border-purple-200 shadow-sm flex items-center justify-center gap-1.5 max-w-[95%] overflow-hidden whitespace-nowrap z-0">
-                                                                                                 <UserPlus size={10} className="text-purple-600 flex-shrink-0" />
-                                                                                                 <span className="text-[9px] font-bold text-purple-700 uppercase tracking-wide truncate">
-                                                                                                     New Joining
-                                                                                                 </span>
-                                                                                             </div>
-                                                                                         </div>
-                                                                                     </td>
-                                                                                 );
-                                                                             }
-                                                                        }
-                                                                        
-                                                                        // Skip rendering for subsequent covered days
-                                                                        return null;
+                                                                        // Render individual cells for each day before joining (similar style to Reliever)
+                                                                        return (
+                                                                            <td key={d} className="border-r border-gray-100 p-1 bg-blue-50/20 text-center align-middle">
+                                                                                <span className="text-[9px] text-blue-500 font-medium px-1 leading-tight block transform -rotate-45 origin-center opacity-70 select-none whitespace-nowrap">
+                                                                                    NEW JOINING
+                                                                                </span>
+                                                                            </td>
+                                                                        );
                                                                     }
                                                                 }
 
