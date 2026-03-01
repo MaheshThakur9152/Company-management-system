@@ -1529,9 +1529,16 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
 
             return matchesSearch && matchesSite && isVisible;
         }).sort((a, b) => {
-            const roleA = a.role || 'Unassigned';
-            const roleB = b.role || 'Unassigned';
+            const shiftA = (a.shift || a.role || 'Unassigned').toUpperCase();
+            const shiftB = (b.shift || b.role || 'Unassigned').toUpperCase();
+            
+            if (shiftA !== shiftB) return shiftA.localeCompare(shiftB);
+            
+            // Secondary sort by Role if Shift matches (or both are using Role as group)
+            const roleA = (a.role || '').toUpperCase();
+            const roleB = (b.role || '').toUpperCase();
             if (roleA !== roleB) return roleA.localeCompare(roleB);
+            
             return (a.name || '').localeCompare(b.name || '');
         });
     }, [employees, searchTerm, selectedSiteFilter, selectedYear, selectedMonth]);
@@ -2177,9 +2184,11 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                 const empMap = attendanceByEmployee.get(emp.id) || new Map<string, AttendanceRecord>();
 
                                                 const prevEmp = index > 0 ? arr[index - 1] : null;
-                                                const currentRole = emp.role || 'Unassigned';
-                                                const prevRole = prevEmp ? (prevEmp.role || 'Unassigned') : null;
-                                                const showHeader = !prevEmp || currentRole !== prevRole;
+                                                
+                                                // Group by Shift first, then Role
+                                                const currentGroup = emp.shift || emp.role || 'Unassigned';
+                                                const prevGroup = prevEmp ? (prevEmp.shift || prevEmp.role || 'Unassigned') : null;
+                                                const showHeader = !prevEmp || currentGroup !== prevGroup;
                                                 const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
 
                                                 return (
@@ -2193,12 +2202,17 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                             <div className="flex flex-col">
                                                                                 <div className="flex items-center gap-3">
                                                                                     <span className="text-sm font-black text-slate-700 tracking-[0.1em] uppercase">
-                                                                                        {currentRole}
+                                                                                        {currentGroup}
                                                                                     </span>
+                                                                                    {emp.role && emp.shift && (
+                                                                                        <span className="text-xs text-gray-500 font-medium px-2 py-0.5 bg-gray-100 rounded">
+                                                                                            {/* Optional: Show role if shift is group header? No, row shows role anyway */}
+                                                                                        </span>
+                                                                                    )}
                                                                                     <div className="flex items-center gap-2 px-2.5 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">
                                                                                         <div className="w-1.5 h-1.5 bg-teal-500 rounded-full shadow-[0_0_4px_rgba(20,184,166,0.5)]" />
                                                                                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                                                                                            {filteredEmployees.filter(e => (e.role || 'Unassigned') === currentRole).length} Active Staff
+                                                                                            {filteredEmployees.filter(e => (e.shift || e.role || 'Unassigned') === currentGroup).length} Active Staff
                                                                                         </span>
                                                                                     </div>
                                                                                 </div>

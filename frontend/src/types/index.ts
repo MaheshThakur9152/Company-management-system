@@ -43,6 +43,7 @@ export interface Employee {
   name: string;
   phone?: string;
   role: string;
+  shift?: string; 
   siteId: string;
   photoUrl: string;
   weeklyOff: string;

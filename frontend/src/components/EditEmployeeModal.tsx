@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, MapPin, Briefcase, Calendar, Upload, Plus, Check, DollarSign } from 'lucide-react';
+import { X, Save, User, MapPin, Briefcase, Calendar, Upload, Plus, Check, DollarSign, Users } from 'lucide-react';
 import { Employee, Site } from '@types';
 import { getSites, API_URL } from '@services/mockData';
 
@@ -302,6 +302,20 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({ isOpen, employee,
                                     <option key={site.id} value={site.id}>{site.name}</option>
                                 ))}
                             </select>
+                        </div>
+                        
+                        {/* Custom Group / Shift */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
+                                <Users size={12} /> Shift / Group
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.shift || ''}
+                                onChange={(e) => handleChange('shift', e.target.value)}
+                                placeholder="e.g. Morning, Shift 1"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
+                            />
                         </div>
                     </div>
 

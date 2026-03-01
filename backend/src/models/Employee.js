@@ -5,6 +5,7 @@ const EmployeeSchema = new mongoose.Schema({
   biometricCode: { type: String, required: true },
   name: { type: String, required: true },
   role: { type: String, default: 'Janitor' },
+  shift: { type: String },
   siteId: { type: String, required: true },
   photoUrl: String,
   phone: String,
