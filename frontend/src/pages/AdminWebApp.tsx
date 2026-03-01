@@ -2280,7 +2280,8 @@ const AdminWebApp = ({ onExit, user, onUserUpdate }: AdminWebAppProps) => {
                                                                 const currentDate = new Date(selectedYear, selectedMonth - 1, d);
 
                                                                 // --- NEW JOINING LOGIC ---
-                                                                if (emp.joiningDate) {
+                                                                // Reliever status takes precedence over New Joining - user request: "when the person is reliever the new joining should not shows"
+                                                                if (emp.joiningDate && emp.status !== 'Reliever') {
                                                                     const [jy, jm, jd] = emp.joiningDate.split('-').map(Number);
                                                                     const joinDateObj = new Date(jy, jm - 1, jd);
                                                                     
