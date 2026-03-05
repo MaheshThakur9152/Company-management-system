@@ -74,7 +74,7 @@ export function getDaysInMonth(month: number, year: number): number {
  * Only records present in `records` are considered; days with no record are ignored.
  * Returns { workingDays: number, breakdown: { present, absent, weekoff, hd, ph, other } }
  */
-export function computeWorkingDaysForEmployee(records: AttendanceRecord[], e: Employee, month: number, year: number) {
+export function computeWorkingDaysForEmployee(records: AttendanceRecord[], e: Employee, month: number, year: number, isPayroll: boolean = false) {
   const daysInMonth = getDaysInMonth(month, year);
   const breakdown = { present: 0, absent: 0, weekoff: 0, hd: 0, ph: 0, other: 0 };
   let workingDays = 0;
@@ -138,7 +138,9 @@ export function computeWorkingDaysForEmployee(records: AttendanceRecord[], e: Em
         break;
       case 'W/O':
         // Standard Week Off - Paid Leave
-        workingDays += 1;
+        // For Payroll, Week Offs are generally UNPAID (0) unless marked otherwise (e.g., PH or P).
+        // For Billing/Proforma, Week Offs are counted as Billable (1).
+        workingDays += isPayroll ? 0 : 1;
         breakdown.weekoff += 1;
         break;
       case 'HD':

@@ -132,7 +132,8 @@ const PayrollTab: React.FC<PayrollTabProps> = ({
     });
 
     // Compute working days using the shared rule helper
-    const { workingDays: calculatedWorkingDays } = computeWorkingDaysForEmployee(empRecords, emp, selectedMonth, selectedYear);
+    // Payroll logic: Pass isPayroll=true to EXCLUDE standard WeekOffs from paid days (unless marked P/PH)
+    const { workingDays: calculatedWorkingDays } = computeWorkingDaysForEmployee(empRecords, emp, selectedMonth, selectedYear, true);
     const workingDays = manualDaysOverride !== undefined ? manualDaysOverride : calculatedWorkingDays;
 
     const totalOTHours = empRecords.reduce((sum, r) => sum + (r.overtimeHours || 0), 0);
