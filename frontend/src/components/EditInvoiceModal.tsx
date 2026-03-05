@@ -67,18 +67,45 @@ const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({ isOpen, invoice, on
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const getDaysInMonthFromPeriod = (period: string) => {
+    try {
+        if (!period) return 30;
+        // Expected "1st to 28 February 2026"
+        const parts = period.split(' ');
+        const monthIndex = parts.findIndex(p => ['January','February','March','April','May','June','July','August','September','October','November','December'].includes(p));
+        const monthStr = monthIndex > -1 ? parts[monthIndex] : null;
+        const yearStr = (monthIndex > -1 && parts[monthIndex + 1]) ? parts[monthIndex + 1] : parts.find(p => /20\d{2}/.test(p));
+        
+        if (monthStr && yearStr) {
+            const m = ['January','February','March','April','May','June','July','August','September','October','November','December'].indexOf(monthStr) + 1;
+            const y = parseInt(yearStr);
+            if (m > 0 && y > 2000) {
+                 return new Date(y, m, 0).getDate();
+            }
+        }
+    } catch (e) {
+        // ignore
+    }
+    return 30; // default
+  };
+
   const handleItemChange = (id: string, field: keyof InvoiceItem, value: any) => {
     setItems(prev => prev.map(item => {
         if (item.id === id) {
             const updated = { ...item, [field]: value } as any;
-            
-            // REMOVED AUTO-CALCULATION because it interferes with manual edits and complex day-based billing logic.
-            // Users must update the Amount manually if they change Rate/Days/Persons to ensure accuracy.
-            /*
-            if (field === 'rate' || field === 'persons') {
-                 updated.amount = (parseFloat(updated.rate as any) || 0) * (parseFloat(updated.persons as any) || 0);
+            updated[field] = value; // Ensure the value is set first
+
+            // Auto-calculate Amount if Rate or Days changes
+            // Formula: Amount = (Rate / DaysInMonth) * Days
+            if (field === 'rate' || field === 'days') {
+                 const rate = parseFloat(updated.rate) || 0;
+                 const days = parseFloat(updated.days) || 0;
+                 const daysInMonth = getDaysInMonthFromPeriod(formData.billingPeriod || '');
+                 
+                 if (daysInMonth > 0) {
+                     updated.amount = Math.round((rate / daysInMonth) * days);
+                 }
             }
-            */
             
             if (field === 'amount') {
                 updated.amount = parseFloat(value) || 0;
