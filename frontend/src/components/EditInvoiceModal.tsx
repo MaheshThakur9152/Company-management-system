@@ -71,9 +71,15 @@ const EditInvoiceModal: React.FC<EditInvoiceModalProps> = ({ isOpen, invoice, on
     setItems(prev => prev.map(item => {
         if (item.id === id) {
             const updated = { ...item, [field]: value } as any;
+            
+            // REMOVED AUTO-CALCULATION because it interferes with manual edits and complex day-based billing logic.
+            // Users must update the Amount manually if they change Rate/Days/Persons to ensure accuracy.
+            /*
             if (field === 'rate' || field === 'persons') {
                  updated.amount = (parseFloat(updated.rate as any) || 0) * (parseFloat(updated.persons as any) || 0);
             }
+            */
+            
             if (field === 'amount') {
                 updated.amount = parseFloat(value) || 0;
             }
