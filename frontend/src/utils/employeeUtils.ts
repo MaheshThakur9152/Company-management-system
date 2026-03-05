@@ -79,6 +79,12 @@ export function computeWorkingDaysForEmployee(records: AttendanceRecord[], e: Em
   const breakdown = { present: 0, absent: 0, weekoff: 0, hd: 0, ph: 0, other: 0 };
   let workingDays = 0;
 
+  // Build a Map to ensure we use the latest record for each date, consistent with AdminWebApp grid logic
+  const recordMap = new Map<string, AttendanceRecord>();
+  records.forEach(r => {
+    if (r.date) recordMap.set(r.date, r);
+  });
+
   const weekDayMap: Record<string, number> = {
     'Sunday': 0,
     'Monday': 1,
@@ -93,7 +99,7 @@ export function computeWorkingDaysForEmployee(records: AttendanceRecord[], e: Em
   for (let d = 1; d <= daysInMonth; d++) {
     const dateObj = new Date(year, month - 1, d);
     const targetDateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const rec = records.find(r => r.date === targetDateStr);
+    const rec = recordMap.get(targetDateStr);
 
     const isWeekoff = dateObj.getDay() === weeklyOffIdx;
 

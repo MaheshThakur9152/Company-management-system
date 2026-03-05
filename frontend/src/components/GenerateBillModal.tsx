@@ -151,7 +151,7 @@ const GenerateBillModal: React.FC<GenerateBillModalProps> = ({ isOpen, onClose, 
             calculateItems();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedSiteId]);
+    }, [selectedSiteId, attendanceData, employees, selectedMonth, selectedYear]);
 
     const handleDateSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.value) return;
